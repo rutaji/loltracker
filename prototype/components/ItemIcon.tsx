@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { geminiService } from '../services/geminiService';
 import { Item } from '../types';
 
@@ -12,7 +12,9 @@ const ItemIcon: React.FC<ItemIconProps> = ({ itemName, size = 'md' }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [details, setDetails] = useState<Item | null>(null);
   const [loading, setLoading] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
   const timerRef = useRef<number | null>(null);
+  const iconRef = useRef<HTMLDivElement>(null);
 
   const fetchDetails = async () => {
     if (details || loading) return;
@@ -28,10 +30,19 @@ const ItemIcon: React.FC<ItemIconProps> = ({ itemName, size = 'md' }) => {
   };
 
   const handleMouseEnter = () => {
+    if (iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect();
+      // Position the tooltip above the icon, centered horizontally
+      setCoords({
+        top: rect.top,
+        left: rect.left + rect.width / 2
+      });
+    }
+    
     timerRef.current = window.setTimeout(() => {
       setIsHovered(true);
       fetchDetails();
-    }, 200);
+    }, 150);
   };
 
   const handleMouseLeave = () => {
@@ -43,6 +54,7 @@ const ItemIcon: React.FC<ItemIconProps> = ({ itemName, size = 'md' }) => {
 
   return (
     <div 
+      ref={iconRef}
       className={`relative ${sizeClasses} bg-[#0a1428] border border-gray-800 rounded-sm group cursor-help`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -54,8 +66,16 @@ const ItemIcon: React.FC<ItemIconProps> = ({ itemName, size = 'md' }) => {
       />
       
       {isHovered && (
-        <div className="fixed z-[999] w-64 p-4 bg-[#0a1428] border border-[#c8aa6e]/50 rounded shadow-2xl pointer-events-none transform -translate-x-1/2 -translate-y-[120%] left-1/2 md:absolute md:left-auto md:right-0 md:translate-x-0 md:-translate-y-[110%] md:w-72 animate-fadeIn backdrop-blur-md">
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 md:left-auto md:right-4 w-4 h-4 bg-[#0a1428] border-r border-b border-[#c8aa6e]/50 rotate-45"></div>
+        <div 
+          className="fixed z-[9999] w-64 md:w-72 p-4 bg-[#0a1428] border border-[#c8aa6e]/50 rounded shadow-2xl pointer-events-none animate-fadeIn backdrop-blur-md"
+          style={{
+            top: `${coords.top - 10}px`,
+            left: `${coords.left}px`,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          {/* Tooltip Arrow */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#0a1428] border-r border-b border-[#c8aa6e]/50 rotate-45"></div>
           
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-4">
