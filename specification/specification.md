@@ -14,7 +14,7 @@ Systém:
 
 ## 2 Diagram tříd
 
-![alt text](pics/PSI-classDiagram.png)
+![alt text](diagrams/PSI-classDiagram.png)
 
 ## 3 Závislosti systému 
 
@@ -79,11 +79,11 @@ Backendová aplikace poskytuje server-side generované HTML stránky. Klient (we
 
 ## 5 Flowchart
 
-![alt text](pics/loltracker_flowchart.png)
+![alt text](diagrams/loltracker_flowchart.png)
 
 ## 6 Databáze
 
-![alt text](pics/Database.png)
+![alt text](diagrams/Database.png)
 
 
 Při přidání do tabulky Match_Participant se automaticky upraví hodnoty v tabulkách champion_stats a summoner.
@@ -99,7 +99,7 @@ Aplikace si sama kontroluje limit požadavků.
 todo todo todo
 
 
-![alt text](pics/backend.png)
+![alt text](diagrams/backend.png)
 
 ####  Prezentační vrstva
 
