@@ -5,9 +5,8 @@ import Layout from './components/Layout';
 import SearchBar from './components/SearchBar';
 import PlayerStats from './components/PlayerStats';
 import MatchHistory from './components/MatchHistory';
-import EsportsSection from './components/EsportsSection';
 import { geminiService } from './services/geminiService';
-import { PlayerSummary, Match, EsportsMatch, Standing, ProTeam, ProPlayer, Item } from './types';
+import { PlayerSummary, Match, Item } from './types';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -74,22 +73,6 @@ const LoginPage = () => {
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [esportsData, setEsportsData] = useState<{ matches: EsportsMatch[]; standings: Standing[] } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await geminiService.getEsportsData();
-        setEsportsData(data);
-      } catch (err) {
-        console.error("Failed to load esports data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
 
   const handleSearch = (name: string, region: string) => {
     navigate(`/profile/${region}/${name}`);
@@ -110,7 +93,7 @@ const HomePage = () => {
           Evolve your Game
         </h1>
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto font-light">
-          Analyze summoner performance, track your progress, and stay updated with the global League of Legends esports scene.
+          Analyze summoner performance, track your progress, and stay updated with the global League of Legends scene.
         </p>
       </div>
 
@@ -133,16 +116,6 @@ const HomePage = () => {
       </div>
 
       <div className="mt-24">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-4">
-             <div className="w-12 h-12 border-4 border-[#c8aa6e] border-t-transparent rounded-full animate-spin"></div>
-             <span className="text-gray-500 font-medium uppercase tracking-widest text-sm">Loading Nexus Data...</span>
-          </div>
-        ) : esportsData ? (
-          <EsportsSection matches={esportsData.matches} standings={esportsData.standings} />
-        ) : (
-           <div className="text-center py-12 text-gray-500">Failed to load live data. Please try again later.</div>
-        )}
       </div>
     </div>
   );
@@ -377,123 +350,6 @@ const ItemsPage = () => {
   );
 };
 
-const ProPlayPage = () => {
-  const [teams, setTeams] = useState<{id: string, name: string}[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-  const [teamDetails, setTeamDetails] = useState<ProTeam | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-
-  useEffect(() => {
-    geminiService.getProTeams().then(data => {
-      setTeams(data);
-      if (data.length > 0) setSelectedTeamId(data[0].id);
-      setLoading(false);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (selectedTeamId) {
-      setDetailsLoading(true);
-      geminiService.getProTeamDetails(selectedTeamId).then(data => {
-        setTeamDetails(data);
-        setDetailsLoading(false);
-      });
-    }
-  }, [selectedTeamId]);
-
-  if (loading) return <div className="p-20 text-center text-[#c8aa6e] animate-pulse">Initializing Team Hub...</div>;
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="w-full lg:w-64 shrink-0">
-          <h2 className="text-[#c8aa6e] text-xs font-bold uppercase tracking-[0.2em] mb-4 px-2">Global Organizations</h2>
-          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0">
-            {teams.map(team => (
-              <button key={team.id} onClick={() => setSelectedTeamId(team.id)} className={`flex items-center gap-3 px-4 py-3 rounded text-sm font-bold transition-all border shrink-0 lg:shrink ${selectedTeamId === team.id ? 'bg-[#c8aa6e] text-[#0a1428] border-[#c8aa6e]' : 'bg-[#0a1428] text-gray-400 border-[#1e2328] hover:border-[#3c3c41] hover:text-white'}`}>
-                <div className={`w-2 h-2 rounded-full ${selectedTeamId === team.id ? 'bg-[#0a1428]' : 'bg-[#1e2328]'}`}></div>
-                {team.name}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex-grow min-h-[600px] relative">
-          {detailsLoading || !teamDetails ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-               <div className="w-12 h-12 border-4 border-[#c8aa6e] border-t-transparent rounded-full animate-spin"></div>
-               <span className="text-gray-500 uppercase text-xs font-bold tracking-widest italic">Fetching Organization Data...</span>
-            </div>
-          ) : (
-            <div className="animate-fadeIn space-y-8">
-              <div className="bg-[#0a1428] border border-[#1e2328] p-8 rounded flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                <div className="w-24 h-24 bg-gray-900 rounded border border-[#c8aa6e] p-1 shrink-0"><img src={teamDetails.logo || `https://picsum.photos/seed/${teamDetails.id}/200/200`} alt={teamDetails.name} className="w-full h-full object-contain" /></div>
-                <div className="text-center md:text-left">
-                  <h1 className="lol-font text-5xl text-white uppercase tracking-tighter mb-1 italic">{teamDetails.name}</h1>
-                  <div className="text-[#c8aa6e] font-bold text-xs uppercase tracking-widest">{teamDetails.region} ORGANIZATION</div>
-                </div>
-                <div className="md:ml-auto grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-[#1e2328] rounded border border-[#3c3c41]">
-                    <div className="text-white text-xl font-black italic">{teamDetails.stats.winRate}%</div>
-                    <div className="text-[10px] text-gray-500 font-bold uppercase">Win Rate</div>
-                  </div>
-                  <div className="text-center p-3 bg-[#1e2328] rounded border border-[#3c3c41]">
-                    <div className="text-white text-xl font-black italic">+{teamDetails.stats.avgGoldDiffAt15}</div>
-                    <div className="text-[10px] text-gray-500 font-bold uppercase">GD@15</div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-white text-lg font-bold uppercase tracking-widest mb-4 border-l-4 border-[#c8aa6e] pl-4 italic">Active Roster</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                  {teamDetails.roster.map((player, i) => (
-                    <div key={i} className="bg-[#0a1428] border border-[#1e2328] hover:border-[#c8aa6e]/30 transition-all p-4 rounded group">
-                      <div className="aspect-[4/5] bg-gray-900 rounded mb-4 overflow-hidden relative"><img src={player.imageUrl || `https://picsum.photos/seed/${player.name}/400/500`} alt={player.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" /><div className="absolute bottom-2 right-2 bg-[#0a1428]/80 text-[#c8aa6e] text-[10px] font-bold px-2 py-1 border border-[#c8aa6e]/30 backdrop-blur-sm rounded italic">{player.role}</div></div>
-                      <div className="text-center"><div className="text-white font-black text-xl italic uppercase tracking-tighter">{player.name}</div><div className="text-gray-500 text-[10px] uppercase font-bold">{player.realName}</div></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-white text-lg font-bold uppercase tracking-widest mb-4 border-l-4 border-[#c8aa6e] pl-4 italic">Campaign History</h3>
-                <div className="space-y-3">
-                  {teamDetails.recentMatches.map(match => (
-                    <div key={match.id} className="bg-[#0a1428] border border-[#1e2328] hover:bg-[#1e2328]/30 p-4 rounded flex items-center justify-between transition-colors">
-                      <div className="text-[10px] font-bold text-gray-500 w-24 uppercase">{match.league}</div>
-                      <div className="flex items-center gap-6 flex-grow justify-center"><div className="text-right w-32 font-bold text-sm text-white truncate">{match.teamA.name}</div><div className="bg-[#1e2328] px-4 py-1 rounded text-white font-black italic border border-[#3c3c41]">{match.teamA.score} - {match.teamB.score}</div><div className="text-left w-32 font-bold text-sm text-white truncate">{match.teamB.name}</div></div>
-                      <div className="text-[10px] font-bold text-[#c8aa6e] w-24 text-right uppercase italic">{match.status}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const LeaderboardsPage = () => {
-  const [players, setPlayers] = useState<any[]>([]);
-  const [region, setRegion] = useState('kr');
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  useEffect(() => {
-    setLoading(true);
-    geminiService.getLeaderboard(region).then(data => {
-      setPlayers(data);
-      setLoading(false);
-    });
-  }, [region]);
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"><h1 className="lol-font text-4xl text-[#c8aa6e] uppercase tracking-tighter">Leaderboards</h1><div className="flex gap-2 bg-[#1e2328] p-1 rounded border border-[#3c3c41]">{['kr', 'na', 'euw'].map(r => <button key={r} onClick={() => setRegion(r)} className={`px-4 py-1.5 rounded text-xs font-bold uppercase transition-all ${region === r ? 'bg-[#c8aa6e] text-[#0a1428]' : 'text-gray-400 hover:text-white'}`}>{r.toUpperCase()}</button>)}</div></div>
-      <div className="bg-[#0a1428] border border-[#1e2328] rounded overflow-hidden"><table className="w-full text-left"><thead className="bg-[#1e2328] border-b border-[#3c3c41] text-gray-500 text-[10px] font-bold uppercase tracking-widest"><tr><th className="px-6 py-4">Rank</th><th className="px-6 py-4">Summoner</th><th className="px-6 py-4">LP</th><th className="px-6 py-4">Win Rate</th><th className="px-6 py-4">Level</th></tr></thead><tbody className="divide-y divide-[#1e2328]">{loading ? <tr><td colSpan={5} className="text-center py-20 text-gray-500">Updating Rankings...</td></tr> : players.map((p, i) => <tr key={i} onClick={() => navigate(`/profile/${region}/${p.summonerName}`)} className="hover:bg-blue-500/5 transition-colors cursor-pointer group"><td className="px-6 py-4 font-bold italic text-[#c8aa6e]">#{p.rank}</td><td className="px-6 py-4 font-bold text-white group-hover:text-[#c8aa6e] transition-colors">{p.summonerName}</td><td className="px-6 py-4 text-gray-300 font-medium">{p.lp} LP</td><td className="px-6 py-4"><div className="flex items-center gap-2"><span className="text-gray-300">{p.winRate}%</span><div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: `${p.winRate}%` }}></div></div></div></td><td className="px-6 py-4 text-gray-500">{p.level}</td></tr>)}</tbody></table></div>
-    </div>
-  );
-};
-
 const ProfilePage = () => {
   const [player, setPlayer] = useState<PlayerSummary | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -528,8 +384,6 @@ const App: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/champions" element={<ChampionsPage />} />
           <Route path="/items" element={<ItemsPage />} />
-          <Route path="/leaderboards" element={<LeaderboardsPage />} />
-          <Route path="/pro-play" element={<ProPlayPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile/:region/:name" element={<ProfilePage />} />
         </Routes>

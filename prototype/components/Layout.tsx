@@ -37,18 +37,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             >
               Items
             </Link>
-            <Link 
-              to="/pro-play" 
-              className={`font-medium transition-colors ${isActive('/pro-play') ? 'text-[#c8aa6e]' : 'text-gray-400 hover:text-white'}`}
-            >
-              Pro Play
-            </Link>
-            <Link 
-              to="/leaderboards" 
-              className={`font-medium transition-colors ${isActive('/leaderboards') ? 'text-[#c8aa6e]' : 'text-gray-400 hover:text-white'}`}
-            >
-              Leaderboards
-            </Link>
           </nav>
           <div className="flex items-center space-x-4">
             <button 

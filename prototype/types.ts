@@ -58,59 +58,10 @@ export interface Match {
   }>;
 }
 
-export interface EsportsMatch {
-  id: string;
-  league: string;
-  teamA: {
-    name: string;
-    logo: string;
-    score: number;
-  };
-  teamB: {
-    name: string;
-    logo: string;
-    score: number;
-  };
-  status: 'upcoming' | 'live' | 'completed';
-  timestamp: string;
-  matchDetails?: Match;
-}
-
-export interface Standing {
-  teamName: string;
-  logo: string;
-  wins: number;
-  losses: number;
-  rank: number;
-}
-
 export interface ChampionAbility {
   key: string; // P, Q, W, E, R
   name: string;
   description: string;
-}
-
-export interface ProPlayer {
-  name: string;
-  realName: string;
-  role: 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
-  nationality: string;
-  imageUrl: string;
-}
-
-export interface ProTeam {
-  id: string;
-  name: string;
-  logo: string;
-  region: string;
-  stats: {
-    winRate: number;
-    avgGoldDiffAt15: number;
-    firstBloodRate: number;
-    towerRate: number;
-  };
-  roster: ProPlayer[];
-  recentMatches: EsportsMatch[];
 }
 
 export interface Item {
