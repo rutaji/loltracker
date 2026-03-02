@@ -1,0 +1,47 @@
+erDiagram
+   Match {
+        string ID PK
+        int created
+        int ended
+        string gametype
+        string patch
+    } 
+    Match_Participant{
+        string SummonerId PK,FK
+        string matchId PK, FK
+        int kill
+        int death
+        int assist
+        int gold
+        int team
+        int won
+        int champion FK
+    }
+    Champion{
+        string id 
+        string name PK
+    }
+    champion_stats{
+        string champion PK, FK
+        string patch PK
+        string gametype PK
+        int gamePlayed 
+        int gameWon 
+        int kill
+        int death
+        int assist
+    }
+    Summoner{
+        string name  "INDEX"
+        string id PK
+        int gamePlayed
+        int gameWon
+    }
+
+    Summoner ||--o{ Match_Participant : ""
+    Match ||--o{ Match_Participant : ""
+    Champion ||--o{ Match_Participant : ""
+    Champion ||--o{ champion_stats : ""
+
+
+
