@@ -124,13 +124,22 @@ const HomePage = () => {
 const ChampionDetailsModal = ({ championName, onClose }: { championName: string, onClose: () => void }) => {
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedVersion, setSelectedVersion] = useState<string>('');
 
   useEffect(() => {
     geminiService.getChampionDetails(championName).then(data => {
       setDetails(data);
+      if (data.globalStats && data.globalStats.length > 0) {
+        setSelectedVersion(data.globalStats[0].version);
+      }
       setLoading(false);
     });
   }, [championName]);
+
+  const currentStats = useMemo(() => {
+    if (!details || !details.globalStats) return null;
+    return details.globalStats.find((s: any) => s.version === selectedVersion) || details.globalStats[0];
+  }, [details, selectedVersion]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#010a13]/90 backdrop-blur-sm animate-fadeIn">
@@ -185,6 +194,47 @@ const ChampionDetailsModal = ({ championName, onClose }: { championName: string,
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-12 pt-8 border-t border-[#1e2328]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <h3 className="text-white text-xs font-bold uppercase tracking-widest italic opacity-70">Global Performance Statistics</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Version</span>
+                    <select 
+                      value={selectedVersion} 
+                      onChange={(e) => setSelectedVersion(e.target.value)}
+                      className="bg-[#0a1428] border border-[#3c3c41] text-[#c8aa6e] text-[10px] font-bold uppercase px-3 py-1.5 rounded outline-none focus:border-[#c8aa6e] transition-colors"
+                    >
+                      {details.globalStats.map((s: any) => (
+                        <option key={s.version} value={s.version}>Patch {s.version}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {currentStats && (
+                  <div className="bg-[#1e2328]/30 border border-[#3c3c41] rounded p-6 animate-fadeIn">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                      {currentStats.winRates.map((modeStat: any, mIdx: number) => (
+                        <div key={mIdx} className="flex flex-col gap-3">
+                          <div className="flex justify-between items-end">
+                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{modeStat.mode}</span>
+                            <span className={`text-sm font-black italic ${modeStat.winRate >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {modeStat.winRate}%
+                            </span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-500 ease-out ${modeStat.winRate >= 50 ? 'bg-emerald-500' : 'bg-red-500'}`} 
+                              style={{ width: `${modeStat.winRate}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
