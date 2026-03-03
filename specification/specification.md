@@ -70,12 +70,6 @@ Backendová aplikace poskytuje server-side generované HTML stránky. Klient (we
 - obsahuje všechny účastníky zápasu a jejich score
 - obsahuje čas začátku a konce zápasu
 
-### 4.2 Architektonický model
-
-- aplikace odpovídá modelu MVC:
-- model – databázové entity (hráč, zápas)
-- view – HTML šablony
-- controller – router, endpointy FastAPI
 
 ## 5 Flowchart
 
@@ -95,9 +89,6 @@ Stažená data se ukládají do databáze. Systém má seznam hráčů, pro kter
 Aplikace si sama kontroluje limit požadavků.
 
 ### 10 Architektura backendu
-
-todo todo todo
-
 
 ![alt text](diagrams/backend.png)
 
