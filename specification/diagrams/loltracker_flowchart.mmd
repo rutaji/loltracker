@@ -1,0 +1,39 @@
+---
+config:
+  layout: dagre
+---
+flowchart TB
+    A["User opens Home Page"] --> B["Search bar: Summoner Name OR Champion Name"]
+    B --> E{"Identify query type"}
+    E -- Summoner name match --> S1["Route: Summoner Profile Page"]
+    E -- Champion name match --> H1["Route: Champion Page"]
+    X1@{ label: "Show suggestions / 'No results' + hints" } --> B
+    S3["Read Azure DB: Summoner + Stats + Match history (filtered)"] --> S4{"Data present AND fresh?"}
+    S4 -- Yes --> S5["Render Summoner stats + match history"]
+    S5 --> S6["User changes patch/gamemode filters"]
+    H6 --> H3
+    S4 -- No / stale --> S7["Call Riot API: Summoner endpoint"]
+    S7 --> R1{"Rate limit / API failure?"}
+    S8{"Summoner exists in Riot?"} -- No --> S9@{ label: "Show 'Summoner not found'" }
+    S8 -- Yes --> S10["Upsert Summoner into Azure DB"]
+    S10 --> S11["Call Riot API: Matchlist (by patch/gamemode constraints if available)"]
+    S11 --> S12["For each match ID: fetch match details"]
+    S12 --> S13["Upsert Match + MatchParticipants + Items + Champion + Gamemode + GameVersion"]
+    S13 --> S14["Commit transaction"]
+    S14 --> T1[("Azure SQL Triggers")]
+    T1 --> T2["Update Summoner aggregated stats (wins/losses/kda/etc.)"] & T3["Update ChampionModeStats aggregates (champion x patch x gamemode)"]
+    T2 --> S15["Re-read Azure DB (now fresh)"]
+    S15 --> S5
+    H5["Render Champion stats (winrate, games played, etc.)"] --> H6["User changes patch/gamemode filters"]
+    R1 -- Yes --> R2@{ label: "Serve best-effort cached data + show 'may be outdated'" }
+    R2 --> S5
+    R1 -- No --> S8
+    E -- Ambiguous / none --> X1
+    S1 --> S3
+    H1 --> H3["Read Azure DB: ChampionStats + basic champion info (filtered)"]
+    H3 --> H5
+    S6 --> S3
+
+    X1@{ shape: rect}
+    S9@{ shape: rect}
+    R2@{ shape: rect}
