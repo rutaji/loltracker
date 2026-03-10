@@ -1,9 +1,6 @@
 from fastapi import HTTPException
 
-initOffset=0
-initCount=20
-
-def get_summoner_service(name: str, dao):
+def get_summoner_service(name: str, dao, offset: int, count: int):
     summonerData=dao.get_summoner(name)
 
     if summonerData is None:
@@ -12,7 +9,7 @@ def get_summoner_service(name: str, dao):
     summonerData["winrate"]=calc_winrate(summonerData["wins"], summonerData["losses"])
     summonerData["kda"]=calc_kda(summonerData["kills"], summonerData["deaths"], summonerData["assists"])
     
-    matchData=get_matches(name, initOffset, initCount, dao)
+    matchData=get_matches(name, offset, count, dao)
 
     return {
         "summoner": summonerData,
@@ -21,14 +18,13 @@ def get_summoner_service(name: str, dao):
 
 def get_matches(name: str, offset: int, count: int, dao):
     matches=dao.get_matches(name, offset, count)
-    hasMore=True
 
-    if len(matches) < count:
-        hasMore=False
+    hasMore = len(matches) == count
 
     return {
         "matches": matches,
-        "hasMore": hasMore
+        "hasMore": hasMore,
+        "nextOffset": offset+count
     }
 
 def calc_winrate(wins: int, losses: int):
