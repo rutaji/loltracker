@@ -1,0 +1,19 @@
+<h1>{{ summoner.name }}</h1>
+
+<p>Winrate: {{ summoner.winrate }}</p>
+<p>KDA: {{ summoner.kda }}</p>
+
+<h2>Matches</h2>
+
+<ul>
+{% for match in matchData.matches %}
+    <li>
+        Champion: {{ match.champion }}
+        Result: {{ match.result }}
+    </li>
+{% endfor %}
+</ul>
+
+{% if matchData.hasMore %}
+<p>More matches available...</p>
+{% endif %}
