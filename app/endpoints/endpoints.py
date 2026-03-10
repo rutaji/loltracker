@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.encoders import jsonable_encoder
 from app.services.summonerServices import get_summoner_service
 from app.services.stubDAO import stubDAO
 
@@ -21,7 +22,7 @@ async def get_summoner(request: Request, name: str, offset: int = 0, ajax: bool 
     data=get_summoner_service(name, dao, offset, count)
 
     if ajax:
-        return JSONResponse(data["matchData"])
+        return JSONResponse(jsonable_encoder(data["matchData"]))
 
     return templates.TemplateResponse(
         "summoner.html",
