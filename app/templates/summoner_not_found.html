@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <title>Summoner Not Found</title>
+    </head>
+    <body>
+        <form method="post" action="{{ request.url_for('search') }}" id="summoner_form">
+            <h2>Summoner search</h2>
+            <label for="summoner_name">Name</label>
+            <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
+            <label for="summoner_tagline">Tagline</label>
+            <input type="text" name="summoner_tagline" minlength="3" maxlength="5" required>
+            <button type="submit">Search</button>
+        </form>
+
+        <h3>Summoner Not Found</h3>
+        <p><b>{{ searched_name }}#{{ searched_tagline }}</b> does not exist.</p>
+    </body>
+</html>
