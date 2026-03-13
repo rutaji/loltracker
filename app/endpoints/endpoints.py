@@ -33,15 +33,15 @@ async def search(
         if summoner:
             return RedirectResponse(
                 url=(
-                    f"/summoner/{quote(summoner_name, safe="")}"
-                    f"/{quote(summoner_tagline, safe="")}"
+                    f"/summoner/{quote(summoner_name, safe='')}"
+                    f"/{quote(summoner_tagline, safe='')}"
                 ),
                 status_code=303,
             )
         return RedirectResponse(
             url=(
-                f"/summoner/not-found?name={quote(summoner_name, safe="")}"
-                f"&tagline={quote(summoner_tagline, safe="")}"
+                f"/summoner/not-found?name={quote(summoner_name, safe='')}"
+                f"&tagline={quote(summoner_tagline, safe='')}"
             ),
             status_code=303
         )
@@ -71,8 +71,8 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
     if summoner is None:
         return RedirectResponse(
             url=(
-                f"/summoner/not-found?name={quote(name, safe="")}"
-                f"&tagline={quote(tagline, safe="")}"
+                f"/summoner/not-found?name={quote(name, safe='')}"
+                f"&tagline={quote(tagline, safe='')}"
             ),
             status_code=303
         )
@@ -81,15 +81,15 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
     summoner_data = SummonerData(summoner=summoner, matchPage=match_page)
 
     if ajax:
-        return summoner_data
+        return JSONResponse(content=jsonable_encoder(summoner_data))
 
     return templates.TemplateResponse(
-        "summoner.html",
-        {
-            "request": request,
+        request=request,
+        name="summoner.html",
+        context={
             "summoner": summoner,
             "matchData": match_page
-        }
+        },
     )
 
 @router.get("/summoner/not-found")
