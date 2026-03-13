@@ -1,11 +1,12 @@
-import pytest
+import sys, os
 from datetime import datetime
 from app.services.summonerServices import get_summoner_service, get_matches_service
-from fastapi import HTTPException
 from app.models.summonerModels import Summoner, Match, MatchParticipant
 
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 class MockDAO:
-    def get_matches(self, name, offset, count):
+    def get_matches(self, name, tagline, offset, count):
 
         all_matches = [
             Match(
@@ -22,10 +23,11 @@ class MockDAO:
         return all_matches[offset:offset+count]
     
 class MockSummonerDAO:
-    def get_summoner(self, name):
+    def get_summoner(self, name, tagline):
         if name == "test":
             return Summoner(
                 name="test",
+                tagline=tagline,
                 wins=5,
                 losses=5,
                 kills=10,
@@ -34,7 +36,7 @@ class MockSummonerDAO:
             )
         return None
 
-    def get_matches(self, name, offset, count):
+    def get_matches(self, name, tagline, offset, count):
         return [
             Match(
                 match_id=i,
@@ -48,57 +50,56 @@ class MockSummonerDAO:
         ]
 
 def test_winrate_normal():
-    s = Summoner(name="test", wins=1, losses=1, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=1, losses=1, kills=0, deaths=1, assists=0)
     assert s.winrate == 50
 
-    s = Summoner(name="test", wins=75, losses=25, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=75, losses=25, kills=0, deaths=1, assists=0)
     assert s.winrate == 75
 
-    s = Summoner(name="test", wins=1, losses=0, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=1, losses=0, kills=0, deaths=1, assists=0)
     assert s.winrate == 100
 
 def test_winrate_float():
-    s = Summoner(name="test", wins=2, losses=1, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=2, losses=1, kills=0, deaths=1, assists=0)
     assert round(s.winrate, 2) == 66.67
 
 def test_winrate_edge():
-    s = Summoner(name="test", wins=0, losses=0, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=0, losses=0, kills=0, deaths=1, assists=0)
     assert s.winrate == -1
 
 def test_kda_normal():
-    s = Summoner(name="test", wins=0, losses=0, kills=10, deaths=5, assists=5)
+    s = Summoner(name="test", tagline="euw", wins=0, losses=0, kills=10, deaths=5, assists=5)
     assert s.kda == 3
 
-def test_kda_normal():
-    s = Summoner(name="test", wins=0, losses=0, kills=10, deaths=5, assists=5)
-    assert s.kda == 3
+def test_kda_zero_deaths():
+    s = Summoner(name="test", tagline="euw", wins=0, losses=0, kills=10, deaths=0, assists=5)
+    assert s.kda == 15
 
 def test_get_matches_pagination():
     dao = MockDAO()
     
-    result = get_matches_service("test", 0, 2, dao)
+    result = get_matches_service("test", "euw", 0, 2, dao)
     assert result.matches[0].match_id == 0
     assert result.matches[1].match_id == 1
     assert result.hasMore is True
     assert result.nextOffset == 2
     
-    result = get_matches_service("test", 4, 2, dao)
+    result = get_matches_service("test", "euw", 4, 2, dao)
     assert result.matches[0].match_id == 4
     assert result.hasMore is False
     assert result.nextOffset == 6
 
 def test_get_summoner_service_found():
     dao = MockSummonerDAO()
-    result = get_summoner_service("test", dao, 0, 3)
+    result = get_summoner_service("test", "euw", dao)
     
-    assert result["summoner"].name == "test"
-    assert result["summoner"].winrate == 50
-    assert result["summoner"].kda == 3
-    assert len(result["matchData"].matches) == 3
-    assert result["matchData"].hasMore is True
+    assert result is not None
+    assert result.name == "test"
+    assert result.tagline == "euw"
+    assert result.winrate == 50
+    assert result.kda == 3
 
 def test_get_summoner_service_not_found():
     dao = MockSummonerDAO()
-    with pytest.raises(HTTPException) as excinfo:
-        get_summoner_service("nope", dao, 0, 3)
-    assert excinfo.value.status_code == 404
+    result = get_summoner_service("nope", "euw", dao)
+    assert result is None

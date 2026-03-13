@@ -22,6 +22,7 @@ class Match(BaseModel):
 
 class Summoner(BaseModel):
     name: str
+    tagline: str
     wins: int
     losses: int
     kills: int
@@ -44,3 +45,7 @@ class MatchPage(BaseModel):
     matches: List[Match]
     hasMore: bool
     nextOffset: int
+
+class SummonerData(BaseModel):
+    summoner: Summoner
+    matchPage: MatchPage

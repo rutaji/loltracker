@@ -7,12 +7,53 @@ from app.main import app
 
 client = TestClient(app)
 
+def test_root_page_renders():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Choose search:" in response.text
+
+def test_search_redirects_to_summoner_page():
+    response = client.post(
+        "/",
+        data={"summoner_name": "test", "summoner_tagline": "euw", "champion_name": ""},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/summoner/test/euw"
+
+def test_search_redirects_to_not_found_page():
+    response = client.post(
+        "/",
+        data={"summoner_name": "missing", "summoner_tagline": "euw", "champion_name": ""},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/summoner/not-found?name=missing&tagline=euw"
+
 def test_summoner_page_found():
-    response = client.get("/summoner/test")
+    response = client.get("/summoner/test/euw")
     assert response.status_code == 200
     assert "test" in response.text
+    assert "Matches" in response.text
 
-def test_summoner_page_not_found():
-    response = client.get("/summoner/nonexistent")
-    assert response.status_code == 404
+def test_summoner_page_not_found_redirects():
+    response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/summoner/not-found?name=nonexistent&tagline=euw"
+
+def test_summoner_matches_ajax_response():
+    response = client.get("/summoner/test/euw?offset=0&ajax=true")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["summoner"]["name"] == "test"
+    assert data["summoner"]["tagline"] == "euw"
+    assert len(data["matchPage"]["matches"]) == 3
+    assert data["matchPage"]["nextOffset"] == 3
+
+def test_not_found_page_displays_searched_summoner():
+    response = client.get("/summoner/not-found?name=missing&tagline=euw")
+    assert response.status_code == 200
+    assert "Summoner Not Found" in response.text
+    assert "missing#euw" in response.text
 

@@ -37,10 +37,11 @@ class stubDAO:
             for i in range(1, 9)
         ]
 
-    def get_summoner(self, name: str):
+    def get_summoner(self, name: str, tagline: str):
         if name == "test":
             return Summoner(
                 name="test",
+                tagline=tagline,
                 wins=53,
                 losses=47,
                 kills=300,
@@ -49,5 +50,5 @@ class stubDAO:
             )
         return None
 
-    def get_matches(self, name: str, offset: int, count: int):
+    def get_matches(self, name: str, tagline: str, offset: int, count: int):
         return self.matches[offset:offset+count]
