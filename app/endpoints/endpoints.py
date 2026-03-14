@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
 from app.services.summonerServices import get_summoner_service, get_matches_service
+from app.services.championServices import get_champion_service
 from app.services.stubDAO import stubDAO
 from app.models.summonerModels import SummonerData
 
@@ -47,15 +48,19 @@ async def search(
         )
 
     # Champion path
-    '''
     if champion_name:
-        champion = get_champion_service()
+        champion = get_champion_service(champion_name, dao)
         if champion:
             return RedirectResponse(
                 url=f"/champion/{quote(champion_name, safe='')}",
                 status_code=303,
             )
-    '''
+        return RedirectResponse(
+            url=(
+                f"/champion/not-found?name={quote(champion_name, safe='')}"
+            ),
+            status_code=303
+        )
 
     return RedirectResponse(
         url=f"/",
@@ -101,5 +106,36 @@ async def summoner_not_found(request: Request, name: str = "", tagline: str = ""
         context={
             "searched_name": name,
             "searched_tagline": tagline,
+        },
+    )
+
+@router.get("/champion/{name}")
+async def get_champion(request: Request, name: str):
+    champion = get_champion_service(name, dao)
+
+    if champion is None:
+        return RedirectResponse(
+            url=(
+                f"/champion/not-found?name={quote(name, safe='')}"
+            ),
+            status_code=303
+        )
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="champion.html",
+        context={
+            "championData": champion
+        },
+    )
+
+@router.get("/champion/not-found")
+async def champion_not_found(request: Request, name: str = ""):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="champion_not_found.html",
+        context={
+            "searched_name": name,
         },
     )
