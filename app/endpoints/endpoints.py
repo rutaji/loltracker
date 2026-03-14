@@ -78,10 +78,10 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
         )
 
     match_page = get_matches_service(name, tagline, offset, count, dao)
-    summoner_data = SummonerData(summoner=summoner, matchPage=match_page)
+    #summoner_data = SummonerData(summoner=summoner, matchPage=match_page)
 
     if ajax:
-        return JSONResponse(content=jsonable_encoder(summoner_data))
+        return JSONResponse(content=jsonable_encoder(match_page))
 
     return templates.TemplateResponse(
         request=request,
