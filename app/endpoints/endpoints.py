@@ -67,6 +67,18 @@ async def search(
         status_code=303
     )
 
+@router.get("/summoner/not-found")
+async def summoner_not_found(request: Request, name: str = "", tagline: str = ""):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="summoner_not_found.html",
+        context={
+            "searched_name": name,
+            "searched_tagline": tagline,
+        },
+    )
+
 @router.get("/summoner/{name}/{tagline}", response_class=HTMLResponse)
 async def get_summoner(request: Request, name: str, tagline: str, offset: int = 0, ajax: bool = False):
 
@@ -97,15 +109,14 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
         },
     )
 
-@router.get("/summoner/not-found")
-async def summoner_not_found(request: Request, name: str = "", tagline: str = ""):
+@router.get("/champion/not-found")
+async def champion_not_found(request: Request, name: str = ""):
 
     return templates.TemplateResponse(
         request=request,
-        name="summoner_not_found.html",
+        name="champion_not_found.html",
         context={
             "searched_name": name,
-            "searched_tagline": tagline,
         },
     )
 
@@ -126,16 +137,5 @@ async def get_champion(request: Request, name: str):
         name="champion.html",
         context={
             "championData": champion
-        },
-    )
-
-@router.get("/champion/not-found")
-async def champion_not_found(request: Request, name: str = ""):
-
-    return templates.TemplateResponse(
-        request=request,
-        name="champion_not_found.html",
-        context={
-            "searched_name": name,
         },
     )

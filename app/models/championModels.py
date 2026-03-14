@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from datetime import datetime
 from typing import List
 
 class ChampionStats(BaseModel):
@@ -31,11 +30,11 @@ class ChampionStats(BaseModel):
     
     @property
     def banrate(self):
-        return (self.banned/self.rankedMatchesAnalyzed)*100
+        return (self.banned/self.rankedMatchesAnalyzed)*100 if self.rankedMatchesAnalyzed else 0
     
     @property
     def pickrate(self):
-        return (self.gamesPlayed/self.matchesAnalyzed)*100
+        return (self.gamesPlayed/self.matchesAnalyzed)*100 if self.matchesAnalyzed else 0
 
 
 class Champion(BaseModel):

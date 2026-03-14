@@ -1,4 +1,5 @@
 from app.models.summonerModels import Summoner, Match, MatchParticipant
+from app.models.championModels import Champion, ChampionStats
 from datetime import datetime
 
 class stubDAO:
@@ -37,6 +38,68 @@ class stubDAO:
             for i in range(1, 9)
         ]
 
+        self.champions = {
+            "ahri": Champion(
+                name="Ahri",
+                championStats=[
+                    ChampionStats(
+                        version="14.5",
+                        gamemode="Ranked Solo",
+                        wins=520,
+                        losses=480,
+                        kills=7200,
+                        deaths=4100,
+                        assists=6900,
+                        banned=230,
+                        matchesAnalyzed=12000,
+                        rankedMatchesAnalyzed=9000
+                    ),
+                    ChampionStats(
+                        version="14.5",
+                        gamemode="ARAM",
+                        wins=310,
+                        losses=290,
+                        kills=4500,
+                        deaths=3000,
+                        assists=6100,
+                        banned=0,
+                        matchesAnalyzed=7000,
+                        rankedMatchesAnalyzed=0
+                    ),
+                    ChampionStats(
+                        version="14.4",
+                        gamemode="Ranked Solo",
+                        wins=490,
+                        losses=510,
+                        kills=6900,
+                        deaths=4200,
+                        assists=6500,
+                        banned=260,
+                        matchesAnalyzed=11500,
+                        rankedMatchesAnalyzed=8700
+                    )
+                ]
+            ),
+
+            "zed": Champion(
+                name="Zed",
+                championStats=[
+                    ChampionStats(
+                        version="14.5",
+                        gamemode="Ranked Solo",
+                        wins=610,
+                        losses=390,
+                        kills=8800,
+                        deaths=4200,
+                        assists=3100,
+                        banned=800,
+                        matchesAnalyzed=12000,
+                        rankedMatchesAnalyzed=9000
+                    )
+                ]
+            )
+        }
+
     def get_summoner(self, name: str, tagline: str):
         if name == "test":
             return Summoner(
@@ -52,3 +115,6 @@ class stubDAO:
 
     def get_matches(self, name: str, tagline: str, offset: int, count: int):
         return self.matches[offset:offset+count]
+    
+    def get_champion(self, name: str):
+        return self.champions.get(name.lower())

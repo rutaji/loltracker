@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ championData.name }} Stats</title>
+</head>
+<body>
+<form method="post" action="{{ request.url_for('search') }}" id="champion_form">
+    <h2>Champion search</h2>
+    <label for="champion_name">Name</label>
+    <input type="text" name="champion_name" placeholder="Enter champion's name..." required>
+    <button type="submit">Search</button>
+</form>
+
+<h1>{{ championData.name }}</h1>
+
+<table border="1">
+<tr>
+    <th>Patch</th>
+    <th>Mode</th>
+    <th>Games</th>
+    <th>Winrate</th>
+    <th>KDA</th>
+    <th>Pickrate</th>
+    <th>Banrate</th>
+</tr>
+
+{% for stat in championData.championStats | sort(attribute="version", reverse=True) %}
+<tr>
+    <td>{{ stat.version }}</td>
+    <td>{{ stat.gamemode }}</td>
+    <td>{{ stat.gamesPlayed }}</td>
+    <td>{{ "%.2f"|format(stat.winrate) }}%</td>
+    <td>{{ "%.2f"|format(stat.kda) }}</td>
+    <td>{{ "%.2f"|format(stat.pickrate) }}%</td>
+    <td>{{ "%.2f"|format(stat.banrate) }}%</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>
