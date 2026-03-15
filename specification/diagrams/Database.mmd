@@ -1,14 +1,14 @@
 erDiagram
    Match {
-        string ID PK
+        string id PK
         int created
         int ended
         string gametype
         string patch
     } 
     Match_Participant{
-        string SummonerId PK,FK
-        string matchId PK, FK
+        string summoner_id PK,FK
+        string match_id PK, FK
         int kill
         int death
         int assist
@@ -25,8 +25,10 @@ erDiagram
         string champion PK, FK
         string patch PK
         string gametype PK
-        int gamePlayed 
-        int gameWon 
+        int game_played 
+        int game_won 
+        int games_picked
+        int games_ban
         int kill
         int death
         int assist
@@ -34,8 +36,8 @@ erDiagram
     Summoner{
         string name  "INDEX"
         string id PK
-        int gamePlayed
-        int gameWon
+        int game_played
+        int game_won
     }
 
     Summoner ||--o{ Match_Participant : ""

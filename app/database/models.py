@@ -29,7 +29,7 @@ class MatchParticipant(Base):
     gold = Column(Integer)
     team = Column(Integer)
     won = Column(Integer)
-    championship = Column(String)
+    champion = Column(String)
 
 class ChampionStats(Base):
     __tablename__ = "Champion_Stats"
