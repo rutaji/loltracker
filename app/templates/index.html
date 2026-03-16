@@ -1,12 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
-</head>
-<body>
-    <p>{{ text }}</p>
-</body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
+        <script src="{{ url_for('static', path='js/index.js') }}"></script>
+    </head>
+    <body>
+
+        <label for="search_type">Choose search:</label>
+        <select name="search_type" id="search_type">
+            <option value="summoner">Summoner</option>
+            <option value="champion">Champion</option>
+        </select>
+
+        <form method="post" action="{{ request.url_for('search') }}" id="summoner_form">
+            <h2>Summoner search</h2>
+            <label for="summoner_name">Name</label>
+            <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
+            <label for="summoner_tagline">Tagline</label>
+            <input type="text" name="summoner_tagline" minlength="3" maxlength="5" required>
+            <button type="submit">Search</button>
+        </form>
+        
+        <form method="post" action="{{ request.url_for('search') }}" id="champion_form">
+            <h2>Champion search</h2>
+            <label for="champion_name">Name</label>
+            <input type="text" name="champion_name" placeholder="Enter champion's name..." required>
+            <button type="submit">Search</button>
+        </form>
+    </body>
 </html>

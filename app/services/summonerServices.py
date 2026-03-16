@@ -1,21 +1,18 @@
+from typing import Optional
 from fastapi import HTTPException
-from app.models.summonerModels import MatchPage
+from app.models.summonerModels import Summoner, MatchPage
+from app.services.stubDAO import stubDAO
 
-def get_summoner_service(name: str, dao, offset: int, count: int):
-    summonerData=dao.get_summoner(name)
+def get_summoner_service(name: str, tagline: str, dao: stubDAO) -> Optional[Summoner]:
+    summoner = dao.get_summoner(name, tagline)
 
-    if summonerData is None:
-        raise HTTPException(status_code=404, detail=f"No summoner named {name} was found")
+    if summoner is None:
+        return None
+    
+    return summoner
 
-    matchData=get_matches_service(name, offset, count, dao)
-
-    return {
-        "summoner": summonerData,
-        "matchData": matchData
-    }
-
-def get_matches_service(name: str, offset: int, count: int, dao):
-    matches=dao.get_matches(name, offset, count)
+def get_matches_service(name: str, tagline: str, offset: int, count: int, dao: stubDAO) -> MatchPage:
+    matches=dao.get_matches(name, tagline, offset, count)
 
     hasMore = len(matches) == count
 
