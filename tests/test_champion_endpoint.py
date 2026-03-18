@@ -23,3 +23,28 @@ def test_not_found_page_displays_searched_champion():
     assert response.status_code == 200
     assert "Champion Not Found" in response.text
     assert "missing" in response.text
+
+def test_champion_ajax_response():
+    response = client.get("/champion/ahri?version=14.5&ajax=true")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["name"] == "Ahri"
+    assert len(data["championStats"]) > 0
+
+def test_champion_ajax_filters_version():
+    response = client.get("/champion/ahri?version=14.4&ajax=true")
+
+    data = response.json()
+
+    for stat in data["championStats"]:
+        assert stat["version"] == "14.4"
+
+def test_champion_no_stats_for_version():
+    response = client.get("/champion/ahri?version=99.9&ajax=true")
+
+    data = response.json()
+
+    assert data["championStats"] == []

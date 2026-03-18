@@ -46,37 +46,34 @@ class stubDAO:
                         version="14.5",
                         gamemode="Ranked Solo",
                         wins=520,
-                        losses=480,
+                        gamesPlayed=1000,
                         kills=7200,
                         deaths=4100,
                         assists=6900,
                         banned=230,
-                        matchesAnalyzed=12000,
-                        rankedMatchesAnalyzed=9000
+                        matchesAnalyzed=12000
                     ),
                     ChampionStats(
                         version="14.5",
                         gamemode="ARAM",
                         wins=310,
-                        losses=290,
+                        gamesPlayed=600,
                         kills=4500,
                         deaths=3000,
                         assists=6100,
                         banned=0,
-                        matchesAnalyzed=7000,
-                        rankedMatchesAnalyzed=0
+                        matchesAnalyzed=7000
                     ),
                     ChampionStats(
                         version="14.4",
                         gamemode="Ranked Solo",
                         wins=490,
-                        losses=510,
+                        gamesPlayed=1000,
                         kills=6900,
                         deaths=4200,
                         assists=6500,
                         banned=260,
-                        matchesAnalyzed=11500,
-                        rankedMatchesAnalyzed=8700
+                        matchesAnalyzed=11500
                     )
                 ]
             ),
@@ -88,13 +85,12 @@ class stubDAO:
                         version="14.5",
                         gamemode="Ranked Solo",
                         wins=610,
-                        losses=390,
+                        gamesPlayed=900,
                         kills=8800,
                         deaths=4200,
                         assists=3100,
                         banned=800,
-                        matchesAnalyzed=12000,
-                        rankedMatchesAnalyzed=9000
+                        matchesAnalyzed=1200
                     )
                 ]
             )
@@ -116,5 +112,18 @@ class stubDAO:
     def get_matches(self, name: str, tagline: str, offset: int, count: int):
         return self.matches[offset:offset+count]
     
-    def get_champion(self, name: str):
-        return self.champions.get(name.lower())
+    def get_champion(self, name: str, version: str):
+        champ = self.champions.get(name.lower())
+
+        if not champ:
+            return None
+
+        filtered_stats = [
+            stat for stat in champ.championStats
+            if stat.version == version
+        ]
+
+        return Champion(
+            name=champ.name,
+            championStats=filtered_stats
+        )

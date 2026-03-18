@@ -5,17 +5,12 @@ class ChampionStats(BaseModel):
     version: str
     gamemode: str
     wins: int
-    losses: int
+    gamesPlayed: int
     kills: int
     deaths: int
     assists: int
     banned: int
     matchesAnalyzed: int
-    rankedMatchesAnalyzed: int
-
-    @property
-    def gamesPlayed(self):
-        return self.wins + self.losses
     
     @property
     def winrate(self):
@@ -30,7 +25,7 @@ class ChampionStats(BaseModel):
     
     @property
     def banrate(self):
-        return (self.banned/self.rankedMatchesAnalyzed)*100 if self.rankedMatchesAnalyzed else 0
+        return (self.banned/self.matchesAnalyzed)*100 if self.matchesAnalyzed else 0
     
     @property
     def pickrate(self):

@@ -49,7 +49,7 @@ async def search(
 
     # Champion path
     if champion_name:
-        champion = get_champion_service(champion_name, dao)
+        champion = get_champion_service(champion_name, "14.5", dao)
         if champion:
             return RedirectResponse(
                 url=f"/champion/{quote(champion_name, safe='')}",
@@ -121,8 +121,8 @@ async def champion_not_found(request: Request, name: str = ""):
     )
 
 @router.get("/champion/{name}")
-async def get_champion(request: Request, name: str):
-    champion = get_champion_service(name, dao)
+async def get_champion(request: Request, name: str, version: str="14.5", ajax: bool=False):
+    champion = get_champion_service(name, version, dao)
 
     if champion is None:
         return RedirectResponse(
@@ -132,10 +132,14 @@ async def get_champion(request: Request, name: str):
             status_code=303
         )
     
+    if ajax:
+        return JSONResponse(content=jsonable_encoder(champion))
+    
     return templates.TemplateResponse(
         request=request,
         name="champion.html",
         context={
-            "championData": champion
+            "championData": champion,
+            "version": version
         },
     )
