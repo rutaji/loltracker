@@ -14,12 +14,12 @@ erDiagram
         int assist
         int gold
         int team
-        int won
+        bool won
         int champion FK
     }
     Champion{
-        string id 
-        string name PK
+        string id PK
+        string name 
     }
     champion_stats{
         string champion PK, FK
@@ -27,7 +27,6 @@ erDiagram
         string gametype PK
         int game_played 
         int game_won 
-        int games_picked
         int games_ban
         int kill
         int death
@@ -38,6 +37,11 @@ erDiagram
         string id PK
         int game_played
         int game_won
+    }
+    matches_analyzed{
+        string patch PK
+        string gametype PK
+        int count
     }
 
     Summoner ||--o{ Match_Participant : ""

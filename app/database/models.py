@@ -28,7 +28,7 @@ class MatchParticipant(Base):
     death = Column(Integer)
     gold = Column(Integer)
     team = Column(Integer)
-    won = Column(Integer)
+    won = Column(Boolean)
     champion = Column(String)
 
 class ChampionStats(Base):
@@ -38,9 +38,7 @@ class ChampionStats(Base):
     gametype = Column(String, primary_key=True, index=True)
     games_played = Column(Integer)
     games_won = Column(Integer)
-    games_picked = Column(Integer)
     games_banned = Column(Integer)
-    assists = Column(Integer)
     kill = Column(Integer)
     assist = Column(Integer)
     death = Column(Integer)
@@ -56,5 +54,11 @@ class SummonerChampion(Base):
     champion_name = Column(String, primary_key=True, index=True)
     games_played = Column(Integer)
     games_won = Column(Integer)
+
+class MatchesAnalyzed(Base):
+    __tablename__ = "matches_Analyzed"
+    patch = Column(String,primary_key=True, index=True)
+    gametype = Column(String, primary_key=True, index=True)
+    count = Column(Integer)
 
 
