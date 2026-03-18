@@ -1,5 +1,4 @@
 from typing import Optional
-from fastapi import HTTPException
 from app.models.summonerModels import Summoner, MatchPage
 from app.services.stubDAO import stubDAO
 

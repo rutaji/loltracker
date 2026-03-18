@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
 from app.services.summonerServices import get_summoner_service, get_matches_service
+from app.services.championServices import get_champion_service
 from app.services.stubDAO import stubDAO
 from app.models.summonerModels import SummonerData
 
@@ -47,19 +48,35 @@ async def search(
         )
 
     # Champion path
-    '''
     if champion_name:
-        champion = get_champion_service()
+        champion = get_champion_service(champion_name, "14.5", dao)
         if champion:
             return RedirectResponse(
                 url=f"/champion/{quote(champion_name, safe='')}",
                 status_code=303,
             )
-    '''
+        return RedirectResponse(
+            url=(
+                f"/champion/not-found?name={quote(champion_name, safe='')}"
+            ),
+            status_code=303
+        )
 
     return RedirectResponse(
         url=f"/",
         status_code=303
+    )
+
+@router.get("/summoner/not-found")
+async def summoner_not_found(request: Request, name: str = "", tagline: str = ""):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="summoner_not_found.html",
+        context={
+            "searched_name": name,
+            "searched_tagline": tagline,
+        },
     )
 
 @router.get("/summoner/{name}/{tagline}", response_class=HTMLResponse)
@@ -78,10 +95,10 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
         )
 
     match_page = get_matches_service(name, tagline, offset, count, dao)
-    summoner_data = SummonerData(summoner=summoner, matchPage=match_page)
+    #summoner_data = SummonerData(summoner=summoner, matchPage=match_page)
 
     if ajax:
-        return JSONResponse(content=jsonable_encoder(summoner_data))
+        return JSONResponse(content=jsonable_encoder(match_page))
 
     return templates.TemplateResponse(
         request=request,
@@ -92,14 +109,37 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
         },
     )
 
-@router.get("/summoner/not-found")
-async def summoner_not_found(request: Request, name: str = "", tagline: str = ""):
+@router.get("/champion/not-found")
+async def champion_not_found(request: Request, name: str = ""):
 
     return templates.TemplateResponse(
         request=request,
-        name="summoner_not_found.html",
+        name="champion_not_found.html",
         context={
             "searched_name": name,
-            "searched_tagline": tagline,
+        },
+    )
+
+@router.get("/champion/{name}")
+async def get_champion(request: Request, name: str, version: str="14.5", ajax: bool=False):
+    champion = get_champion_service(name, version, dao)
+
+    if champion is None:
+        return RedirectResponse(
+            url=(
+                f"/champion/not-found?name={quote(name, safe='')}"
+            ),
+            status_code=303
+        )
+    
+    if ajax:
+        return JSONResponse(content=jsonable_encoder(champion))
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="champion.html",
+        context={
+            "championData": champion,
+            "version": version
         },
     )

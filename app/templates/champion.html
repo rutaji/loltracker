@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ championData.name }} Stats</title>
+</head>
+<body>
+<form method="post" action="{{ request.url_for('search') }}" id="champion_form">
+    <h2>Champion search</h2>
+    <label for="champion_name">Name</label>
+    <input type="text" name="champion_name" placeholder="Enter champion's name..." required>
+    <button type="submit">Search</button>
+</form>
+
+<h1>{{ championData.name }}</h1>
+
+<form method="get">
+    <input type="hidden" name="name" value="{{ championData.name }}">
+    
+    <label>Select Patch:</label>
+    <select id="version-select">
+        <option value="14.5" {% if version == "14.5" %}selected{% endif %}>14.5</option>
+        <option value="14.4" {% if version == "14.4" %}selected{% endif %}>14.4</option>
+    </select>
+
+    <button type="submit">Load</button>
+</form>
+
+<table border="1">
+<tr>
+    <th>Patch</th>
+    <th>Mode</th>
+    <th>Games</th>
+    <th>Winrate</th>
+    <th>KDA</th>
+    <th>Pickrate</th>
+    <th>Banrate</th>
+</tr>
+
+<tbody id="stats-body">
+{% for stat in championData.championStats %}
+<tr>
+    <td>{{ stat.version }}</td>
+    <td>{{ stat.gamemode }}</td>
+    <td>{{ stat.gamesPlayed }}</td>
+    <td>{{ "%.2f"|format(stat.winrate) }}%</td>
+    <td>{{ "%.2f"|format(stat.kda) }}</td>
+    <td>{{ "%.2f"|format(stat.pickrate) }}%</td>
+    <td>{{ "%.2f"|format(stat.banrate) }}%</td>
+</tr>
+{% endfor %}
+</tbody>
+
+</table>
+
+</body>
+</html>
+
+<script>
+const select = document.getElementById("version-select");
+const tableBody = document.getElementById("stats-body");
+
+select.addEventListener("change", async () => {
+    const version = select.value;
+
+    const response = await fetch(
+        `/champion/{{ championData.name }}?version=${version}&ajax=true`
+    );
+
+    const data = await response.json();
+
+    // clear table
+    tableBody.innerHTML = "";
+
+    // rebuild rows
+    data.championStats.forEach(stat => {
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${stat.version}</td>
+            <td>${stat.gamemode}</td>
+            <td>${stat.gamesPlayed}</td>
+            <td>${((stat.wins / (stat.gamesPlayed)) * 100).toFixed(2)}%</td>
+            <td>${((stat.kills + stat.assists) / (stat.deaths || 1)).toFixed(2)}</td>
+            <td>${(stat.gamesPlayed / stat.matchesAnalyzed * 100).toFixed(2)}%</td>
+            <td>${(stat.matchesAnalyzed ? (stat.banned / stat.matchesAnalyzed * 100) : 0).toFixed(2)}%</td>
+        `;
+
+        tableBody.appendChild(row);
+    });
+});
+</script>
