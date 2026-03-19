@@ -15,6 +15,7 @@ class stubDAO:
                 participants=[
                     MatchParticipant(
                         name="test",
+                        tagline="euw",
                         kills=10+i,
                         deaths=2,
                         assists=5,
@@ -25,6 +26,7 @@ class stubDAO:
                     ),
                     MatchParticipant(
                         name="enemy",
+                        tagline="euw",
                         kills=3,
                         deaths=8,
                         assists=4,
@@ -102,7 +104,7 @@ class stubDAO:
                 name="test",
                 tagline=tagline,
                 wins=53,
-                losses=47,
+                gamesPlayed=100,
                 kills=300,
                 deaths=100,
                 assists=500
