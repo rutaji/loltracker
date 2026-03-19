@@ -4,6 +4,7 @@ from typing import List
 
 class MatchParticipant(BaseModel):
     name: str
+    tagline: str
     kills: int
     deaths: int
     assists: int
@@ -24,15 +25,18 @@ class Summoner(BaseModel):
     name: str
     tagline: str
     wins: int
-    losses: int
+    gamesPlayed: int
     kills: int
     deaths: int
     assists: int
+
+    @property
+    def losses(self):
+        return self.gamesPlayed-self.wins
     
     @property
     def winrate(self):
-        games=self.wins + self.losses
-        return (self.wins/games)*100 if games else -1
+        return (self.wins/self.gamesPlayed)*100 if self.gamesPlayed else -1
     
     @property
     def kda(self):

@@ -29,7 +29,7 @@ class MockSummonerDAO:
                 name="test",
                 tagline=tagline,
                 wins=5,
-                losses=5,
+                gamesPlayed=10,
                 kills=10,
                 deaths=5,
                 assists=5
@@ -50,29 +50,29 @@ class MockSummonerDAO:
         ]
 
 def test_winrate_normal():
-    s = Summoner(name="test", tagline="euw", wins=1, losses=1, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=1, gamesPlayed=2, kills=0, deaths=1, assists=0)
     assert s.winrate == 50
 
-    s = Summoner(name="test", tagline="euw", wins=75, losses=25, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=75, gamesPlayed=100, kills=0, deaths=1, assists=0)
     assert s.winrate == 75
 
-    s = Summoner(name="test", tagline="euw", wins=1, losses=0, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=1, gamesPlayed=1, kills=0, deaths=1, assists=0)
     assert s.winrate == 100
 
 def test_winrate_float():
-    s = Summoner(name="test", tagline="euw", wins=2, losses=1, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=2, gamesPlayed=3, kills=0, deaths=1, assists=0)
     assert round(s.winrate, 2) == 66.67
 
 def test_winrate_edge():
-    s = Summoner(name="test", tagline="euw", wins=0, losses=0, kills=0, deaths=1, assists=0)
+    s = Summoner(name="test", tagline="euw", wins=0, gamesPlayed=0, kills=0, deaths=1, assists=0)
     assert s.winrate == -1
 
 def test_kda_normal():
-    s = Summoner(name="test", tagline="euw", wins=0, losses=0, kills=10, deaths=5, assists=5)
+    s = Summoner(name="test", tagline="euw", wins=0, gamesPlayed=0, kills=10, deaths=5, assists=5)
     assert s.kda == 3
 
 def test_kda_zero_deaths():
-    s = Summoner(name="test", tagline="euw", wins=0, losses=0, kills=10, deaths=0, assists=5)
+    s = Summoner(name="test", tagline="euw", wins=0, gamesPlayed=0, kills=10, deaths=0, assists=5)
     assert s.kda == 15
 
 def test_get_matches_pagination():
