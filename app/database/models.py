@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -45,8 +45,8 @@ class ChampionStats(Base):
 
 class Champion(Base):
     __tablename__ = "Champion"
-    id = Column(String)
-    champion_name = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
+    champion_name = Column(String, index=True)
 
 class SummonerChampion(Base):
     __tablename__ = "Summoner_Champion"

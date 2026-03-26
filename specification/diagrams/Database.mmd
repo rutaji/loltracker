@@ -43,6 +43,12 @@ erDiagram
         string gametype PK
         int count
     }
+    SummonerChampion{
+        string summoner_id PK
+        string champioin_nae PK
+        int    games_played 
+        int    games_won
+    }
 
     Summoner ||--o{ Match_Participant : ""
     Match ||--o{ Match_Participant : ""

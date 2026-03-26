@@ -5,7 +5,7 @@ docker-compose up --build
 
 to generate database:
     alembic upgrade head
-    docker-compose exec api python -m  scripts.seed_data
+    docker-compose exec api python -m  scripts.seed_data (generates data in the script. Doesnt work yet)
 
 
 # SQL database
