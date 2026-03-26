@@ -50,6 +50,8 @@ erDiagram
         int    games_won
     }
 
+    Champion ||--o{ SummonerChampion : ""
+    Summoner ||--o{ SummonerChampion : ""
     Summoner ||--o{ Match_Participant : ""
     Match ||--o{ Match_Participant : ""
     Champion ||--o{ Match_Participant : ""
