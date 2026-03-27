@@ -1,17 +1,17 @@
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
+from app.api.config import settings
 from app.services.summonerServices import get_summoner_service, get_matches_service
 from app.services.championServices import get_champion_service
 from app.services.stubDAO import stubDAO
-from app.models.summonerModels import SummonerData
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-dao=stubDAO()
+dao = stubDAO()
 
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -49,7 +49,7 @@ async def search(
 
     # Champion path
     if champion_name:
-        champion = get_champion_service(champion_name, "14.5", dao)
+        champion = get_champion_service(champion_name, settings.default_champion_version, dao)
         if champion:
             return RedirectResponse(
                 url=f"/champion/{quote(champion_name, safe='')}",
@@ -81,8 +81,7 @@ async def summoner_not_found(request: Request, name: str = "", tagline: str = ""
 
 @router.get("/summoner/{name}/{tagline}", response_class=HTMLResponse)
 async def get_summoner(request: Request, name: str, tagline: str, offset: int = 0, ajax: bool = False):
-
-    count=3
+    count = settings.matches_per_page
 
     summoner = get_summoner_service(name, tagline, dao)
     if summoner is None:
@@ -95,7 +94,6 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
         )
 
     match_page = get_matches_service(name, tagline, offset, count, dao)
-    #summoner_data = SummonerData(summoner=summoner, matchPage=match_page)
 
     if ajax:
         return JSONResponse(content=jsonable_encoder(match_page))
@@ -121,7 +119,12 @@ async def champion_not_found(request: Request, name: str = ""):
     )
 
 @router.get("/champion/{name}")
-async def get_champion(request: Request, name: str, version: str="14.5", ajax: bool=False):
+async def get_champion(
+    request: Request,
+    name: str,
+    version: str = settings.default_champion_version,
+    ajax: bool = False,
+):
     champion = get_champion_service(name, version, dao)
 
     if champion is None:

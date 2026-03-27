@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from fastapi.testclient import TestClient
+from app.api.config import settings
 from app.main import app
 
 client = TestClient(app)
@@ -23,8 +24,8 @@ def test_summoner_matches_ajax_response():
     assert response.status_code == 200
 
     data = response.json()
-    assert len(data["matches"]) == 3
-    assert data["nextOffset"] == 3
+    assert len(data["matches"]) == settings.matches_per_page
+    assert data["nextOffset"] == settings.matches_per_page
 
 def test_not_found_page_displays_searched_summoner():
     response = client.get("/summoner/not-found?name=missing&tagline=euw")
