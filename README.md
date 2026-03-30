@@ -47,7 +47,9 @@ The application itself can be run locally on port 8000 by first creating a .env 
 You can connect to database using: postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:5432/{POSTGRES_DB}
 
 To generate new alembic version: alembic revision --autogenerate -m "commit-name"
+
 To upgrade to newest alembic version: alembic upgrade head
+
 To add test data into database (not functional yet): docker-compose exec api python -m  scripts.seed_data
 
 ## 🎯 Project milestones
