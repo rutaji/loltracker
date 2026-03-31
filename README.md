@@ -31,7 +31,7 @@ flowchart TD
 ## 📖 Documentation
 
 * This `README.md` contains quick introduction to the product, onboarding guide, local setup of the project and a rough user guide.
-* [`specification/SPECIFICATION.md`](specification/SPECIFICATION.md) provides product-oriented description: business objectives and motivation, planned user scenarios, functional requirements and scope.
+* [`specification/SPECIFICATION.md`](specification/specification.md) provides product-oriented description: business objectives and motivation, planned user scenarios, functional requirements and scope.
 * [`specification/DESIGN.md`](specification/DESIGN.md) (in-progress) contains engineering-oriented documentation: technical architecture, UML diagrams, API contracts and DB schema.
 
 ## 💻 Local development
