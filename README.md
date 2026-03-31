@@ -1,13 +1,13 @@
 
-# 🚀 PSI 2026 - Loltracker
+# 🚀 PSI 2026 - LolTracker
 
 Repository with supporting code for PSI (Pokročilé Softwarové Inženýrství) course at Technická Univerzita of Liberec (_TUL_).
 
-The repository hosts a the **Loltracker** project, a site allowing users to view detailed statistics about player accounts (called Summoners) and playable characters (called Champions) for the game League of Legends.
+The repository hosts a the **LolTracker** project, a site allowing users to view detailed statistics about player accounts (called Summoners) and playable characters (called Champions) for the game League of Legends.
 
 ## User scenarios
 
-**Loltracker** allows the following:
+**LolTracker** allows the following:
 * Allows users to search for Summoners and Champions through a search bar.
 * Lists calculated statistics for individual Summoners including a global win rate ratio and KDA (_Kills, Deaths and Assists_).
 * Shows the match history of individual Summoners including basic information for each match.
@@ -25,13 +25,13 @@ flowchart TD
   DB[(Database - PostgreSQL)]
 
   UI -- HTTPS/JSON --> API
-  API -- TBD --> DB
+  API -- SQLAlchemy --> DB
 ```
 
 ## 📖 Documentation
 
 * This `README.md` contains quick introduction to the product, onboarding guide, local setup of the project and a rough user guide.
-* [`specification/SPECIFICATION.md`](specification/SPECIFICATION.md) (in-progress) provides product-oriented description: business objectives and motivation, planned user scenarios, functional requirements and scope.
+* [`specification/SPECIFICATION.md`](specification/SPECIFICATION.md) provides product-oriented description: business objectives and motivation, planned user scenarios, functional requirements and scope.
 * [`specification/DESIGN.md`](specification/DESIGN.md) (in-progress) contains engineering-oriented documentation: technical architecture, UML diagrams, API contracts and DB schema.
 
 ## 💻 Local development
@@ -61,7 +61,7 @@ To add test data into database (not functional yet): docker-compose exec api pyt
 ## 👥 Team
 
 * **Ondřej Braunšveig** (@OndrejBraunsveig) – Search functionality
-* **Martin Čížek** (@cizek-maritn) – FastAPI endpoints, endpoint services
+* **Martin Čížek** (@cizek-maritn) – FastAPI endpoints, endpoint services, documentation
 * **Jiří Růta** (@rutaji) – PostgreSQL database
 
 ## 📊 NFR Status
@@ -71,4 +71,4 @@ TODO: Complete the following items to fulfill the NFRs of PSI:
 * [ ] Monitoring: Link to Azure App Insights (monitoring dashboard)
 * [ ] Tests: Link to code coverage and latest unit & integration test results on `main` branch
 * [ ] CI/CD: Link to GitHub actions forming fully autonomous delivery of (working) code from `main` through `dev` to `prod` environments in a selected cloud (Azure is recommended).
-* [ ] SLO: Aiming at 99.5% availability - provide a link to SLI dashboard
+* [ ] SLO: Aiming at 99% availability - provide a link to SLI dashboard
