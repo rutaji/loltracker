@@ -30,7 +30,7 @@ A user wishes to see information about a specific Champion. To access this Champ
 
 The application will not require users to register or log in to access any of its features.
 
-![alt text](diagrams/loltracker_flowchart.png)
+![alt text](diagrams/loltracker_flowchart.svg)
 
 ## Prototype
 

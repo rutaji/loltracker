@@ -14,7 +14,6 @@ classDiagram
         Match : -datetime match_end
         Match : -Gamemode gamemode
         Match : -GameVersion game_version
-        Match : -int winning_team
         Match : -MatchParticipant[] summoners
 
         %%Match functions
@@ -22,12 +21,13 @@ classDiagram
         Match : +Match[] getMatchHistory(Summoner s)
 
         %%MatchParticipant attributes
+        MatchParticipant : -Summoner summoner
         MatchParticipant : -int kills
         MatchParticipant : -int deaths
         MatchParticipant : -int assists
         MatchParticipant : -int gold
         MatchParticipant : -int team
-        MatchParticipant : -int deaths
+        MatchParticipant : -bool win
         MatchParticipant : -Champion champion
         MatchParticipant : -Item[] bought_items
 
@@ -37,14 +37,14 @@ classDiagram
 
         %%Summoner attributes
         Summoner : -int wins
-        Summoner : -int losses
+        Summoner : -int games_played
         Summoner : -String name
+        Summoner : -String tagline
         Summoner : -String riot_id
         Summoner : -ChampionStats[] favorite_champions
         Summoner : -int kills
         Summoner : -int deaths
         Summoner : -int assists
-        Summoner : -dict{gamemode games_played} favorite_gamemodes
 
         %%Summoner functions
         Summoner : +double getWinRate()
@@ -52,6 +52,7 @@ classDiagram
 
         %%Champion attributes
         Champion : -String name
+        Champion : -ChampionModeStats[] mode_stats
 
         %%Item attributes
         Item : -String name
@@ -64,9 +65,14 @@ classDiagram
         ChampionModeStats : -Gamemode gamemode
         ChampionModeStats : -int games_played
         ChampionModeStats : -int games_won
+        ChampionModeStats : -int games_banned
+        ChampionModeStats : -int games_analyzed
 
         %%ChampionModeStats functions
         ChampionModeStats : +double getModeChampionWinRate()
+        ChampionModeStats : +double getModeChampionBanRate()
+        ChampionModeStats : +double getModeChampionPickRate()
+        ChampionModeStats : +double getModeChampionKDA()
 
         %%ChampionPlayerStats attributes
         ChampionPlayerStats : -Champion champion
