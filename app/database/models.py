@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, null
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -13,6 +13,10 @@ class Summoner(Base):
 
     participants = relationship("MatchParticipant", back_populates="summoner")
     champion = relationship("SummonerChampion", back_populates="summoner")
+
+    @classmethod
+    def create_default(cls,id:str,name:str=None):
+        return Summoner(id=id,summoner_name=name,games_played=0,games_won=0)
 
 class Match(Base):
     __tablename__ = "Match"
@@ -40,6 +44,8 @@ class MatchParticipant(Base):
     match = relationship("Match", back_populates="participants")
     champion_relation = relationship("Champion", back_populates="participants")
 
+
+
 class ChampionStats(Base):
     __tablename__ = "Champion_Stats"
     champion_id = Column(String, ForeignKey("Champion.id"), primary_key=True, index=True)
@@ -62,6 +68,10 @@ class Champion(Base):
     stats = relationship("ChampionStats", back_populates="champion")
     participants = relationship("MatchParticipant", back_populates="champion_relation")
     summoner = relationship("SummonerChampion", back_populates="champion")
+
+    @classmethod
+    def create_default(cls, id: str,name:str = None):
+        return Champion(id=id,champion_name=name)
 
 class SummonerChampion(Base):
     __tablename__ = "Summoner_Champion"
