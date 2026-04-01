@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
 from app.database.DAO import DAO
-from app.database.models import Base, Summoner, Champion
+from app.database.models import Base, Summoner, Champion, Match, MatchParticipant
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 engine = create_engine(TEST_DATABASE_URL)
@@ -64,4 +64,18 @@ def test_add_champion(db_session):
 
     returned_champion = dao.get_champion(champion.id)
     assert returned_champion.champion_name == name
+
+def test_add_match(db_session):
+    dao = DAO(db_session)
+
+    match = Match(id="1",created=12,ended=25,gametype="summoners rift",patch="1.27.2")
+    participants=[
+        MatchParticipant(summoner_id="1",match_id="1",kill=5,death=0,assist=2,gold=555,team=1,won=True,champion="Zed"),
+        MatchParticipant(summoner_id="2", match_id="1", kill=3, death=2, assist=2, gold=555, team=2, won=False, champion="Lux"),
+
+    ]
+
+    dao.add_match(match,participants)
+
+    pass
 
