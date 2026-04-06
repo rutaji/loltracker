@@ -14,7 +14,7 @@ class MatchParticipant(BaseModel):
     won: bool
 
 class Match(BaseModel):
-    match_id: str
+    match_id: str | int
     start: datetime
     end: datetime
     version: str

@@ -55,7 +55,9 @@ To generate new alembic version: alembic revision --autogenerate -m "commit-name
 
 To upgrade to newest alembic version: alembic upgrade head
 
+
 To add test data into database: docker-compose exec api python -m  scripts.seed_data
+
 
 ## 🎯 Project milestones
 

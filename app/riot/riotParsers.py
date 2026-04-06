@@ -1,0 +1,79 @@
+from datetime import UTC, datetime
+from typing import Any
+
+from app.models.summonerModels import Match, MatchParticipant, Summoner
+
+
+class MatchParticipantParser:
+    @staticmethod
+    def parse(participant_data: dict[str, Any]) -> MatchParticipant:
+        return MatchParticipant(
+            name=participant_data.get("riotIdGameName") or participant_data.get("summonerName", ""),
+            tagline=participant_data.get("riotIdTagline", ""),
+            kills=participant_data.get("kills", 0),
+            deaths=participant_data.get("deaths", 0),
+            assists=participant_data.get("assists", 0),
+            gold=participant_data.get("goldEarned", 0),
+            team=participant_data.get("teamId", 0),
+            champion=participant_data.get("championName", ""),
+            won=participant_data.get("win", False),
+        )
+
+
+class MatchParser:
+    @staticmethod
+    def parse(match_data: dict[str, Any]) -> Match:
+        metadata = match_data.get("metadata", {})
+        info = match_data.get("info", {})
+        participants = info.get("participants", [])
+
+        return Match(
+            match_id=metadata.get("matchId", ""),
+            start=datetime.fromtimestamp(info.get("gameStartTimestamp", 0) / 1000, tz=UTC),
+            end=datetime.fromtimestamp(info.get("gameEndTimestamp", 0) / 1000, tz=UTC),
+            version=info.get("gameVersion", ""),
+            mode=info.get("gameMode", ""),
+            participants=[
+                MatchParticipantParser.parse(participant)
+                for participant in participants
+            ],
+        )
+
+
+class SummonerParser:
+    @staticmethod
+    def parse(
+        account_data: dict[str, Any],
+        matches_data: list[dict[str, Any]],
+    ) -> Summoner:
+        puuid = account_data.get("puuid")
+        kills = 0
+        deaths = 0
+        assists = 0
+        wins = 0
+        games_played = 0
+
+        for match_data in matches_data:
+            participants = match_data.get("info", {}).get("participants", [])
+            participant = next(
+                (item for item in participants if item.get("puuid") == puuid),
+                None,
+            )
+            if participant is None:
+                continue
+
+            games_played += 1
+            kills += participant.get("kills", 0)
+            deaths += participant.get("deaths", 0)
+            assists += participant.get("assists", 0)
+            wins += int(participant.get("win", False))
+
+        return Summoner(
+            name=account_data.get("gameName", ""),
+            tagline=account_data.get("tagLine", ""),
+            wins=wins,
+            gamesPlayed=games_played,
+            kills=kills,
+            deaths=deaths,
+            assists=assists,
+        )
