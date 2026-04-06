@@ -1,34 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Document</title>
-        <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
-        <script src="{{ url_for('static', path='js/index.js') }}"></script>
-    </head>
-    <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoL Tracker</title>
+    <link href="{{ url_for('static', path='css/index.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', path='js/index.js') }}" defer></script>
+</head>
+<body>
+    <main class="landing-page">
+        <section class="hero-card">
+            <p class="eyebrow">League of Legends Stats</p>
+            <h1>LoL Tracker</h1>
+            <p class="hero-copy">
+                Pick a search mode, enter a summoner or champion, and jump straight to the stats page.
+            </p>
 
-        <label for="search_type">Choose search:</label>
-        <select name="search_type" id="search_type">
-            <option value="summoner">Summoner</option>
-            <option value="champion">Champion</option>
-        </select>
+            <div class="search-switcher">
+                <label for="search_type">Choose search</label>
+                <select name="search_type" id="search_type">
+                    <option value="summoner">Summoner</option>
+                    <option value="champion">Champion</option>
+                </select>
+            </div>
+        </section>
 
-        <form method="post" action="{{ request.url_for('search') }}" id="summoner_form">
-            <h2>Summoner search</h2>
-            <label for="summoner_name">Name</label>
-            <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
-            <label for="summoner_tagline">Tagline</label>
-            <input type="text" name="summoner_tagline" minlength="3" maxlength="5" required>
-            <button type="submit">Search</button>
-        </form>
-        
-        <form method="post" action="{{ request.url_for('search') }}" id="champion_form">
-            <h2>Champion search</h2>
-            <label for="champion_name">Name</label>
-            <input type="text" name="champion_name" placeholder="Enter champion's name..." required>
-            <button type="submit">Search</button>
-        </form>
-    </body>
+        <section class="search-panel">
+            <form method="post" action="{{ request.url_for('search') }}" id="summoner_form" class="search-form" autocomplete="off">
+                <h2>Summoner Search</h2>
+                <label for="summoner_name">Name</label>
+                <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
+                <label for="summoner_tagline">Tagline</label>
+                <input type="text" name="summoner_tagline" minlength="3" maxlength="5" required>
+                <button type="submit">Search Summoner</button>
+            </form>
+
+            <form method="post" action="{{ request.url_for('search') }}" id="champion_form" class="search-form" autocomplete="off" hidden>
+                <h2>Champion Search</h2>
+                <label for="champion_name">Name</label>
+                <input type="text" name="champion_name" placeholder="Enter champion's name..." disabled required>
+                <button type="submit">Search Champion</button>
+            </form>
+        </section>
+    </main>
+</body>
 </html>

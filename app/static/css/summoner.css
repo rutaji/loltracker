@@ -1,0 +1,249 @@
+:root {
+    --bg: #081019;
+    --bg-accent: #122235;
+    --panel: #101c2d;
+    --panel-soft: rgba(16, 28, 45, 0.84);
+    --border: rgba(164, 194, 222, 0.18);
+    --text: #edf3fa;
+    --muted: #9eb0c7;
+    --accent: #76d4ff;
+    --accent-strong: #ffb154;
+    --win: #7be495;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    color: var(--text);
+    background:
+        radial-gradient(circle at top, rgba(118, 212, 255, 0.16), transparent 30%),
+        linear-gradient(180deg, var(--bg), var(--bg-accent));
+}
+
+button,
+input {
+    font: inherit;
+}
+
+.summoner-page {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 28px 0 40px;
+}
+
+.top-bar,
+.summoner-hero,
+.matches-section,
+.compact-search {
+    background: var(--panel-soft);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+}
+
+.top-bar {
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.home-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text);
+    text-decoration: none;
+    padding: 12px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.compact-search {
+    padding: 18px;
+    flex: 1;
+    max-width: 760px;
+}
+
+.compact-search h2 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+}
+
+.search-fields {
+    display: flex;
+    gap: 12px;
+}
+
+.search-fields input {
+    flex: 1;
+}
+
+.summoner-hero {
+    padding: 28px;
+    display: grid;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.eyebrow {
+    margin: 0 0 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-size: 0.76rem;
+}
+
+.summoner-hero h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 3.8rem);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 220px));
+    gap: 16px;
+}
+
+.stat-card {
+    padding: 18px 20px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-card span {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.stat-card strong {
+    font-size: 1.8rem;
+    color: var(--win);
+}
+
+.matches-section {
+    padding: 28px;
+}
+
+.section-heading {
+    margin-bottom: 18px;
+}
+
+.section-heading h2 {
+    margin: 0 0 6px;
+}
+
+.section-heading p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.match-list {
+    display: grid;
+    gap: 16px;
+}
+
+.match {
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: rgba(6, 15, 27, 0.78);
+}
+
+.match-summary {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 18px 20px;
+    border: 0;
+    color: var(--text);
+    background: linear-gradient(90deg, rgba(118, 212, 255, 0.12), rgba(255, 177, 84, 0.08));
+    cursor: pointer;
+    text-align: left;
+}
+
+.match-details {
+    padding: 20px;
+}
+
+.match-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+    color: var(--muted);
+}
+
+.table-shell {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+}
+
+th {
+    color: var(--accent);
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+input {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.24);
+    color: var(--text);
+}
+
+button {
+    padding: 12px 18px;
+    border-radius: 999px;
+    border: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #081019;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.load-more-button {
+    margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+    .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-fields {
+        flex-direction: column;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .match-summary {
+        grid-template-columns: 1fr;
+    }
+}
