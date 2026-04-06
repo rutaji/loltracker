@@ -41,7 +41,7 @@ def test_add_summoner(db_session):
     summoner = Summoner.create_default(id="testid123",name="testname#1234")
     dao.add_summoner(summoner)
 
-    returned_summoner = dao.get_summoner(summoner.id)
+    returned_summoner = dao.get_summoner_dao(summoner.id)
     assert summoner.id == returned_summoner.id
     assert returned_summoner.summoner_name == summoner.summoner_name
     assert  returned_summoner.games_played == 0
@@ -54,7 +54,7 @@ def test_add_champion(db_session):
 
     dao.add_champion(champion)
 
-    returned = dao.get_champion(id)
+    returned = dao.get_champion_dao(id)
     assert returned.id == id
     assert returned.champion_name is None
 
@@ -63,7 +63,7 @@ def test_add_champion(db_session):
 
     dao.add_champion(champion)
 
-    returned_champion = dao.get_champion(champion.id)
+    returned_champion = dao.get_champion_dao(champion.id)
     assert returned_champion.champion_name == name
 
 def test_add_match(db_session):
