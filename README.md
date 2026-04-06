@@ -7,6 +7,7 @@ The repository hosts a the **LolTracker** project, a site allowing users to view
 
 ## User scenarios
 
+
 **LolTracker** allows the following:
 * Allows users to search for Summoners and Champions through a search bar.
 * Lists calculated statistics for individual Summoners including a global win rate ratio and KDA (_Kills, Deaths and Assists_).
@@ -41,6 +42,10 @@ The AI-made prototype of the app can be run locally, see the [prototype/README.m
 The application itself can be run locally on port 8000 by first creating a .env file (see [.env.example](.env.example)) and then using:
         docker-compose up --build
         alembic upgrade head
+        
+to generate test database:
+    source .env
+    DATABASE_URL=$TEST_DATABASE_URL alembic upgrade head
 
 ### SQL database
 

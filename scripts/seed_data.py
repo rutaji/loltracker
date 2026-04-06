@@ -28,7 +28,7 @@ match_participants = [
         gold=8000,
         team=1,
         won=0,
-        championship="Lux",
+        champion="Lux",
     ),
     models.MatchParticipant(
         summoner_id="asttddas2",
