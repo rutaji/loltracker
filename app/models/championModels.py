@@ -11,6 +11,9 @@ class ChampionStats(BaseModel):
     assists: int
     banned: int
     matchesAnalyzed: int
+
+    def __str__(self):
+        return f" ChampionStats version={self.version} gamemode={self.gamemode} wins={self.wins}"
     
     @property
     def winrate(self):
