@@ -10,8 +10,8 @@ from app.database.models import Base, Summoner, Champion, Match, MatchParticipan
 
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 engine = create_engine(TEST_DATABASE_URL)
-Base.metadata.drop_all(bind=engine)
-Base.metadata.create_all(bind=engine)
+#Base.metadata.drop_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 @pytest.fixture()
 def db_session():
@@ -28,8 +28,9 @@ def db_session():
         yield session  # injects session into the test
          # undo changes after test
     finally:
+        transaction.commit()
         session.close()
-        transaction.rollback()
+        #transaction.rollback()
         connection.close()
 
 
