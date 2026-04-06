@@ -16,7 +16,10 @@ class DAO:
         return DAO(SessionLocal())
 
     def get_champion(self,champion_name :str,patch :list[str]):
+        print(patch)
+        print(champion_name)
         dao_champions = self.db.query(ChampionStats).join(Champion).filter(Champion.champion_name == champion_name).filter(ChampionStats.patch.in_(patch)).all()
+        print(dao_champions)
         matches_analyzed = self.db.query(MatchesAnalyzed).filter(MatchesAnalyzed.patch.in_(patch)).all()
         analyzed_lookup = {(ma.patch, ma.gametype): ma.count for ma in matches_analyzed}
         result = []
@@ -38,15 +41,15 @@ class DAO:
 
     def get_summoner(self,summoner_name:str):
         summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
-        name = self.splitname(summoner.name)
+        name = self.splitname(summoner.summoner_name)
         return app.models.summonerModels.Summoner(
             name = name[0],
             tagline = name[1],
             wins = summoner.games_won,
             gamesPlayed = summoner.games_played,
-            kills = summoner.kill,
-            deaths = summoner.death,
-            assists = summoner.assist,
+            kills = 0,
+            deaths = 0,
+            assists = 0,
 
         )
 
