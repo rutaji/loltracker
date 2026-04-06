@@ -1,0 +1,149 @@
+:root {
+    --bg: #09111f;
+    --bg-accent: #102238;
+    --panel: rgba(8, 17, 31, 0.82);
+    --panel-border: rgba(132, 168, 211, 0.22);
+    --text: #f4f7fb;
+    --muted: #9fb2ca;
+    --highlight: #7fd0ff;
+    --highlight-strong: #f7b955;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+    --radius: 24px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--text);
+    background:
+        radial-gradient(circle at top left, rgba(127, 208, 255, 0.24), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(247, 185, 85, 0.18), transparent 30%),
+        linear-gradient(135deg, var(--bg), var(--bg-accent));
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+.landing-page {
+    width: min(1100px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 48px 0;
+    display: grid;
+    gap: 24px;
+}
+
+.hero-card,
+.search-form {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+}
+
+.hero-card {
+    padding: 40px;
+}
+
+.eyebrow {
+    margin: 0 0 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--highlight);
+    font-size: 0.78rem;
+}
+
+.hero-card h1 {
+    margin: 0;
+    max-width: 12ch;
+    font-size: clamp(2.6rem, 6vw, 4.8rem);
+    line-height: 0.96;
+}
+
+.hero-copy {
+    max-width: 54ch;
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+    line-height: 1.6;
+}
+
+.search-switcher {
+    margin-top: 28px;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.search-panel {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 24px;
+}
+
+.search-form {
+    width: min(100%, 520px);
+    padding: 28px;
+    display: grid;
+    gap: 12px;
+}
+
+.search-form h2 {
+    margin: 0 0 8px;
+}
+
+label {
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid rgba(159, 178, 202, 0.28);
+    border-radius: 14px;
+    color: var(--text);
+    background: rgba(4, 12, 24, 0.72);
+}
+
+button {
+    border: 0;
+    border-radius: 999px;
+    padding: 14px 18px;
+    color: #071220;
+    background: linear-gradient(135deg, var(--highlight), var(--highlight-strong));
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 780px) {
+    .landing-page {
+        padding: 24px 0 32px;
+    }
+
+    .hero-card {
+        padding: 28px;
+    }
+
+    .search-panel {
+        justify-content: stretch;
+    }
+
+    .search-form {
+        width: 100%;
+    }
+}

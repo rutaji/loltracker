@@ -1,128 +1,97 @@
-<form method="post" action="{{ request.url_for('search') }}" id="summoner_form">
-    <h2>Summoner search</h2>
-    <label for="summoner_name">Name</label>
-    <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
-    <label for="summoner_tagline">Tagline</label>
-    <input type="text" name="summoner_tagline" minlength="3" maxlength="5" required>
-    <button type="submit">Search</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ summoner.name }} - Summoner Stats</title>
+    <link href="{{ url_for('static', path='css/summoner.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', path='js/summoner.js') }}" defer></script>
+</head>
+<body>
+    <main
+        class="summoner-page"
+        id="summoner-page"
+        data-name="{{ summoner.name }}"
+        data-tagline="{{ summoner.tagline }}"
+        data-next-offset="{{ matchData.nextOffset }}"
+    >
+        <section class="top-bar">
+            <a href="/" class="home-link">Back to Search</a>
+            <form method="post" action="{{ request.url_for('search') }}" id="summoner_form" class="compact-search">
+                <h2>Summoner Search</h2>
+                <div class="search-fields">
+                    <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
+                    <input type="text" name="summoner_tagline" minlength="3" maxlength="5" placeholder="EUW" required>
+                    <button type="submit">Search</button>
+                </div>
+            </form>
+        </section>
 
-<h1>{{ summoner.name }}</h1>
+        <section class="summoner-hero">
+            <div>
+                <p class="eyebrow">Summoner Overview</p>
+                <h1>{{ summoner.name }}#{{ summoner.tagline }}</h1>
+            </div>
+            <div class="summary-grid">
+                <article class="stat-card">
+                    <span>Winrate</span>
+                    <strong>{{ summoner.winrate }}%</strong>
+                </article>
+                <article class="stat-card">
+                    <span>KDA</span>
+                    <strong>{{ summoner.kda }}</strong>
+                </article>
+            </div>
+        </section>
 
-<p>Winrate: {{ summoner.winrate }}</p>
-<p>KDA: {{ summoner.kda }}</p>
+        <section class="matches-section">
+            <div class="section-heading">
+                <h2>Recent Matches</h2>
+                <p>Expand each row to inspect participants and match details.</p>
+            </div>
 
-<h2>Matches</h2>
+            <div id="match-list" class="match-list">
+                {% for match in matchData.matches %}
+                <article class="match">
+                    <button type="button" class="match-summary" data-match-id="{{ match.match_id }}">
+                        <span>Match {{ match.match_id }}</span>
+                        <span>{{ match.mode }}</span>
+                        <span>Patch {{ match.version }}</span>
+                    </button>
+                    <div id="match-{{ match.match_id }}" class="match-details" style="display:none">
+                        <div class="match-meta">
+                            <p><strong>Start:</strong> {{ match.start }}</p>
+                            <p><strong>End:</strong> {{ match.end }}</p>
+                        </div>
+                        <div class="table-shell">
+                            <table>
+                                <tr>
+                                    <th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th>
+                                </tr>
+                                {% for p in match.participants %}
+                                <tr>
+                                    <td>{{ p.name }}</td>
+                                    <td>{{ p.champion }}</td>
+                                    <td>{{ p.kills }}</td>
+                                    <td>{{ p.deaths }}</td>
+                                    <td>{{ p.assists }}</td>
+                                    <td>{{ p.gold }}</td>
+                                    <td>{{ p.team }}</td>
+                                    <td>{{ p.won }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
 
-<div id="match-list">
-{% for match in matchData.matches %}
-<div class="match">
-    <div class="match-summary" onclick="toggleMatch({{ match.match_id }})">
-        Match {{ match.match_id }} | {{ match.mode }} | Version {{ match.version }}
-    </div>
-    <div id="match-{{ match.match_id }}" class="match-details" style="display:none">
-        <p>Start: {{ match.start }}</p>
-        <p>End: {{ match.end }}</p>
-        <table>
-            <tr>
-                <th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th>
-            </tr>
-            {% for p in match.participants %}
-            <tr>
-                <td>{{ p.name }}</td>
-                <td>{{ p.champion }}</td>
-                <td>{{ p.kills }}</td>
-                <td>{{ p.deaths }}</td>
-                <td>{{ p.assists }}</td>
-                <td>{{ p.gold }}</td>
-                <td>{{ p.team }}</td>
-                <td>{{ p.won }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-</div>
-{% endfor %}
-</div>
+            {% if matchData.hasMore %}
+            <button id="load-more" class="load-more-button" type="button">Load More</button>
+            {% endif %}
+        </section>
+    </main>
 
-{% if matchData.hasMore %}
-<button id="load-more">Load More</button>
-{% endif %}
-
-<script>
-function toggleMatch(id) {
-    const el = document.getElementById("match-" + id);
-
-    if (el.style.display === "none") {
-        el.style.display = "block";
-    } else {
-        el.style.display = "none";
-    }
-}
-</script>
-
-<script>
-let offset = {{ matchData.nextOffset }};
-const name = "{{ summoner.name }}";
-const tagline = "{{ summoner.tagline }}";
-
-function toggleMatch(id) {
-    const el = document.getElementById("match-" + id);
-    el.style.display = (el.style.display === "none") ? "block" : "none";
-}
-
-document.getElementById("load-more").addEventListener("click", async () => {
-    const response = await fetch(`/summoner/${name}/${tagline}?offset=${offset}&ajax=true`);
-    const data = await response.json();
-
-    const matchList = document.getElementById("match-list");
-
-    data.matches.forEach(match => {
-        // Create match container
-        const matchDiv = document.createElement("div");
-        matchDiv.className = "match";
-
-        // Summary row
-        const summaryDiv = document.createElement("div");
-        summaryDiv.className = "match-summary";
-        summaryDiv.innerText = `Match ${match.match_id} | ${match.mode} | Version ${match.version}`;
-        summaryDiv.onclick = () => toggleMatch(match.match_id);
-
-        // Details container
-        const detailsDiv = document.createElement("div");
-        detailsDiv.id = `match-${match.match_id}`;
-        detailsDiv.className = "match-details";
-        detailsDiv.style.display = "none";
-
-        let html = `<p>Start: ${match.start}</p><p>End: ${match.end}</p>`;
-        html += `<table>
-            <tr><th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th></tr>`;
-        match.participants.forEach(p => {
-            html += `<tr>
-                <td>${p.name}</td>
-                <td>${p.champion}</td>
-                <td>${p.kills}</td>
-                <td>${p.deaths}</td>
-                <td>${p.assists}</td>
-                <td>${p.gold}</td>
-                <td>${p.team}</td>
-                <td>${p.won}</td>
-            </tr>`;
-        });
-        html += `</table>`;
-
-        detailsDiv.innerHTML = html;
-
-        matchDiv.appendChild(summaryDiv);
-        matchDiv.appendChild(detailsDiv);
-        matchList.appendChild(matchDiv);
-    });
-
-    offset = data.nextOffset;
-
-    // Hide Load More if no more matches
-    if (!data.hasMore) {
-        document.getElementById("load-more").style.display = "none";
-    }
-});
-</script>
+</body>
+</html>

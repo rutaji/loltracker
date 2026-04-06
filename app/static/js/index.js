@@ -5,15 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
         champion: document.getElementById("champion_form"),
     };
 
-    if (!searchType || !forms.summoner || !forms.champion) {
-        return;
-    }
-
-    const toggleForm = (selectedType) => {
+    function toggleForm(selectedType){
         Object.entries(forms).forEach(([type, form]) => {
             const isActive = type === selectedType;
-
-            form.hidden = !isActive;
+            form.style.display = isActive ? "grid" : "none";
 
             form.querySelectorAll("input, select, textarea, button").forEach((field) => {
                 field.disabled = !isActive;
