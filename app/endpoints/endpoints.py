@@ -5,13 +5,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
 from app.api.config import settings
+from app.database.DAO import DAO
 from app.services.summonerServices import get_summoner_service, get_matches_service
 from app.services.championServices import get_champion_service
 from app.services.stubDAO import stubDAO
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-dao = stubDAO()
+dao = DAO.get_dao()
 
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request):
@@ -49,7 +50,7 @@ async def search(
 
     # Champion path
     if champion_name:
-        champion = get_champion_service(champion_name, settings.default_champion_version, dao)
+        champion = get_champion_service(champion_name, [settings.default_champion_version], dao)
         if champion:
             return RedirectResponse(
                 url=f"/champion/{quote(champion_name, safe='')}",
@@ -125,7 +126,7 @@ async def get_champion(
     version: str = settings.default_champion_version,
     ajax: bool = False,
 ):
-    champion = get_champion_service(name, version, dao)
+    champion = get_champion_service(name, [version], dao)
 
     if champion is None:
         return RedirectResponse(
