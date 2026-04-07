@@ -11,10 +11,13 @@ def get_summoner_service(request: Request, name: str, tagline: str, dao: DAO) ->
         print(Summoner)
         return summoner
 
-    account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
-    summoner = SummonerParser.parse(account_data)
-    dao.add_summoner(summoner)
-    return summoner
+    try:
+        account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
+        summoner = SummonerParser.parse(account_data)
+        dao.add_summoner(summoner)
+        return summoner
+    except Exception:
+        return None
 
 
 def get_matches_service(
