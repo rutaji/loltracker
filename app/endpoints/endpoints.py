@@ -34,38 +34,19 @@ async def search(
 
     # Summoner path
     if summoner_name:
-        # Neni nutny checkovat tagline pac je required v html
-        summoner = get_summoner_service(summoner_name, summoner_tagline, dao)
-        if summoner:
-            return RedirectResponse(
-                url=(
-                    f"/summoner/{quote(summoner_name, safe='')}"
-                    f"/{quote(summoner_tagline, safe='')}"
-                ),
-                status_code=303,
-            )
         return RedirectResponse(
             url=(
-                f"/summoner/not-found?name={quote(summoner_name, safe='')}"
-                f"&tagline={quote(summoner_tagline, safe='')}"
+                f"/summoner/{quote(summoner_name, safe='')}"
+                f"/{quote(summoner_tagline, safe='')}"
             ),
-            status_code=303
+            status_code=303,
         )
 
     # Champion path
     if champion_name:
-        champion = get_champion_service(champion_name, [settings.default_champion_version], dao)
-        champion = get_champion_service(champion_name, settings.default_champion_version, dao)
-        if champion:
-            return RedirectResponse(
-                url=f"/champion/{quote(champion_name, safe='')}",
-                status_code=303,
-            )
         return RedirectResponse(
-            url=(
-                f"/champion/not-found?name={quote(champion_name, safe='')}"
-            ),
-            status_code=303
+            url=f"/champion/{quote(champion_name, safe='')}",
+            status_code=303,
         )
 
     return RedirectResponse(
@@ -89,7 +70,7 @@ async def summoner_not_found(request: Request, name: str = "", tagline: str = ""
 async def get_summoner(request: Request, name: str, tagline: str, offset: int = 0, ajax: bool = False):
     count = settings.matches_per_page
 
-    summoner = get_summoner_service(name, tagline, dao)
+    summoner = get_summoner_service(request, name, tagline, dao)
     if summoner is None:
         return RedirectResponse(
             url=(
@@ -99,7 +80,7 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
             status_code=303
         )
 
-    match_page = get_matches_service(name, tagline, offset, count, dao)
+    match_page = get_matches_service(request, name, tagline, offset, count, dao)
 
     if ajax:
         return JSONResponse(content=jsonable_encoder(match_page))

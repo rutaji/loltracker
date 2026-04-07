@@ -35,11 +35,11 @@
             <div class="summary-grid">
                 <article class="stat-card">
                     <span>Winrate</span>
-                    <strong>{{ summoner.winrate }}%</strong>
+                    <strong>{{ "%.2f"|format(summoner.winrate) }}%</strong>
                 </article>
                 <article class="stat-card">
                     <span>KDA</span>
-                    <strong>{{ summoner.kda }}</strong>
+                    <strong>{{ "%.2f"|format(summoner.kda) }}</strong>
                 </article>
             </div>
         </section>

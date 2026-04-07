@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import joinedload
 
 import app.models.championModels
+import app.models.summonerModels
 from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed
 
@@ -16,10 +17,16 @@ class DAO:
         return DAO(SessionLocal())
 
     def get_champion(self,champion_name :str,patch :list[str]):
-        print(patch)
-        print(champion_name)
-        dao_champions = self.db.query(ChampionStats).join(Champion).filter(Champion.champion_name == champion_name).filter(ChampionStats.patch.in_(patch)).all()
-        print(dao_champions)
+        dao_champions = (
+            self.db.query(ChampionStats)
+            .join(Champion)
+            .filter(Champion.champion_name.ilike(champion_name))
+            .filter(ChampionStats.patch.in_(patch))
+            .all()
+        )
+        if not dao_champions:
+            return None
+
         matches_analyzed = self.db.query(MatchesAnalyzed).filter(MatchesAnalyzed.patch.in_(patch)).all()
         analyzed_lookup = {(ma.patch, ma.gametype): ma.count for ma in matches_analyzed}
         result = []
@@ -37,12 +44,19 @@ class DAO:
                     matchesAnalyzed=analyzed_lookup.get((dao_champion.patch, dao_champion.gametype), 0)
                 )
             )
-        return result
+        return app.models.championModels.Champion(
+            name=dao_champions[0].ChampionStats_Champion.champion_name or champion_name,
+            championStats=result,
+        )
 
     def get_summoner(self,summoner_name:str):
         summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+        if summoner is None:
+            return None
+
         name = self.splitname(summoner.summoner_name)
         return app.models.summonerModels.Summoner(
+            puuid=summoner.id,
             name = name[0],
             tagline = name[1],
             wins = summoner.games_won,
@@ -73,9 +87,11 @@ class DAO:
         for match in matches:
             participants_list = []
             for p in match.Match_MatchParticipant:
-                name = self.splitname(p.MatchParticipant_Summoner.summoner_name)
+                summoner_name = p.MatchParticipant_Summoner.summoner_name if p.MatchParticipant_Summoner else ""
+                name = self.splitname(summoner_name)
                 participants_list.append(
                     app.models.summonerModels.MatchParticipant(
+                        puuid=p.summoner_id,
                         name=name[0] or "",
                         tagline=name[1] or "",  # if your Summoner model has a tagline field, use it
                         kills=p.kill,
@@ -83,7 +99,7 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
-                        champion=p.MatchParticipant_Champion.champion_name,
+                        champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
                         won=p.won
                     )
                 )
@@ -103,7 +119,14 @@ class DAO:
 
     #todo move
     def splitname(self,name):
-        return name.split('#')
+        if not name:
+            return ["", ""]
+
+        parts = name.split('#', 1)
+        if len(parts) == 1:
+            return [parts[0], ""]
+
+        return parts
 
 
 
@@ -113,20 +136,66 @@ class DAO:
 
 
 
-    def add_match(self, match:Match, participants:list[MatchParticipant]):
-            if self.match_exist(match.id):
+    def add_match(self, match: app.models.summonerModels.Match):
+            match_id = str(match.match_id)
+            if self.match_exist(match_id):
                 return False
-            self.db.add(match)
-            for participant in participants:
+
+            dao_match = Match(
+                id=match_id,
+                created=int(match.start.timestamp()),
+                ended=int(match.end.timestamp()),
+                gametype=match.mode,
+                patch=match.version,
+            )
+
+            dao_participants = []
+
+            for participant in match.participants:
+                summoner_name = f"{participant.name}#{participant.tagline}"
+                summoner_id = participant.puuid
+                champion = self.db.query(Champion).filter(Champion.champion_name == participant.champion).first()
+
+                if not summoner_id:
+                    summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+                    summoner_id = summoner.id if summoner is not None else summoner_name
+
+                champion_id = champion.id if champion is not None else participant.champion
+
+                dao_participants.append(
+                    (
+                        MatchParticipant(
+                            summoner_id=summoner_id,
+                            match_id=match_id,
+                            kill=participant.kills,
+                            death=participant.deaths,
+                            assist=participant.assists,
+                            gold=participant.gold,
+                            team=participant.team,
+                            won=participant.won,
+                            champion=champion_id,
+                        ),
+                        summoner_name,
+                    )
+                )
+
+            self.db.add(dao_match)
+            for participant, summoner_name in dao_participants:
                 self.db.add(participant)
                 if not self.summoner_exist(participant.summoner_id):
-                    self.db.add(Summoner.create_default(id=participant.summoner_id))
+                    self.db.add(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
                 if not self.champion_exist(participant.champion):
-                    self.db.add(Champion.create_default(id=participant.champion))
+                    self.db.add(Champion.create_default(id=participant.champion, name=participant.champion))
             self.db.commit()
 
-    def add_summoner(self, summoner:Summoner):
-            self.db.add(summoner)
+    def add_summoner(self, summoner: app.models.summonerModels.Summoner):
+            dao_summoner = Summoner(
+                id=summoner.puuid,
+                summoner_name=f"{summoner.name}#{summoner.tagline}",
+                games_played=summoner.gamesPlayed,
+                games_won=summoner.wins,
+            )
+            self.db.merge(dao_summoner)
             self.db.commit()
 
     def get_summoner_dao(self, summoner_id) -> Summoner:

@@ -14,6 +14,7 @@ class stubDAO:
                 mode="Ranked Solo",
                 participants=[
                     MatchParticipant(
+                        puuid="s1",
                         name="test",
                         tagline="euw",
                         kills=10+i,
@@ -25,6 +26,7 @@ class stubDAO:
                         won=True
                     ),
                     MatchParticipant(
+                        puuid="s2",
                         name="enemy",
                         tagline="euw",
                         kills=3,
@@ -101,6 +103,7 @@ class stubDAO:
     def get_summoner(self, name: str, tagline: str):
         if name == "test":
             return Summoner(
+                puuid="s1",
                 name="test",
                 tagline=tagline,
                 wins=53,

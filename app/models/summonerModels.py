@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 
 class MatchParticipant(BaseModel):
+    puuid: str
     name: str
     tagline: str
     kills: int
@@ -22,6 +23,7 @@ class Match(BaseModel):
     participants: List[MatchParticipant]
 
 class Summoner(BaseModel):
+    puuid: str
     name: str
     tagline: str
     wins: int
