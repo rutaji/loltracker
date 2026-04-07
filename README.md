@@ -40,10 +40,12 @@ flowchart TD
 The AI-made prototype of the app can be run locally, see the [prototype/README.md](prototype/README.md) for further instructions.
 
 The application itself can be run locally on port 8000 by first creating a .env file (see [.env.example](.env.example)) and then using:
+
         docker-compose up --build
         alembic upgrade head
         
 to generate test database:
+
     source .env
     DATABASE_URL=$TEST_DATABASE_URL alembic upgrade head
 
@@ -67,9 +69,9 @@ To add test data into database: docker-compose exec api python -m  scripts.seed_
 
 ## 👥 Team
 
-* **Ondřej Braunšveig** (@OndrejBraunsveig) – Search functionality
-* **Martin Čížek** (@cizek-maritn) – FastAPI endpoints, endpoint services, documentation
-* **Jiří Růta** (@rutaji) – PostgreSQL database
+* **Ondřej Braunšveig** (@OndrejBraunsveig) – Search functionality, Riot API calling, frontend design
+* **Martin Čížek** (@cizek-maritn) – FastAPI endpoints, endpoint services, documentation, observability
+* **Jiří Růta** (@rutaji) – PostgreSQL database, DAO
 
 ## 📊 NFR Status
 
