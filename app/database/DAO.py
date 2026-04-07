@@ -150,6 +150,8 @@ class DAO:
             )
 
             dao_participants = []
+            queued_summoner_ids = set()
+            queued_champion_ids = set()
 
             for participant in match.participants:
                 summoner_name = f"{participant.name}#{participant.tagline}"
@@ -182,10 +184,12 @@ class DAO:
             self.db.add(dao_match)
             for participant, summoner_name in dao_participants:
                 self.db.add(participant)
-                if not self.summoner_exist(participant.summoner_id):
-                    self.db.add(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
-                if not self.champion_exist(participant.champion):
-                    self.db.add(Champion.create_default(id=participant.champion, name=participant.champion))
+                if participant.summoner_id not in queued_summoner_ids and not self.summoner_exist(participant.summoner_id):
+                    self.db.merge(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
+                    queued_summoner_ids.add(participant.summoner_id)
+                if participant.champion not in queued_champion_ids and not self.champion_exist(participant.champion):
+                    self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
+                    queued_champion_ids.add(participant.champion)
             self.db.commit()
 
     def add_summoner(self, summoner: app.models.summonerModels.Summoner):

@@ -1,82 +1,108 @@
-import os
+from datetime import UTC, datetime
+
 import pytest
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
 from app.database.DAO import DAO
-from app.database.models import Base, Summoner, Champion, Match, MatchParticipant
+from app.database.models import Base, Champion, Match as DaoMatch, MatchParticipant as DaoMatchParticipant, Summoner as DaoSummoner
+from app.models.summonerModels import Match, MatchParticipant, Summoner
 
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
-engine = create_engine(TEST_DATABASE_URL)
-#Base.metadata.drop_all(bind=engine)
-#Base.metadata.create_all(bind=engine)
 
 @pytest.fixture()
 def db_session():
-    """Provides a fresh SQLAlchemy session for a test."""
-    connection = engine.connect()
-    transaction = connection.begin()
-
-    session = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=connection
-    )()
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = Session()
     try:
-        yield session  # injects session into the test
-         # undo changes after test
+        yield session
     finally:
-        transaction.commit()
         session.close()
-        #transaction.rollback()
-        connection.close()
-
 
 
 def test_add_summoner(db_session):
     dao = DAO(db_session)
+    summoner = Summoner(
+        puuid="testid123",
+        name="testname",
+        tagline="1234",
+        wins=0,
+        gamesPlayed=0,
+        kills=0,
+        deaths=0,
+        assists=0,
+    )
 
-    summoner = Summoner.create_default(id="testid123",name="testname#1234")
     dao.add_summoner(summoner)
 
-    returned_summoner = dao.get_summoner_dao(summoner.id)
-    assert summoner.id == returned_summoner.id
-    assert returned_summoner.summoner_name == summoner.summoner_name
-    assert  returned_summoner.games_played == 0
+    returned_summoner = dao.get_summoner_dao("testid123")
+    assert returned_summoner.id == "testid123"
+    assert returned_summoner.summoner_name == "testname#1234"
+    assert returned_summoner.games_played == 0
+
 
 def test_add_champion(db_session):
     dao = DAO(db_session)
 
-    id = "monkey_king"
-    champion = Champion.create_default(id=id)
-
+    champion = Champion.create_default(id="monkey_king")
     dao.add_champion(champion)
 
-    returned = dao.get_champion_dao(id)
-    assert returned.id == id
+    returned = dao.get_champion_dao("monkey_king")
+    assert returned.id == "monkey_king"
     assert returned.champion_name is None
 
-    name = "wukong"
-    champion.champion_name =  name
-
+    champion.champion_name = "wukong"
     dao.add_champion(champion)
 
-    returned_champion = dao.get_champion_dao(champion.id)
-    assert returned_champion.champion_name == name
+    returned_champion = dao.get_champion_dao("monkey_king")
+    assert returned_champion.champion_name == "wukong"
+
 
 def test_add_match(db_session):
     dao = DAO(db_session)
+    db_session.add(Champion.create_default(id="champ_akali", name="Akali"))
+    db_session.commit()
 
-    match = Match(id="1",created=12,ended=25,gametype="summoners rift",patch="1.27.2")
-    participants=[
-        MatchParticipant(summoner_id="1",match_id="1",kill=5,death=0,assist=2,gold=555,team=1,won=True,champion="Zed"),
-        MatchParticipant(summoner_id="2", match_id="1", kill=3, death=2, assist=2, gold=555, team=2, won=False, champion="Lux"),
+    match = Match(
+        match_id="match-1",
+        start=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
+        end=datetime(2026, 4, 7, 12, 30, tzinfo=UTC),
+        version="1.27.2",
+        mode="summoners rift",
+        participants=[
+            MatchParticipant(
+                puuid="player-1",
+                name="Alpha",
+                tagline="EUW",
+                kills=5,
+                deaths=0,
+                assists=2,
+                gold=555,
+                team=1,
+                champion="Akali",
+                won=True,
+            ),
+            MatchParticipant(
+                puuid="player-2",
+                name="Bravo",
+                tagline="EUW",
+                kills=3,
+                deaths=2,
+                assists=2,
+                gold=444,
+                team=2,
+                champion="Lux",
+                won=False,
+            ),
+        ],
+    )
 
-    ]
+    dao.add_match(match)
 
-    dao.add_match(match,participants)
-
-    pass
-
+    assert db_session.query(DaoMatch).filter(DaoMatch.id == "match-1").one()
+    assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.match_id == "match-1").count() == 2
+    assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one()
+    assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-2").one()
+    assert db_session.query(Champion).filter(Champion.id == "champ_akali").one()
+    assert db_session.query(Champion).filter(Champion.id == "Lux").one()
