@@ -1,49 +1,71 @@
 from datetime import datetime
-from unittest.mock import patch
 
 from app.database.database import SessionLocal
-from app.database import models
-from app.database.models import Summoner,Champion,Match,MatchParticipant
+from app.database.models import Champion, Match, MatchParticipant, Summoner
 
-session = SessionLocal()
 
-summoners = [
-        Summoner.create_default(id="s1", name="Faker#korea"),
-        Summoner.create_default(id="s2", name="Doublelift#12345"),
-        Summoner.create_default(id="s3", name="Uzi#eune"),
-    ]
-session.add_all(summoners)
+def add_if_missing(session, model, identity, instance):
+    if session.get(model, identity) is None:
+        session.add(instance)
 
-# --- Create Champions ---
-champions = [
-        Champion.create_default(id="c1", name="Ahri"),
-        Champion.create_default(id="c2", name="Yasuo"),
-        Champion.create_default(id="c3", name="Lux"),
-    ]
-session.add_all(champions)
 
-# --- Create Matches ---
-now = int(datetime.now().timestamp())
-matches = [
-    Match(id="m1", created=1775331054, ended=1775331054 + 1200, gametype="Ranked", patch="14.4"),
-    Match(id="m2", created=1775331054 + 3600, ended=1775331054 + 4800, gametype="Normal", patch="14.5"),
-]
-session.add_all(matches)
+def main():
+    session = SessionLocal()
 
-# --- Create MatchParticipants ---
-participants = [
-        # Match 1
-        MatchParticipant(summoner_id="s1", match_id="m1", kill=10, assist=5, death=2, gold=15000, team=100, won=True, champion="c1"),
-        MatchParticipant(summoner_id="s2", match_id="m1", kill=8, assist=7, death=4, gold=14000, team=100, won=True, champion="c2"),
-        MatchParticipant(summoner_id="s3", match_id="m1", kill=5, assist=10, death=6, gold=13000, team=200, won=False, champion="c3"),
-        # Match 2
-        MatchParticipant(summoner_id="s1", match_id="m2", kill=7, assist=8, death=3, gold=14500, team=200, won=False, champion="c2"),
-        MatchParticipant(summoner_id="s2", match_id="m2", kill=12, assist=4, death=5, gold=15500, team=100, won=True, champion="c3"),
-        MatchParticipant(summoner_id="s3", match_id="m2", kill=3, assist=6, death=7, gold=12000, team=200, won=False, champion="c1"),
-    ]
-session.add_all(participants)
+    try:
+        summoners = [
+            Summoner.create_default(id="s1", name="Faker#korea"),
+            Summoner.create_default(id="s2", name="Doublelift#12345"),
+            Summoner.create_default(id="s3", name="Uzi#eune"),
+        ]
 
-session.commit()
-session.close()
+        champions = [
+            Champion.create_default(id="c1", name="Ahri"),
+            Champion.create_default(id="c2", name="Yasuo"),
+            Champion.create_default(id="c3", name="Lux"),
+        ]
 
-print("Seed data inserted")
+        now = int(datetime.now().timestamp())
+        matches = [
+            Match(id="m1", created=now, ended=now + 1200, gametype="Ranked", patch="14.4"),
+            Match(id="m2", created=now + 3600, ended=now + 4800, gametype="Normal", patch="14.5"),
+        ]
+
+        participants = [
+            MatchParticipant(summoner_id="s1", match_id="m1", kill=10, assist=5, death=2, gold=15000, team=100, won=True, champion="c1"),
+            MatchParticipant(summoner_id="s2", match_id="m1", kill=8, assist=7, death=4, gold=14000, team=100, won=True, champion="c2"),
+            MatchParticipant(summoner_id="s3", match_id="m1", kill=5, assist=10, death=6, gold=13000, team=200, won=False, champion="c3"),
+            MatchParticipant(summoner_id="s1", match_id="m2", kill=7, assist=8, death=3, gold=14500, team=200, won=False, champion="c2"),
+            MatchParticipant(summoner_id="s2", match_id="m2", kill=12, assist=4, death=5, gold=15500, team=100, won=True, champion="c3"),
+            MatchParticipant(summoner_id="s3", match_id="m2", kill=3, assist=6, death=7, gold=12000, team=200, won=False, champion="c1"),
+        ]
+
+        for summoner in summoners:
+            add_if_missing(session, Summoner, summoner.id, summoner)
+        session.commit()
+
+        for champion in champions:
+            add_if_missing(session, Champion, champion.id, champion)
+        session.commit()
+
+        for match in matches:
+            add_if_missing(session, Match, match.id, match)
+        session.commit()
+
+        for participant in participants:
+            participant_key = {
+                "summoner_id": participant.summoner_id,
+                "match_id": participant.match_id,
+            }
+            add_if_missing(session, MatchParticipant, participant_key, participant)
+        session.commit()
+        print("Seed data inserted")
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -3,6 +3,7 @@ from app.riot.riotParsers import MatchParser, MatchParticipantParser, SummonerPa
 
 def test_match_participant_parser_maps_riot_fields():
     participant_data = {
+        "puuid": "player-puuid",
         "riotIdGameName": "PlayerOne",
         "riotIdTagline": "EUW",
         "kills": 8,
@@ -16,6 +17,7 @@ def test_match_participant_parser_maps_riot_fields():
 
     participant = MatchParticipantParser.parse(participant_data)
 
+    assert participant.puuid == "player-puuid"
     assert participant.name == "PlayerOne"
     assert participant.tagline == "EUW"
     assert participant.kills == 8
@@ -39,6 +41,7 @@ def test_match_parser_maps_match_and_participants():
             "gameMode": "CLASSIC",
             "participants": [
                 {
+                    "puuid": "player-puuid",
                     "riotIdGameName": "PlayerOne",
                     "riotIdTagline": "EUW",
                     "kills": 8,
@@ -60,62 +63,23 @@ def test_match_parser_maps_match_and_participants():
     assert match.mode == "CLASSIC"
     assert len(match.participants) == 1
     assert match.participants[0].name == "PlayerOne"
+    assert match.participants[0].puuid == "player-puuid"
 
 
-def test_summoner_parser_aggregates_player_stats_from_matches():
+def test_summoner_parser_maps_account_data():
     account_data = {
         "puuid": "player-puuid",
         "gameName": "PlayerOne",
         "tagLine": "EUW",
     }
-    matches_data = [
-        {
-            "info": {
-                "participants": [
-                    {
-                        "puuid": "player-puuid",
-                        "kills": 10,
-                        "deaths": 2,
-                        "assists": 5,
-                        "win": True,
-                    }
-                ]
-            }
-        },
-        {
-            "info": {
-                "participants": [
-                    {
-                        "puuid": "player-puuid",
-                        "kills": 3,
-                        "deaths": 7,
-                        "assists": 9,
-                        "win": False,
-                    }
-                ]
-            }
-        },
-        {
-            "info": {
-                "participants": [
-                    {
-                        "puuid": "someone-else",
-                        "kills": 99,
-                        "deaths": 0,
-                        "assists": 99,
-                        "win": True,
-                    }
-                ]
-            }
-        },
-    ]
 
-    summoner = SummonerParser.parse(account_data, matches_data)
+    summoner = SummonerParser.parse(account_data)
 
+    assert summoner.puuid == "player-puuid"
     assert summoner.name == "PlayerOne"
     assert summoner.tagline == "EUW"
-    assert summoner.gamesPlayed == 2
-    assert summoner.wins == 1
-    assert summoner.kills == 13
-    assert summoner.deaths == 9
-    assert summoner.assists == 14
+    assert summoner.gamesPlayed == 0
+    assert summoner.wins == 0
+    assert summoner.kills == 0
+    assert summoner.deaths == 0
+    assert summoner.assists == 0

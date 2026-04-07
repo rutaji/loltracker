@@ -8,6 +8,7 @@ class MatchParticipantParser:
     @staticmethod
     def parse(participant_data: dict[str, Any]) -> MatchParticipant:
         return MatchParticipant(
+            puuid=participant_data.get("puuid", ""),
             name=participant_data.get("riotIdGameName") or participant_data.get("summonerName", ""),
             tagline=participant_data.get("riotIdTagline", ""),
             kills=participant_data.get("kills", 0),
@@ -44,7 +45,6 @@ class SummonerParser:
     @staticmethod
     def parse(
         account_data: dict[str, Any],
-        matches_data: list[dict[str, Any]],
     ) -> Summoner:
         puuid = account_data.get("puuid")
         kills = 0
@@ -53,22 +53,8 @@ class SummonerParser:
         wins = 0
         games_played = 0
 
-        for match_data in matches_data:
-            participants = match_data.get("info", {}).get("participants", [])
-            participant = next(
-                (item for item in participants if item.get("puuid") == puuid),
-                None,
-            )
-            if participant is None:
-                continue
-
-            games_played += 1
-            kills += participant.get("kills", 0)
-            deaths += participant.get("deaths", 0)
-            assists += participant.get("assists", 0)
-            wins += int(participant.get("win", False))
-
         return Summoner(
+            puuid=puuid or "",
             name=account_data.get("gameName", ""),
             tagline=account_data.get("tagLine", ""),
             wins=wins,
