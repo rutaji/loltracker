@@ -12,6 +12,6 @@ COPY ./alembic ./alembic
 COPY ./alembic.ini ./alembic.ini
 
 RUN chmod +x /app/scripts/automatic/run_alembic.sh
-ENTRYPOINT ["/app/scripts/automatic/run_alembic.sh"]
+ENTRYPOINT ["sh", "/app/scripts/automatic/run_alembic.sh"]
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

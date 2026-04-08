@@ -2,6 +2,8 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
 
 class RiotApiClient:
@@ -21,11 +23,25 @@ class RiotApiClient:
 
     def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         url = f"https://{self.regional_routing}.api.riotgames.com{path}"
+        tracer = trace.get_tracer(__name__)
 
-        with httpx.Client(timeout=self.timeout) as client:
-            response = client.get(url, headers=self._headers, params=params)
-            response.raise_for_status()
-            return response.json()
+        with tracer.start_as_current_span("riot.api.request") as span:
+            span.set_attribute("http.method", "GET")
+            span.set_attribute("riot.routing", self.regional_routing)
+            span.set_attribute("http.route", path)
+
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.get(url, headers=self._headers, params=params)
+                status_code = getattr(response, "status_code", None)
+                if status_code is not None:
+                    span.set_attribute("http.status_code", status_code)
+                try:
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    span.record_exception(exc)
+                    span.set_status(Status(StatusCode.ERROR))
+                    raise
+                return response.json()
 
     def get_summoner_by_riot_id(
         self,

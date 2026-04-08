@@ -1,23 +1,34 @@
 from fastapi import Request
 from typing import Optional
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
 from app.riot.riotParsers import MatchParser, SummonerParser
 
 def get_summoner_service(request: Request, name: str, tagline: str, dao: DAO) -> Optional[Summoner]:
-    summoner = dao.get_summoner(f"{name}#{tagline}")
+    tracer = trace.get_tracer(__name__)
 
-    if summoner is not None:
-        print(Summoner)
-        return summoner
+    with tracer.start_as_current_span("service.summoner.get") as span:
+        span.set_attribute("summoner.lookup.cache", True)
+        span.set_attribute("summoner.request.name_length", len(name))
+        summoner = dao.get_summoner(f"{name}#{tagline}")
 
-    try:
-        account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
-        summoner = SummonerParser.parse(account_data)
-        dao.add_summoner(summoner)
-        return summoner
-    except Exception:
-        return None
+        if summoner is not None:
+            span.set_attribute("summoner.cache_hit", True)
+            return summoner
+
+        span.set_attribute("summoner.cache_hit", False)
+
+        try:
+            account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
+            summoner = SummonerParser.parse(account_data)
+            dao.add_summoner(summoner)
+            return summoner
+        except Exception as exc:
+            span.record_exception(exc)
+            span.set_status(Status(StatusCode.ERROR))
+            return None
 
 
 def get_matches_service(
@@ -28,45 +39,53 @@ def get_matches_service(
     count: int,
     dao: DAO,
 ) -> MatchPage:
+    tracer = trace.get_tracer(__name__)
     summoner_name = f"{name}#{tagline}"
-    matches = dao.get_matches(summoner_name, offset, count)
 
-    if len(matches) < count and request is not None:
-        summoner = dao.get_summoner(summoner_name)
+    with tracer.start_as_current_span("service.matches.get") as span:
+        span.set_attribute("matches.offset", offset)
+        span.set_attribute("matches.count", count)
+        matches = dao.get_matches(summoner_name, offset, count)
+        span.set_attribute("matches.cached_count", len(matches))
 
-        puuid = summoner.puuid if summoner is not None else None
+        if len(matches) < count and request is not None:
+            summoner = dao.get_summoner(summoner_name)
 
-        if not puuid:
-            account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
-            puuid = SummonerParser.parse(account_data).puuid
+            puuid = summoner.puuid if summoner is not None else None
 
-        if puuid:
-            match_ids = request.app.state.api_client.get_match_ids_by_puuid(
-                puuid,
-                start=offset,
-                count=count + len(matches),
-            )
+            if not puuid:
+                account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
+                puuid = SummonerParser.parse(account_data).puuid
 
-            existing_ids = {str(match.match_id) for match in matches}
-            remote_matches = []
+            if puuid:
+                match_ids = request.app.state.api_client.get_match_ids_by_puuid(
+                    puuid,
+                    start=offset,
+                    count=count + len(matches),
+                )
 
-            for match_id in match_ids:
-                if match_id in existing_ids:
-                    continue
+                existing_ids = {str(match.match_id) for match in matches}
+                remote_matches = []
 
-                match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
-                match = MatchParser.parse(match_data)
-                remote_matches.append(match)
-                dao.add_match(match)
-                if len(matches) + len(remote_matches) >= count:
-                    break
+                for match_id in match_ids:
+                    if match_id in existing_ids:
+                        continue
 
-            matches = matches + remote_matches
+                    match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
+                    match = MatchParser.parse(match_data)
+                    remote_matches.append(match)
+                    dao.add_match(match)
+                    if len(matches) + len(remote_matches) >= count:
+                        break
 
-    hasMore = len(matches) == count
+                matches = matches + remote_matches
+                span.set_attribute("matches.remote_count", len(remote_matches))
 
-    return MatchPage(
-        matches=matches,
-        hasMore=hasMore,
-        nextOffset=offset+count
-    )
+        hasMore = len(matches) == count
+        span.set_attribute("matches.has_more", hasMore)
+
+        return MatchPage(
+            matches=matches,
+            hasMore=hasMore,
+            nextOffset=offset+count
+        )

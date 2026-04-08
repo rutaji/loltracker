@@ -42,6 +42,28 @@ The AI-made prototype of the app can be run locally, see the [prototype/README.m
 The application itself can be run locally on port 8000 by first creating a .env file (see [.env.example](.env.example)) and then using:
 
         docker-compose up --build
+
+## 🔭 Observability stack (OpenTelemetry + Prometheus + Jaeger + Grafana)
+
+The backend now exports traces and metrics via OpenTelemetry to an in-stack OpenTelemetry Collector.
+
+When running the Docker stack, the following UIs are available:
+* FastAPI: http://localhost:8000
+* Jaeger (traces): http://localhost:16686
+* Prometheus (metrics): http://localhost:9090
+* Grafana (dashboards): http://localhost:3000
+
+Default credentials for Grafana are loaded from `.env`:
+* `GRAFANA_ADMIN_USER`
+* `GRAFANA_ADMIN_PASSWORD`
+
+### Verify telemetry flow
+
+1. Start everything with `docker-compose up --build`.
+2. Open the app and trigger a few requests (search Summoner/Champion pages).
+3. In Jaeger, check that traces appear for service `psi-api`.
+4. In Prometheus, query `psi_http_server_requests_total` and `psi_http_server_request_duration_seconds`.
+5. In Grafana, confirm the Prometheus datasource is pre-provisioned.
         
 
 ### SQL database
