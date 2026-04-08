@@ -10,13 +10,16 @@ class Summoner(Base):
     summoner_name = Column(String,nullable=True)
     games_played = Column(Integer)
     games_won = Column(Integer)
+    kill=Column(Integer)
+    death=Column(Integer)
+    assist=Column(Integer)
 
     Summoner_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Summoner")
     Summoner_SummonerChampion = relationship("SummonerChampion", back_populates="SummonerChampion_Summoner")
 
     @classmethod
     def create_default(cls,id:str,name:str=None):
-        return Summoner(id=id,summoner_name=name,games_played=0,games_won=0)
+        return Summoner(id=id,summoner_name=name,games_played=0,games_won=0,kill=0,death=0,assist=0)
 
 class Match(Base):
     __tablename__ = "match"
