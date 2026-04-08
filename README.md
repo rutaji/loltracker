@@ -42,12 +42,7 @@ The AI-made prototype of the app can be run locally, see the [prototype/README.m
 The application itself can be run locally on port 8000 by first creating a .env file (see [.env.example](.env.example)) and then using:
 
         docker-compose up --build
-        alembic upgrade head
         
-to generate test database:
-
-    source .env
-    DATABASE_URL=$TEST_DATABASE_URL alembic upgrade head
 
 ### SQL database
 
