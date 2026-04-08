@@ -57,14 +57,7 @@ Default credentials for Grafana are loaded from `.env`:
 * `GRAFANA_ADMIN_USER`
 * `GRAFANA_ADMIN_PASSWORD`
 
-### Verify telemetry flow
-
-1. Start everything with `docker-compose up --build`.
-2. Open the app and trigger a few requests (search Summoner/Champion pages).
-3. In Jaeger, check that traces appear for service `psi-api`.
-4. In Prometheus, query `psi_http_server_requests_total` and `psi_http_server_request_duration_seconds`.
-5. In Grafana, confirm the Prometheus datasource is pre-provisioned.
-        
+For more detailed information, see [`specification/design.md#reliability--observability`](specification/design.md#reliability--observability)
 
 ### SQL database
 
