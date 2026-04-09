@@ -156,9 +156,108 @@ flowchart LR
     DEV -- Integration Tests --> PROD
 ```
 
-## Reliability & Observbility
+## Reliability & Observability
 
->TODO: populate this segment once we establish monitoring, see https://github.com/ljezek/tul-psi/blob/main/docs/DESIGN.md#reliability--observability
+This project uses OpenTelemetry-first observability for all backend runtime telemetry.
+
+### Local observability stack
+
+The local development environment includes a pre-wired monitoring stack in Docker:
+
+| Service | Purpose | Port(s) |
+|---|---|---|
+| `otel-collector` | Central OTLP receiver and fan-out pipeline | `4317`, `8889` |
+| `jaeger` | Distributed tracing UI | `16686` |
+| `prometheus` | Time-series metrics storage and query engine | `9090` |
+| `grafana` | Dashboards and alert visualization | `3000` |
+
+When running the stack, application traffic is observed through this flow:
+
+1. FastAPI emits traces and metrics through OTLP.
+2. OpenTelemetry Collector receives telemetry and routes:
+    * traces to Jaeger
+    * metrics to Prometheus exporter endpoint
+3. Prometheus scrapes collector metrics and stores them.
+4. Grafana queries Prometheus and renders dashboards.
+
+### Instrumentation design
+
+The backend instrumentation strategy combines automatic and manual telemetry:
+
+* **Auto-instrumentation**
+   * FastAPI request spans (`opentelemetry-instrumentation-fastapi`)
+   * SQLAlchemy operation spans (`opentelemetry-instrumentation-sqlalchemy`)
+   * HTTP client spans for outbound Riot API requests (`opentelemetry-instrumentation-httpx`)
+* **Manual service-level spans**
+   * Summoner and champion service methods add domain context (cache hit/miss,
+      pagination, route-specific operation outcomes)
+* **Custom metrics**
+   * `psi_http_server_requests_total` (counter)
+   * `psi_http_server_request_duration_seconds` (histogram)
+
+Resource attributes are configured to identify environment and service instance:
+
+* `service.name`
+* `service.version`
+* `deployment.environment`
+
+Telemetry sampling is configurable via `PSI_OTEL_TRACES_SAMPLER_ARG`.
+
+### SLI / SLO targets
+
+The monitoring design tracks reliability with explicit indicators and targets:
+
+| SLI | Target SLO | Window |
+|---|---|---|
+| API availability | >= 99.0% successful requests | 30 days |
+| P95 request latency (safe page endpoints) | < 400 ms | 30 days |
+| 5xx error ratio | < 1.0% | 30 days |
+
+These targets are development-stage defaults and can be tightened for production.
+
+### Dashboard and alerting model
+
+Grafana dashboards are provisioned from repository files and should cover:
+
+* Request throughput (req/s)
+* Error throughput (5xx req/s)
+* P95/P99 request latency
+* Route-level request distribution
+
+Alerting should be based on rate and sustained threshold conditions rather than
+single-point spikes. Recommended initial alerts:
+
+* Elevated 5xx rate for 5 minutes
+* P95 latency above threshold for 10 minutes
+* Collector or Prometheus target marked down
+
+### Verification and load testing
+
+Basic telemetry verification:
+
+1. Start stack with `docker-compose up --build`.
+2. Generate traffic from browser or load script.
+3. Verify traces in Jaeger (`psi-api` service).
+4. Verify metrics in Prometheus (`psi_http_server_requests_total`,
+    `psi_http_server_request_duration_seconds`).
+5. Verify dashboard panels in Grafana.
+
+Load testing is provided by:
+
+```bash
+source .venv/Scripts/activate
+python -m scripts.load_test --base-url http://localhost:8000 --duration 120 --concurrency 40
+```
+
+The default request mix is intentionally safe (home and champion endpoints) so
+Riot API-heavy endpoints are not stressed unless explicitly configured.
+
+### Operational notes
+
+* Keep metric labels low-cardinality (use route templates, not raw URLs).
+* Do not emit secrets or Riot API tokens in span attributes or logs.
+* Use Grafana credentials from `.env` (`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`).
+* In production, use persistent volumes and non-default credentials for all monitoring services.
 
 ## Testing Strategy
 

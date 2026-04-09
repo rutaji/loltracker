@@ -1,0 +1,78 @@
+from __future__ import annotations
+
+import logging
+from typing import Callable
+
+from fastapi import FastAPI
+from opentelemetry import metrics, trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+from opentelemetry.semconv.resource import ResourceAttributes
+
+from app.api.config import settings
+from app.database.database import engine
+
+LOGGER = logging.getLogger(__name__)
+
+
+def setup_telemetry(app: FastAPI) -> Callable[[], None]:
+    """Initialize tracing and auto-instrumentation for the app process."""
+    if not settings.otel_enabled:
+        LOGGER.info("Telemetry is disabled via configuration.")
+        return lambda: None
+
+    resource = Resource.create(
+        {
+            ResourceAttributes.SERVICE_NAME: settings.otel_service_name,
+            ResourceAttributes.SERVICE_VERSION: settings.otel_service_version,
+            ResourceAttributes.DEPLOYMENT_ENVIRONMENT: settings.otel_environment,
+        }
+    )
+
+    provider = TracerProvider(
+        resource=resource,
+        sampler=TraceIdRatioBased(settings.otel_traces_sampler_arg),
+    )
+
+    span_exporter = OTLPSpanExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        insecure=settings.otel_exporter_otlp_insecure,
+    )
+    provider.add_span_processor(BatchSpanProcessor(span_exporter))
+    trace.set_tracer_provider(provider)
+
+    metric_exporter = OTLPMetricExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        insecure=settings.otel_exporter_otlp_insecure,
+    )
+    metric_reader = PeriodicExportingMetricReader(metric_exporter)
+    meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+    metrics.set_meter_provider(meter_provider)
+
+    FastAPIInstrumentor.instrument_app(app)
+    HTTPXClientInstrumentor().instrument()
+    SQLAlchemyInstrumentor().instrument(engine=engine)
+
+    app.state.tracer = trace.get_tracer(settings.otel_service_name)
+    app.state.meter = metrics.get_meter(settings.otel_service_name)
+
+    LOGGER.info(
+        "Telemetry initialized for service '%s' (environment=%s).",
+        settings.otel_service_name,
+        settings.otel_environment,
+    )
+
+    def _shutdown() -> None:
+        meter_provider.shutdown()
+        provider.shutdown()
+
+    return _shutdown
