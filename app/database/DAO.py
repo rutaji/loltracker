@@ -6,6 +6,7 @@ import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed
+from app.utils.utils import split_name
 
 
 class DAO:
@@ -54,17 +55,16 @@ class DAO:
         if summoner is None:
             return None
 
-        name = self.splitname(summoner.summoner_name)
+        name = split_name(summoner.summoner_name)
         return app.models.summonerModels.Summoner(
             puuid=summoner.id,
             name = name[0],
             tagline = name[1],
             wins = summoner.games_won,
             gamesPlayed = summoner.games_played,
-            kills = 0,
-            deaths = 0,
-            assists = 0,
-
+            kills = summoner.kill,
+            deaths = summoner.death,
+            assists = summoner.assist,
         )
 
     def get_matches(self, summoner_name, offset, count):
@@ -88,7 +88,7 @@ class DAO:
             participants_list = []
             for p in match.Match_MatchParticipant:
                 summoner_name = p.MatchParticipant_Summoner.summoner_name if p.MatchParticipant_Summoner else ""
-                name = self.splitname(summoner_name)
+                name = split_name(summoner_name)
                 participants_list.append(
                     app.models.summonerModels.MatchParticipant(
                         puuid=p.summoner_id,
@@ -117,16 +117,7 @@ class DAO:
 
         return result
 
-    #todo move
-    def splitname(self,name):
-        if not name:
-            return ["", ""]
 
-        parts = name.split('#', 1)
-        if len(parts) == 1:
-            return [parts[0], ""]
-
-        return parts
 
 
 
