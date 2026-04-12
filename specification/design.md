@@ -263,11 +263,15 @@ Riot API-heavy endpoints are not stressed unless explicitly configured.
 
 ### Unit Tests
 
-**Backend** - pytest possibly with `pytest-cov`:
+**Backend** - pytest with `pytest-cov`:
 
 * Tests cover the service layer and API route handlers; the persistence layer is replaced with in-memory fakes.
 * Coverage target: **≥ 80 %** line coverage, enforced in CI with `--cov-fail-under=80`.
-* Run locally: `pytest --cov=app --cov-report=term-missing`
+* Run locally to generate an html with results, alternatively use `--cov-report=term-missing` to recieve results in terminal:
+```bash
+source .venv/Scripts/activate
+pytest --cov=app --cov-report=html
+```
 
 ### Integration Tests
 
