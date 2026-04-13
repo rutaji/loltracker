@@ -270,7 +270,8 @@ Riot API-heavy endpoints are not stressed unless explicitly configured.
 * Run locally to generate an html with results, alternatively use `--cov-report=term-missing` to recieve results in terminal:
 ```bash
 source .venv/Scripts/activate
-pytest --cov=app --cov-report=html
+PSI_OTEL_ENABLED=false pytest --cov=app --cov-report=html
+#This disables telemetry while testing, removing OpenTelemetry's attempts at exporting information into an inactive docker container.
 ```
 
 ### Integration Tests
