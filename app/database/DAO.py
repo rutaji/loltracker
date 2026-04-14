@@ -189,6 +189,9 @@ class DAO:
                 summoner_name=f"{summoner.name}#{summoner.tagline}",
                 games_played=summoner.gamesPlayed,
                 games_won=summoner.wins,
+                kill=summoner.kills,
+                death=summoner.deaths,
+                assist=summoner.assists,
             )
             self.db.merge(dao_summoner)
             self.db.commit()

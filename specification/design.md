@@ -276,7 +276,19 @@ PSI_OTEL_ENABLED=false pytest --cov=app --cov-report=html
 
 ### Integration Tests
 
->TODO: populate once we establish integartion tests
+Run all tests:
+
+  pytest -ra
+
+Run only integration tests:
+
+  pytest -m integration -ra
+
+Run only non-integration tests (fast unit/service/endpoint checks):
+
+  pytest -m "not integration" -ra
+
+Integration tests cover endpoint -> service -> DAO -> database flow while stubbing Riot API calls for deterministic runs.
 
 ### CI/CD Quality Gates
 
