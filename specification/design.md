@@ -270,25 +270,23 @@ Riot API-heavy endpoints are not stressed unless explicitly configured.
 * Run locally to generate an html with results, alternatively use `--cov-report=term-missing` to recieve results in terminal:
 ```bash
 source .venv/Scripts/activate
-PSI_OTEL_ENABLED=false pytest --cov=app --cov-report=html
+PSI_OTEL_ENABLED=false pytest -m "not integration" --cov=app --cov-report=html
 #This disables telemetry while testing, removing OpenTelemetry's attempts at exporting information into an inactive docker container.
 ```
 
 ### Integration Tests
 
-Run all tests:
-
-  pytest -ra
+Integration tests cover endpoint -> service -> DAO -> database flow while stubbing Riot API calls for deterministic runs to prevent exhausting Riot API limits.
 
 Run only integration tests:
+```bash
+pytest -m integration -ra
+```
 
-  pytest -m integration -ra
-
-Run only non-integration tests (fast unit/service/endpoint checks):
-
-  pytest -m "not integration" -ra
-
-Integration tests cover endpoint -> service -> DAO -> database flow while stubbing Riot API calls for deterministic runs.
+Run all tests (does not provide code coverage):
+```bash
+pytest -ra
+```
 
 ### CI/CD Quality Gates
 
