@@ -1,11 +1,13 @@
 
 # 🚀 PSI 2026 - LolTracker
 
+[![Coverage](https://codecov.io/gh/rutaji/loltracker/branch/main/graph/badge.svg)](https://codecov.io/gh/rutaji/loltracker)
+
 Repository with supporting code for PSI (Pokročilé Softwarové Inženýrství) course at Technická Univerzita of Liberec (_TUL_).
 
 The repository hosts a the **LolTracker** project, a site allowing users to view detailed statistics about player accounts (called Summoners) and playable characters (called Champions) for the game League of Legends.
 
-## User scenarios
+## 🧑‍💻 User scenarios
 
 
 **LolTracker** allows the following:
@@ -59,7 +61,7 @@ Default credentials for Grafana are loaded from `.env`:
 
 For more detailed information, see [`specification/design.md#reliability--observability`](specification/design.md#reliability--observability)
 
-### SQL database
+### 💾 SQL database
 
 You can connect to database using: postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:5432/{POSTGRES_DB}
 
@@ -88,6 +90,6 @@ To add test data into database: docker-compose exec api python -m  scripts.seed_
 TODO: Complete the following items to fulfill the NFRs of PSI:
 * [ ] Production: Link to the app in Production and Dev environments
 * [ ] Monitoring: Link to Azure App Insights (monitoring dashboard)
-* [ ] Tests: Link to code coverage and latest unit & integration test results on `main` branch
+* [✅] Tests: Code coverage badge and latest unit & integration test results on `main` branch
 * [ ] CI/CD: Link to GitHub actions forming fully autonomous delivery of (working) code from `main` through `dev` to `prod` environments in a selected cloud (Azure is recommended).
 * [ ] SLO: Aiming at 99% availability - provide a link to SLI dashboard
