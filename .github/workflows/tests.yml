@@ -11,6 +11,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite+pysqlite:///./ci_test.db
+      RIOT_API_KEY: test-key
+      PSI_OTEL_ENABLED: "false"
 
     steps:
       - name: Checkout repository
