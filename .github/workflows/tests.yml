@@ -3,9 +3,11 @@ name: Tests
 on:
   push:
     branches:
+      - feat/**
+  pull_request:
+    branches:
       - main
       - develop
-      - feat/**
   workflow_dispatch:
 
 jobs:
@@ -31,18 +33,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run full test suite
-        if: github.ref_name == 'main' || github.ref_name == 'develop'
+      - name: Run full test suite on merge targets
+        if: github.event_name == 'pull_request'
         run: |
           pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
 
-      - name: Run unit tests only
-        if: startsWith(github.ref_name, 'feat/')
+      - name: Run unit tests only on feature branches
+        if: github.event_name == 'push' && startsWith(github.ref_name, 'feat/')
         run: |
           pytest -m "not integration" --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=80
 
       - name: Upload coverage to Codecov
-        if: github.ref_name == 'main' || github.ref_name == 'develop'
+        if: github.event_name == 'pull_request'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml

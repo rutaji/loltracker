@@ -147,13 +147,13 @@ flowchart LR
     FB[Feature Branch]
     PR[Pull Request]
     MAIN[Main Branch]
-    DEV[DEV environment]
+    DEV[Develop Branch]
     PROD[PROD environment]
 
     FB -- Unit Test & Code Style --> PR
-    PR -- Code Review --> MAIN
-    MAIN -- Build & Test --> DEV
-    DEV -- Integration Tests --> PROD
+    PR -- Code Review --> DEV
+    DEV -- Integration Tests --> MAIN
+    MAIN -- Build & Test --> PROD
 ```
 
 ## Reliability & Observability
@@ -277,6 +277,7 @@ PSI_OTEL_ENABLED=false pytest -m "not integration" --cov=app --cov-report=html
 ### Integration Tests
 
 Integration tests cover endpoint -> service -> DAO -> database flow while stubbing Riot API calls for deterministic runs to prevent exhausting Riot API limits.
+Use the unit-only coverage command above when you want coverage numbers that exclude integration tests.
 
 Run only integration tests:
 ```bash
@@ -292,6 +293,6 @@ pytest -ra
 
 | Stage | Checks |
 |---|---|
-| PR (every push) | `pytest` with coverage gate (currently run locally) |
-| Merge to `develop` | All PR checks + code review |
+| PR (every branch) | `pytest` with unit-only coverage gate (`-m "not integration"`) |
+| Merge to `main` / `develop` | All PR checks + code review |
 | Deploy to `main` | _(Azure — milestone 3)_ |
