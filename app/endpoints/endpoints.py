@@ -10,7 +10,6 @@ from app.database.DAO import DAO
 
 from app.services.summonerServices import get_summoner_service, get_matches_service
 from app.services.championServices import get_champion_service
-from app.services.stubDAO import stubDAO
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
