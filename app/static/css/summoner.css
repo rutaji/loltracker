@@ -9,6 +9,11 @@
     --accent: #76d4ff;
     --accent-strong: #ffb154;
     --win: #7be495;
+    --win-soft: rgba(123, 228, 149, 0.18);
+    --loss: #ff8b8b;
+    --loss-soft: rgba(255, 139, 139, 0.16);
+    --team-blue-soft: rgba(118, 212, 255, 0.08);
+    --team-red-soft: rgba(255, 177, 84, 0.08);
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -158,6 +163,16 @@ input {
     background: rgba(6, 15, 27, 0.78);
 }
 
+.match--win {
+    border-color: rgba(123, 228, 149, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(123, 228, 149, 0.08);
+}
+
+.match--loss {
+    border-color: rgba(255, 139, 139, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(255, 139, 139, 0.06);
+}
+
 .match-summary {
     width: 100%;
     display: grid;
@@ -170,6 +185,22 @@ input {
     background: linear-gradient(90deg, rgba(118, 212, 255, 0.12), rgba(255, 177, 84, 0.08));
     cursor: pointer;
     text-align: left;
+}
+
+.match-summary--win {
+    background: linear-gradient(90deg, var(--win-soft), rgba(118, 212, 255, 0.08));
+}
+
+.match-summary--loss {
+    background: linear-gradient(90deg, var(--loss-soft), rgba(255, 177, 84, 0.06));
+}
+
+.match-summary--win span:last-child {
+    color: var(--win);
+}
+
+.match-summary--loss span:last-child {
+    color: var(--loss);
 }
 
 .match-details {
@@ -207,6 +238,38 @@ th {
     letter-spacing: 0.08em;
 }
 
+.participant-row.team-100 {
+    background: var(--team-blue-soft);
+}
+
+.participant-row.team-200 {
+    background: var(--team-red-soft);
+}
+
+.participant-row--self {
+    box-shadow: inset 3px 0 0 var(--accent);
+    font-weight: 700;
+}
+
+.participant-row--self td:first-child {
+    color: var(--accent);
+}
+
+.player-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(118, 212, 255, 0.14);
+    border: 1px solid rgba(118, 212, 255, 0.24);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 input {
     padding: 12px 14px;
     border-radius: 14px;
@@ -215,7 +278,8 @@ input {
     color: var(--text);
 }
 
-button {
+.search-fields button,
+.load-more-button {
     padding: 12px 18px;
     border-radius: 999px;
     border: 0;

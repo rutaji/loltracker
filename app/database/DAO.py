@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 import app.models.championModels
@@ -16,6 +17,12 @@ class DAO:
     @staticmethod
     def get_dao():
         return DAO(SessionLocal())
+
+    def rollback(self):
+        self.db.rollback()
+
+    def close(self):
+        self.db.close()
 
     def get_champion(self,champion_name :str,patch :list[str]):
         dao_champions = (
@@ -60,11 +67,11 @@ class DAO:
             puuid=summoner.id,
             name = name[0],
             tagline = name[1],
-            wins = summoner.games_won,
-            gamesPlayed = summoner.games_played,
-            kills = summoner.kill,
-            deaths = summoner.death,
-            assists = summoner.assist,
+            wins = summoner.games_won or 0,
+            gamesPlayed = summoner.games_played or 0,
+            kills = summoner.kill or 0,
+            deaths = summoner.death or 0,
+            assists = summoner.assist or 0,
         )
 
     def get_matches(self, summoner_name, offset, count):
@@ -117,6 +124,18 @@ class DAO:
 
         return result
 
+    def summoner_has_matches(self, summoner_name: str) -> bool:
+        summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+        if not summoner:
+            return False
+
+        match = (
+            self.db.query(MatchParticipant)
+            .filter(MatchParticipant.summoner_id == summoner.id)
+            .first()
+        )
+        return match is not None
+
 
 
 
@@ -128,77 +147,92 @@ class DAO:
 
 
     def add_match(self, match: app.models.summonerModels.Match):
-            match_id = str(match.match_id)
-            if self.match_exist(match_id):
-                return False
+            try:
+                match_id = str(match.match_id)
+                if self.match_exist(match_id):
+                    return False
 
-            dao_match = Match(
-                id=match_id,
-                created=int(match.start.timestamp()),
-                ended=int(match.end.timestamp()),
-                gametype=match.mode,
-                patch=match.version,
-            )
-
-            dao_participants = []
-            queued_summoner_ids = set()
-            queued_champion_ids = set()
-
-            for participant in match.participants:
-                summoner_name = f"{participant.name}#{participant.tagline}"
-                summoner_id = participant.puuid
-                champion = self.db.query(Champion).filter(Champion.champion_name == participant.champion).first()
-
-                if not summoner_id:
-                    summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
-                    summoner_id = summoner.id if summoner is not None else summoner_name
-
-                champion_id = champion.id if champion is not None else participant.champion
-
-                dao_participants.append(
-                    (
-                        MatchParticipant(
-                            summoner_id=summoner_id,
-                            match_id=match_id,
-                            kill=participant.kills,
-                            death=participant.deaths,
-                            assist=participant.assists,
-                            gold=participant.gold,
-                            team=participant.team,
-                            won=participant.won,
-                            champion=champion_id,
-                        ),
-                        summoner_name,
-                    )
+                dao_match = Match(
+                    id=match_id,
+                    created=int(match.start.timestamp()),
+                    ended=int(match.end.timestamp()),
+                    gametype=match.mode,
+                    patch=match.version,
                 )
 
-            self.db.add(dao_match)
-            for participant, summoner_name in dao_participants:
-                self.db.add(participant)
-                if participant.summoner_id not in queued_summoner_ids and not self.summoner_exist(participant.summoner_id):
-                    self.db.merge(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
-                    queued_summoner_ids.add(participant.summoner_id)
-                if participant.champion not in queued_champion_ids and not self.champion_exist(participant.champion):
-                    self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
-                    queued_champion_ids.add(participant.champion)
-            self.db.commit()
+                dao_participants = []
+                queued_summoner_ids = set()
+                queued_champion_ids = set()
+
+                for participant in match.participants:
+                    summoner_name = f"{participant.name}#{participant.tagline}"
+                    summoner_id = participant.puuid
+                    champion = self.db.query(Champion).filter(Champion.champion_name == participant.champion).first()
+
+                    if not summoner_id:
+                        summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+                        summoner_id = summoner.id if summoner is not None else summoner_name
+
+                    champion_id = champion.id if champion is not None else participant.champion
+
+                    dao_participants.append(
+                        (
+                            MatchParticipant(
+                                summoner_id=summoner_id,
+                                match_id=match_id,
+                                kill=participant.kills,
+                                death=participant.deaths,
+                                assist=participant.assists,
+                                gold=participant.gold,
+                                team=participant.team,
+                                won=participant.won,
+                                champion=champion_id,
+                            ),
+                            summoner_name,
+                        )
+                    )
+
+                self.db.add(dao_match)
+                for participant, summoner_name in dao_participants:
+                    self.db.add(participant)
+                    if participant.summoner_id not in queued_summoner_ids and not self.summoner_exist(participant.summoner_id):
+                        self.db.merge(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
+                        queued_summoner_ids.add(participant.summoner_id)
+                    if participant.champion not in queued_champion_ids and not self.champion_exist(participant.champion):
+                        self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
+                        queued_champion_ids.add(participant.champion)
+                self.db.commit()
+            except SQLAlchemyError:
+                self.db.rollback()
+                raise
 
     def add_summoner(self, summoner: app.models.summonerModels.Summoner):
-            dao_summoner = Summoner(
-                id=summoner.puuid,
-                summoner_name=f"{summoner.name}#{summoner.tagline}",
-                games_played=summoner.gamesPlayed,
-                games_won=summoner.wins,
-            )
-            self.db.merge(dao_summoner)
-            self.db.commit()
+            try:
+                dao_summoner = Summoner(
+                    id=summoner.puuid,
+                    summoner_name=f"{summoner.name}#{summoner.tagline}",
+                    games_played=summoner.gamesPlayed,
+                    games_won=summoner.wins,
+                    kill=summoner.kills,
+                    death=summoner.deaths,
+                    assist=summoner.assists,
+                )
+                self.db.merge(dao_summoner)
+                self.db.commit()
+            except SQLAlchemyError:
+                self.db.rollback()
+                raise
 
     def get_summoner_dao(self, summoner_id) -> Summoner:
         return self.db.query(Summoner).filter(Summoner.id == summoner_id).first()
 
     def add_champion(self,champion:Champion):
-            self.db.merge(champion)
-            self.db.commit()
+            try:
+                self.db.merge(champion)
+                self.db.commit()
+            except SQLAlchemyError:
+                self.db.rollback()
+                raise
 
     def get_champion_dao(self, champion_id) -> Champion:
         return self.db.query(Champion).filter(Champion.id == champion_id).first()

@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
@@ -8,14 +8,23 @@ from app.api.config import settings
 
 from app.database.DAO import DAO
 
-from app.services.summonerServices import get_summoner_service, get_matches_service
+from app.services.summonerServices import load_summoner_page
 from app.services.championServices import get_champion_service
 from app.services.stubDAO import stubDAO
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
-dao = DAO.get_dao()
+
+def get_dao():
+    dao = DAO.get_dao()
+    try:
+        yield dao
+    except Exception:
+        dao.rollback()
+        raise
+    finally:
+        dao.close()
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -67,10 +76,18 @@ async def summoner_not_found(request: Request, name: str = "", tagline: str = ""
     )
 
 @router.get("/summoner/{name}/{tagline}", response_class=HTMLResponse)
-async def get_summoner(request: Request, name: str, tagline: str, offset: int = 0, ajax: bool = False):
+async def get_summoner(
+    request: Request,
+    name: str,
+    tagline: str,
+    offset: int = 0,
+    ajax: bool = False,
+    dao: DAO = Depends(get_dao),
+):
     count = settings.matches_per_page
 
-    summoner = get_summoner_service(request, name, tagline, dao)
+    page_data = load_summoner_page(request, name, tagline, offset, count, dao)
+    summoner = page_data.summoner
     if summoner is None:
         return RedirectResponse(
             url=(
@@ -79,8 +96,7 @@ async def get_summoner(request: Request, name: str, tagline: str, offset: int = 
             ),
             status_code=303
         )
-
-    match_page = get_matches_service(request, name, tagline, offset, count, dao)
+    match_page = page_data.match_page
 
     if ajax:
         return JSONResponse(content=jsonable_encoder(match_page))
@@ -111,6 +127,7 @@ async def get_champion(
     name: str,
     version: str = settings.default_champion_version,
     ajax: bool = False,
+    dao: DAO = Depends(get_dao),
 ):
     champion = get_champion_service(name, [version], dao)
 

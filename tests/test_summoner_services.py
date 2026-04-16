@@ -2,21 +2,23 @@ from datetime import datetime
 from types import SimpleNamespace
 
 from app.models.summonerModels import Match, Summoner
-from app.services.summonerServices import get_matches_service, get_summoner_service
+from app.services.summonerServices import get_matches_service, get_summoner_service, load_summoner_page
 
 
 class FakeApiClient:
     def __init__(self, account_data=None):
         self.account_data = account_data or {"puuid": "remote-puuid", "gameName": "remote", "tagLine": "euw"}
+        self.match_ids = []
+        self.match_info_by_id = {}
 
     def get_summoner_by_riot_id(self, name, tagline):
         return self.account_data
 
     def get_match_ids_by_puuid(self, puuid, start=0, count=20):
-        return []
+        return self.match_ids[start:start + count]
 
     def get_match_info_by_match_id(self, match_id):
-        raise AssertionError("should not fetch remote match info in this test")
+        return self.match_info_by_id[match_id]
 
 
 def make_request(api_client=None):
@@ -38,6 +40,9 @@ class MockDAO:
         ]
         return all_matches[offset:offset + count]
 
+    def summoner_has_matches(self, summoner_name):
+        return True
+
     def get_summoner(self, summoner_name):
         return Summoner(
             puuid="s1",
@@ -54,6 +59,9 @@ class MockDAO:
 class MockSummonerDAO:
     def __init__(self):
         self.saved_summoner = None
+
+    def summoner_has_matches(self, summoner_name):
+        return True
 
     def get_summoner(self, summoner_name):
         if summoner_name == "test#euw":
@@ -109,15 +117,176 @@ def test_get_matches_pagination():
     request = make_request()
 
     result = get_matches_service(request, "test", "euw", 0, 2, dao)
-    assert result.matches[0].match_id == 0
-    assert result.matches[1].match_id == 1
-    assert result.hasMore is True
-    assert result.nextOffset == 2
+    assert result.match_page.matches[0].match_id == 0
+    assert result.match_page.matches[1].match_id == 1
+    assert result.match_page.hasMore is True
+    assert result.match_page.nextOffset == 2
+    assert result.refreshed_from_remote is False
 
     result = get_matches_service(request, "test", "euw", 4, 2, dao)
-    assert result.matches[0].match_id == 4
-    assert result.hasMore is False
-    assert result.nextOffset == 6
+    assert result.match_page.matches[0].match_id == 4
+    assert result.match_page.hasMore is False
+    assert result.match_page.nextOffset == 6
+    assert result.refreshed_from_remote is False
+
+
+def test_get_matches_service_fetches_remote_only_when_cache_empty():
+    class EmptyMatchDAO:
+        def __init__(self):
+            self.saved_matches = []
+
+        def get_matches(self, summoner_name, offset, count):
+            return []
+
+        def summoner_has_matches(self, summoner_name):
+            return False
+
+        def get_summoner(self, summoner_name):
+            return Summoner(
+                puuid="remote-puuid",
+                name="test",
+                tagline="euw",
+                wins=0,
+                gamesPlayed=0,
+                kills=0,
+                deaths=0,
+                assists=0,
+            )
+
+        def add_match(self, match):
+            self.saved_matches.append(match)
+
+    api_client = FakeApiClient()
+    api_client.match_ids = ["EUW1_1"]
+    api_client.match_info_by_id = {
+        "EUW1_1": {
+            "metadata": {"matchId": "EUW1_1"},
+            "info": {
+                "gameStartTimestamp": 1710000000000,
+                "gameEndTimestamp": 1710001800000,
+                "gameVersion": "14.5",
+                "gameMode": "CLASSIC",
+                "participants": [
+                    {
+                        "puuid": "remote-puuid",
+                        "riotIdGameName": "test",
+                        "riotIdTagline": "euw",
+                        "kills": 5,
+                        "deaths": 2,
+                        "assists": 7,
+                        "goldEarned": 12345,
+                        "teamId": 100,
+                        "championName": "Ahri",
+                        "win": True,
+                    }
+                ],
+            },
+        }
+    }
+
+    dao = EmptyMatchDAO()
+    request = make_request(api_client)
+
+    result = get_matches_service(request, "test", "euw", 0, 2, dao)
+
+    assert result.refreshed_from_remote is True
+    assert len(result.match_page.matches) == 1
+    assert len(dao.saved_matches) == 1
+
+
+def test_load_summoner_page_returns_not_found_when_summoner_missing():
+    class MissingSummonerDAO:
+        def get_summoner(self, summoner_name):
+            return None
+
+        def add_summoner(self, summoner):
+            raise AssertionError("should not save summoner in this test")
+
+    request = make_request(FakeApiClient({"puuid": None, "gameName": "", "tagLine": ""}))
+    dao = MissingSummonerDAO()
+
+    result = load_summoner_page(request, "missing", "euw", 0, 2, dao)
+
+    assert result.summoner is None
+    assert result.match_page is None
+
+
+def test_load_summoner_page_refreshes_summoner_after_remote_matches():
+    class PageLoadDAO:
+        def __init__(self):
+            self.saved_matches = []
+            self.get_summoner_calls = 0
+
+        def get_summoner(self, summoner_name):
+            self.get_summoner_calls += 1
+            if self.get_summoner_calls == 1:
+                return Summoner(
+                    puuid="remote-puuid",
+                    name="test",
+                    tagline="euw",
+                    wins=0,
+                    gamesPlayed=0,
+                    kills=0,
+                    deaths=0,
+                    assists=0,
+                )
+            return Summoner(
+                puuid="remote-puuid",
+                name="test",
+                tagline="euw",
+                wins=1,
+                gamesPlayed=1,
+                kills=5,
+                deaths=2,
+                assists=7,
+            )
+
+        def get_matches(self, summoner_name, offset, count):
+            return []
+
+        def summoner_has_matches(self, summoner_name):
+            return False
+
+        def add_match(self, match):
+            self.saved_matches.append(match)
+
+    api_client = FakeApiClient()
+    api_client.match_ids = ["EUW1_1"]
+    api_client.match_info_by_id = {
+        "EUW1_1": {
+            "metadata": {"matchId": "EUW1_1"},
+            "info": {
+                "gameStartTimestamp": 1710000000000,
+                "gameEndTimestamp": 1710001800000,
+                "gameVersion": "14.5",
+                "gameMode": "CLASSIC",
+                "participants": [
+                    {
+                        "puuid": "remote-puuid",
+                        "riotIdGameName": "test",
+                        "riotIdTagline": "euw",
+                        "kills": 5,
+                        "deaths": 2,
+                        "assists": 7,
+                        "goldEarned": 12345,
+                        "teamId": 100,
+                        "championName": "Ahri",
+                        "win": True,
+                    }
+                ],
+            },
+        }
+    }
+
+    dao = PageLoadDAO()
+    request = make_request(api_client)
+
+    result = load_summoner_page(request, "test", "euw", 0, 2, dao)
+
+    assert result.summoner is not None
+    assert result.summoner.gamesPlayed == 1
+    assert result.match_page is not None
+    assert len(result.match_page.matches) == 1
 
 
 def test_get_summoner_service_found():

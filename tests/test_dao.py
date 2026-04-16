@@ -40,6 +40,32 @@ def test_add_summoner(db_session):
     assert returned_summoner.id == "testid123"
     assert returned_summoner.summoner_name == "testname#1234"
     assert returned_summoner.games_played == 0
+    assert returned_summoner.kill == 0
+    assert returned_summoner.death == 0
+    assert returned_summoner.assist == 0
+
+
+def test_get_summoner_coalesces_null_stats(db_session):
+    dao = DAO(db_session)
+    db_session.add(
+        DaoSummoner(
+            id="legacy-null-stats",
+            summoner_name="legacy#euw",
+            games_played=5,
+            games_won=2,
+            kill=None,
+            death=None,
+            assist=None,
+        )
+    )
+    db_session.commit()
+
+    returned_summoner = dao.get_summoner("legacy#euw")
+
+    assert returned_summoner is not None
+    assert returned_summoner.kills == 0
+    assert returned_summoner.deaths == 0
+    assert returned_summoner.assists == 0
 
 
 def test_add_champion(db_session):

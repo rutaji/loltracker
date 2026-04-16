@@ -1,10 +1,21 @@
 from fastapi import Request
-from typing import Optional
+from typing import NamedTuple, Optional
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
 from app.riot.riotParsers import MatchParser, SummonerParser
+
+
+class MatchServiceResult(NamedTuple):
+    match_page: MatchPage
+    refreshed_from_remote: bool
+
+
+class SummonerPageServiceResult(NamedTuple):
+    summoner: Optional[Summoner]
+    match_page: Optional[MatchPage]
+
 
 def get_summoner_service(request: Request, name: str, tagline: str, dao: DAO) -> Optional[Summoner]:
     tracer = trace.get_tracer(__name__)
@@ -38,17 +49,20 @@ def get_matches_service(
     offset: int,
     count: int,
     dao: DAO,
-) -> MatchPage:
+) -> MatchServiceResult:
     tracer = trace.get_tracer(__name__)
     summoner_name = f"{name}#{tagline}"
+    refreshed_from_remote = False
 
     with tracer.start_as_current_span("service.matches.get") as span:
         span.set_attribute("matches.offset", offset)
         span.set_attribute("matches.count", count)
         matches = dao.get_matches(summoner_name, offset, count)
         span.set_attribute("matches.cached_count", len(matches))
+        has_cached_matches = dao.summoner_has_matches(summoner_name)
+        span.set_attribute("matches.cache_populated", has_cached_matches)
 
-        if len(matches) < count and request is not None:
+        if not has_cached_matches and request is not None:
             summoner = dao.get_summoner(summoner_name)
 
             puuid = summoner.puuid if summoner is not None else None
@@ -61,7 +75,7 @@ def get_matches_service(
                 match_ids = request.app.state.api_client.get_match_ids_by_puuid(
                     puuid,
                     start=offset,
-                    count=count + len(matches),
+                    count=count,
                 )
 
                 existing_ids = {str(match.match_id) for match in matches}
@@ -75,6 +89,7 @@ def get_matches_service(
                     match = MatchParser.parse(match_data)
                     remote_matches.append(match)
                     dao.add_match(match)
+                    refreshed_from_remote = True
                     if len(matches) + len(remote_matches) >= count:
                         break
 
@@ -84,8 +99,36 @@ def get_matches_service(
         hasMore = len(matches) == count
         span.set_attribute("matches.has_more", hasMore)
 
-        return MatchPage(
-            matches=matches,
-            hasMore=hasMore,
-            nextOffset=offset+count
+        return MatchServiceResult(
+            match_page=MatchPage(
+                matches=matches,
+                hasMore=hasMore,
+                nextOffset=offset+count
+            ),
+            refreshed_from_remote=refreshed_from_remote,
         )
+
+
+def load_summoner_page(
+    request: Request,
+    name: str,
+    tagline: str,
+    offset: int,
+    count: int,
+    dao: DAO,
+) -> SummonerPageServiceResult:
+    summoner = get_summoner_service(request, name, tagline, dao)
+    if summoner is None:
+        return SummonerPageServiceResult(summoner=None, match_page=None)
+
+    match_result = get_matches_service(request, name, tagline, offset, count, dao)
+
+    if match_result.refreshed_from_remote:
+        refreshed_summoner = dao.get_summoner(f"{name}#{tagline}")
+        if refreshed_summoner is not None:
+            summoner = refreshed_summoner
+
+    return SummonerPageServiceResult(
+        summoner=summoner,
+        match_page=match_result.match_page,
+    )

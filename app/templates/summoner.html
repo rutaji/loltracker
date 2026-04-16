@@ -13,6 +13,7 @@
         id="summoner-page"
         data-name="{{ summoner.name }}"
         data-tagline="{{ summoner.tagline }}"
+        data-puuid="{{ summoner.puuid }}"
         data-next-offset="{{ matchData.nextOffset }}"
     >
         <section class="top-bar">
@@ -52,11 +53,17 @@
 
             <div id="match-list" class="match-list">
                 {% for match in matchData.matches %}
-                <article class="match">
-                    <button type="button" class="match-summary" data-match-id="{{ match.match_id }}">
+                {% set match_state = namespace(result='unknown') %}
+                {% for p in match.participants %}
+                    {% if p.puuid == summoner.puuid %}
+                        {% set match_state.result = 'win' if p.won else 'loss' %}
+                    {% endif %}
+                {% endfor %}
+                <article class="match match--{{ match_state.result }}">
+                    <button type="button" class="match-summary match-summary--{{ match_state.result }}" data-match-id="{{ match.match_id }}">
                         <span>Match {{ match.match_id }}</span>
                         <span>{{ match.mode }}</span>
-                        <span>Patch {{ match.version }}</span>
+                        <span>{{ match_state.result|capitalize }} | Patch {{ match.version }}</span>
                     </button>
                     <div id="match-{{ match.match_id }}" class="match-details" style="display:none">
                         <div class="match-meta">
@@ -69,8 +76,13 @@
                                     <th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th>
                                 </tr>
                                 {% for p in match.participants %}
-                                <tr>
-                                    <td>{{ p.name }}</td>
+                                <tr class="participant-row team-{{ p.team }}{% if p.puuid == summoner.puuid %} participant-row--self{% endif %}">
+                                    <td>
+                                        {{ p.name }}
+                                        {% if p.puuid == summoner.puuid %}
+                                        <span class="player-badge">You</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ p.champion }}</td>
                                     <td>{{ p.kills }}</td>
                                     <td>{{ p.deaths }}</td>
