@@ -1,10 +1,14 @@
+import logging
 from fastapi import Request
 from typing import NamedTuple, Optional
+import httpx
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
 from app.riot.riotParsers import MatchParser, SummonerParser
+
+LOGGER = logging.getLogger(__name__)
 
 
 class MatchServiceResult(NamedTuple):
@@ -53,11 +57,12 @@ def get_matches_service(
     tracer = trace.get_tracer(__name__)
     summoner_name = f"{name}#{tagline}"
     refreshed_from_remote = False
+    query_count = count + 1
 
     with tracer.start_as_current_span("service.matches.get") as span:
         span.set_attribute("matches.offset", offset)
         span.set_attribute("matches.count", count)
-        matches = dao.get_matches(summoner_name, offset, count)
+        matches = dao.get_matches(summoner_name, offset, query_count)
         span.set_attribute("matches.cached_count", len(matches))
         has_cached_matches = dao.summoner_has_matches(summoner_name)
         span.set_attribute("matches.cache_populated", has_cached_matches)
@@ -72,36 +77,60 @@ def get_matches_service(
                 puuid = SummonerParser.parse(account_data).puuid
 
             if puuid:
-                match_ids = request.app.state.api_client.get_match_ids_by_puuid(
-                    puuid,
-                    start=offset,
-                    count=count,
-                )
+                try:
+                    match_ids = request.app.state.api_client.get_match_ids_by_puuid(
+                        puuid,
+                        start=offset,
+                        count=query_count,
+                    )
+                except httpx.RequestError as exc:
+                    span.record_exception(exc)
+                    span.set_attribute("matches.remote_fetch_failed", True)
+                    LOGGER.warning(
+                        "Failed to fetch Riot match ids for %s: %s",
+                        summoner_name,
+                        exc,
+                    )
+                    match_ids = []
 
                 existing_ids = {str(match.match_id) for match in matches}
                 remote_matches = []
+                remote_failures = 0
 
                 for match_id in match_ids:
                     if match_id in existing_ids:
                         continue
 
-                    match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
-                    match = MatchParser.parse(match_data)
-                    remote_matches.append(match)
-                    dao.add_match(match)
-                    refreshed_from_remote = True
-                    if len(matches) + len(remote_matches) >= count:
+                    try:
+                        match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
+                        match = MatchParser.parse(match_data)
+                        remote_matches.append(match)
+                        dao.add_match(match)
+                        refreshed_from_remote = True
+                    except httpx.RequestError as exc:
+                        remote_failures += 1
+                        span.record_exception(exc)
+                        LOGGER.warning(
+                            "Failed to fetch Riot match detail %s for %s: %s",
+                            match_id,
+                            summoner_name,
+                            exc,
+                        )
+                        continue
+                    if len(matches) + len(remote_matches) >= query_count:
                         break
 
                 matches = matches + remote_matches
                 span.set_attribute("matches.remote_count", len(remote_matches))
+                span.set_attribute("matches.remote_failures", remote_failures)
 
-        hasMore = len(matches) == count
+        hasMore = len(matches) > count
         span.set_attribute("matches.has_more", hasMore)
+        visible_matches = matches[:count]
 
         return MatchServiceResult(
             match_page=MatchPage(
-                matches=matches,
+                matches=visible_matches,
                 hasMore=hasMore,
                 nextOffset=offset+count
             ),

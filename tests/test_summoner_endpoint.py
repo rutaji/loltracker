@@ -4,6 +4,7 @@ from app.api.config import settings
 from app.endpoints import endpoints
 from app.main import app
 from app.models.summonerModels import Match, MatchPage, Summoner
+from app.services.summonerServices import SummonerPageServiceResult
 
 
 client = TestClient(app)
@@ -37,9 +38,15 @@ def make_match_page() -> MatchPage:
     return MatchPage(matches=matches, hasMore=True, nextOffset=settings.matches_per_page)
 
 
+def make_page_data() -> SummonerPageServiceResult:
+    return SummonerPageServiceResult(
+        summoner=make_summoner(),
+        match_page=make_match_page(),
+    )
+
+
 def test_summoner_page_found(monkeypatch):
-    monkeypatch.setattr(endpoints, "get_summoner_service", lambda request, name, tagline, dao: make_summoner())
-    monkeypatch.setattr(endpoints, "get_matches_service", lambda request, name, tagline, offset, count, dao: make_match_page())
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
 
     response = client.get("/summoner/test/euw")
     assert response.status_code == 200
@@ -48,7 +55,11 @@ def test_summoner_page_found(monkeypatch):
 
 
 def test_summoner_page_not_found_redirects(monkeypatch):
-    monkeypatch.setattr(endpoints, "get_summoner_service", lambda request, name, tagline, dao: None)
+    monkeypatch.setattr(
+        endpoints,
+        "load_summoner_page",
+        lambda request, name, tagline, offset, count, dao: SummonerPageServiceResult(summoner=None, match_page=None),
+    )
 
     response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
     assert response.status_code == 303
@@ -56,8 +67,7 @@ def test_summoner_page_not_found_redirects(monkeypatch):
 
 
 def test_summoner_matches_ajax_response(monkeypatch):
-    monkeypatch.setattr(endpoints, "get_summoner_service", lambda request, name, tagline, dao: make_summoner())
-    monkeypatch.setattr(endpoints, "get_matches_service", lambda request, name, tagline, offset, count, dao: make_match_page())
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
 
     response = client.get("/summoner/test/euw?offset=0&ajax=true")
     assert response.status_code == 200

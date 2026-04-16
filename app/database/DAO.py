@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
 import app.models.championModels
@@ -82,6 +83,9 @@ class DAO:
             self.db.query(Match)
             .join(MatchParticipant)
             .filter(MatchParticipant.summoner_id == summoner.id)
+            .order_by(desc(Match.created), desc(Match.id))
+            .offset(offset)
+            .limit(count)
             .options(
                 joinedload(Match.Match_MatchParticipant)  # load participants for each match
                 .joinedload(MatchParticipant.MatchParticipant_Summoner),  # load participant's summoner info
