@@ -101,3 +101,8 @@ def test_banrate():
 def test_banrate_zero_games():
     stats = ChampionStats(version="14.5", gamemode="Ranked", wins=10, gamesPlayed=20, kills=0, deaths=0, assists=0, banned=20, matchesAnalyzed=0)
     assert stats.banrate == 0
+
+def test_champion_stats_to_string():
+    stats = ChampionStats(version="14.5", gamemode="Ranked", wins=10, gamesPlayed=20, kills=100, deaths=50, assists=80, banned=10, matchesAnalyzed=200)
+    expected_str = " ChampionStats version=14.5 gamemode=Ranked wins=10"
+    assert str(stats) == expected_str

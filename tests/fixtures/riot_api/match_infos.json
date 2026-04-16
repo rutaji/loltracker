@@ -1,0 +1,94 @@
+{
+  "EUW1_1001": {
+    "metadata": {"matchId": "EUW1_1001"},
+    "info": {
+      "gameStartTimestamp": 1712500000000,
+      "gameEndTimestamp": 1712501800000,
+      "gameVersion": "14.5",
+      "gameMode": "CLASSIC",
+      "participants": [
+        {
+          "puuid": "remote-player-puuid",
+          "riotIdGameName": "remoteplayer",
+          "riotIdTagline": "euw",
+          "kills": 8,
+          "deaths": 3,
+          "assists": 7,
+          "goldEarned": 13000,
+          "teamId": 100,
+          "championName": "Ahri",
+          "win": true
+        }
+      ]
+    }
+  },
+  "EUW1_1002": {
+    "metadata": {"matchId": "EUW1_1002"},
+    "info": {
+      "gameStartTimestamp": 1712510000000,
+      "gameEndTimestamp": 1712511700000,
+      "gameVersion": "14.5",
+      "gameMode": "CLASSIC",
+      "participants": [
+        {
+          "puuid": "remote-player-puuid",
+          "riotIdGameName": "remoteplayer",
+          "riotIdTagline": "euw",
+          "kills": 4,
+          "deaths": 2,
+          "assists": 12,
+          "goldEarned": 12100,
+          "teamId": 100,
+          "championName": "Lux",
+          "win": true
+        }
+      ]
+    }
+  },
+  "EUW1_1003": {
+    "metadata": {"matchId": "EUW1_1003"},
+    "info": {
+      "gameStartTimestamp": 1712520000000,
+      "gameEndTimestamp": 1712521900000,
+      "gameVersion": "14.5",
+      "gameMode": "CLASSIC",
+      "participants": [
+        {
+          "puuid": "remote-player-puuid",
+          "riotIdGameName": "remoteplayer",
+          "riotIdTagline": "euw",
+          "kills": 2,
+          "deaths": 5,
+          "assists": 10,
+          "goldEarned": 9800,
+          "teamId": 200,
+          "championName": "Orianna",
+          "win": false
+        }
+      ]
+    }
+  },
+  "EUW1_1004": {
+    "metadata": {"matchId": "EUW1_1004"},
+    "info": {
+      "gameStartTimestamp": 1712530000000,
+      "gameEndTimestamp": 1712532100000,
+      "gameVersion": "14.4",
+      "gameMode": "CLASSIC",
+      "participants": [
+        {
+          "puuid": "remote-player-puuid",
+          "riotIdGameName": "remoteplayer",
+          "riotIdTagline": "euw",
+          "kills": 11,
+          "deaths": 4,
+          "assists": 6,
+          "goldEarned": 14500,
+          "teamId": 100,
+          "championName": "Ahri",
+          "win": true
+        }
+      ]
+    }
+  }
+}
