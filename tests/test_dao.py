@@ -40,6 +40,32 @@ def test_add_summoner(db_session):
     assert returned_summoner.id == "testid123"
     assert returned_summoner.summoner_name == "testname#1234"
     assert returned_summoner.games_played == 0
+    assert returned_summoner.kill == 0
+    assert returned_summoner.death == 0
+    assert returned_summoner.assist == 0
+
+
+def test_get_summoner_coalesces_null_stats(db_session):
+    dao = DAO(db_session)
+    db_session.add(
+        DaoSummoner(
+            id="legacy-null-stats",
+            summoner_name="legacy#euw",
+            games_played=5,
+            games_won=2,
+            kill=None,
+            death=None,
+            assist=None,
+        )
+    )
+    db_session.commit()
+
+    returned_summoner = dao.get_summoner("legacy#euw")
+
+    assert returned_summoner is not None
+    assert returned_summoner.kills == 0
+    assert returned_summoner.deaths == 0
+    assert returned_summoner.assists == 0
 
 
 def test_add_champion(db_session):
@@ -106,3 +132,31 @@ def test_add_match(db_session):
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-2").one()
     assert db_session.query(Champion).filter(Champion.id == "champ_akali").one()
     assert db_session.query(Champion).filter(Champion.id == "Lux").one()
+
+
+def test_get_matches_applies_pagination(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=3, games_won=2, kill=10, death=5, assist=8))
+    db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.commit()
+
+    matches = [
+        DaoMatch(id="match-1", created=100, ended=130, gametype="ranked", patch="14.5"),
+        DaoMatch(id="match-2", created=200, ended=230, gametype="ranked", patch="14.5"),
+        DaoMatch(id="match-3", created=300, ended=330, gametype="ranked", patch="14.5"),
+    ]
+    db_session.add_all(matches)
+    db_session.add_all(
+        [
+            DaoMatchParticipant(summoner_id="player-1", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, won=True, champion="Ahri"),
+            DaoMatchParticipant(summoner_id="player-1", match_id="match-2", kill=4, death=5, assist=6, gold=2000, team=100, won=False, champion="Ahri"),
+            DaoMatchParticipant(summoner_id="player-1", match_id="match-3", kill=7, death=8, assist=9, gold=3000, team=100, won=True, champion="Ahri"),
+        ]
+    )
+    db_session.commit()
+
+    first_page = dao.get_matches("Alpha#EUW", 0, 2)
+    second_page = dao.get_matches("Alpha#EUW", 2, 2)
+
+    assert [match.match_id for match in first_page] == ["match-3", "match-2"]
+    assert [match.match_id for match in second_page] == ["match-1"]
