@@ -64,12 +64,7 @@ def get_matches_service(
         span.set_attribute("matches.count", count)
         matches = dao.get_matches(summoner_name, offset, query_count)
         span.set_attribute("matches.cached_count", len(matches))
-        has_cached_matches_method = getattr(dao, "summoner_has_matches", None)
-        has_cached_matches = (
-            has_cached_matches_method(summoner_name)
-            if callable(has_cached_matches_method)
-            else len(matches) > 0
-        )
+        has_cached_matches = dao.summoner_has_matches(summoner_name)
         span.set_attribute("matches.cache_populated", has_cached_matches)
 
         if not has_cached_matches and request is not None:
