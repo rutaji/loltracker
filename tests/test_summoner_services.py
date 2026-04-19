@@ -309,6 +309,9 @@ def test_get_matches_service_skips_failed_remote_match_detail():
 
 def test_load_summoner_page_returns_not_found_when_summoner_missing():
     class MissingSummonerDAO:
+        def summoner_has_matches(self, summoner_name):
+            return False
+
         def get_summoner(self, summoner_name):
             return None
 
@@ -450,6 +453,9 @@ def test_get_matches_service_fetches_puuid_when_cached_summoner_has_empty_puuid(
 
         def get_matches(self, summoner_name, offset, count):
             return []
+
+        def summoner_has_matches(self, summoner_name):
+            return False
 
         def get_summoner(self, summoner_name):
             return Summoner(
