@@ -117,11 +117,13 @@ def dao(db_session: Session) -> DAO:
 
 @pytest.fixture(scope="function")
 def app_client(monkeypatch: pytest.MonkeyPatch, dao: DAO, stub_api_client: StubRiotApiClient) -> Iterator[TestClient]:
-    monkeypatch.setattr(endpoints, "dao", dao)
+    app.dependency_overrides[endpoints.get_dao] = lambda: dao
 
     with TestClient(app) as client:
         client.app.state.api_client = stub_api_client
         yield client
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")

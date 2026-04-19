@@ -2,7 +2,6 @@ from datetime import datetime
 from types import SimpleNamespace
 
 import httpx
-
 from app.models.summonerModels import Match, Summoner
 from app.services.summonerServices import get_matches_service, get_summoner_service, load_summoner_page
 
@@ -481,12 +480,12 @@ def test_get_matches_service_fetches_puuid_when_cached_summoner_has_empty_puuid(
 
     result = get_matches_service(request, "unknown", "euw", 0, 2, dao)
 
-    assert result.matches == []
+    assert result.match_page.matches == []
     assert api_client.puuid_used == "remote-puuid"
 
 
-def test_get_matches_service_adds_new_remote_matches_to_dao():
-    class MatchSyncDAO:
+def test_get_matches_service_does_not_fetch_remote_when_cache_exists():
+    class CachedMatchDAO:
         def __init__(self):
             self.added_matches = []
 
@@ -501,6 +500,9 @@ def test_get_matches_service_adds_new_remote_matches_to_dao():
                     participants=[],
                 )
             ]
+
+        def summoner_has_matches(self, summoner_name):
+            return True
 
         def get_summoner(self, summoner_name):
             return Summoner(
@@ -517,27 +519,18 @@ def test_get_matches_service_adds_new_remote_matches_to_dao():
         def add_match(self, match):
             self.added_matches.append(match)
 
-    class MatchSyncApiClient:
+    class FailingRemoteApiClient:
         def get_match_ids_by_puuid(self, puuid, start=0, count=20):
-            return ["m1", "m2", "m3"]
+            raise AssertionError("remote match ids should not be fetched when cache exists")
 
         def get_match_info_by_match_id(self, match_id):
-            return {
-                "metadata": {"matchId": match_id},
-                "info": {
-                    "gameStartTimestamp": 1_700_000_000_000,
-                    "gameEndTimestamp": 1_700_000_600_000,
-                    "gameVersion": "14.5",
-                    "gameMode": "Ranked",
-                    "participants": [],
-                },
-            }
+            raise AssertionError("remote match details should not be fetched when cache exists")
 
-    dao = MatchSyncDAO()
-    request = make_request(MatchSyncApiClient())
+    dao = CachedMatchDAO()
+    request = make_request(FailingRemoteApiClient())
 
     result = get_matches_service(request, "test", "euw", 0, 3, dao)
 
-    assert [match.match_id for match in dao.added_matches] == ["m2", "m3"]
-    assert [match.match_id for match in result.matches] == ["m1", "m2", "m3"]
+    assert [match.match_id for match in result.match_page.matches] == ["m1"]
+    assert dao.added_matches == []
 
