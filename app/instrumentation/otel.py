@@ -5,11 +5,6 @@ from typing import Callable
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -23,11 +18,55 @@ from app.database.database import engine
 
 LOGGER = logging.getLogger(__name__)
 
+_OTEL_IMPORT_ERROR: Exception | None = None
+
+
+class _MissingFastAPIInstrumentor:
+    @staticmethod
+    def instrument_app(_app: FastAPI) -> None:
+        return None
+
+
+class _MissingHTTPXClientInstrumentor:
+    def instrument(self) -> None:
+        return None
+
+
+class _MissingSQLAlchemyInstrumentor:
+    def instrument(self, *, engine) -> None:
+        return None
+
+
+FastAPIInstrumentor = _MissingFastAPIInstrumentor
+HTTPXClientInstrumentor = _MissingHTTPXClientInstrumentor
+SQLAlchemyInstrumentor = _MissingSQLAlchemyInstrumentor
+OTLPSpanExporter = None
+OTLPMetricExporter = None
+
+try:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+except Exception as exc:  # pragma: no cover - exercised indirectly in test envs
+    _OTEL_IMPORT_ERROR = exc
+
 
 def setup_telemetry(app: FastAPI) -> Callable[[], None]:
     """Initialize tracing and auto-instrumentation for the app process."""
     if not settings.otel_enabled:
         LOGGER.info("Telemetry is disabled via configuration.")
+        return lambda: None
+
+    if (
+        OTLPSpanExporter is None
+        or OTLPMetricExporter is None
+    ):
+        LOGGER.warning(
+            "Telemetry dependencies are unavailable; telemetry will be disabled for this process. Cause: %s",
+            _OTEL_IMPORT_ERROR,
+        )
         return lambda: None
 
     resource = Resource.create(

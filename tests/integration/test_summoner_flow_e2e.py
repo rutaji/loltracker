@@ -1,5 +1,7 @@
 import pytest
 
+from app.api.config import settings
+
 
 @pytest.mark.integration
 def test_search_redirects_to_summoner(app_client):
@@ -26,8 +28,8 @@ def test_cached_summoner_flow_html_and_ajax(app_client, seed_cached_summoner_dat
     assert ajax_response.status_code == 200
     payload = ajax_response.json()
     assert len(payload["matches"]) == 3
-    assert payload["hasMore"] is True
-    assert payload["nextOffset"] == 3
+    assert payload["hasMore"] is False
+    assert payload["nextOffset"] == settings.matches_per_page
 
     assert stub_api_client.get_summoner_calls == 0
     assert stub_api_client.get_match_ids_calls == 0
@@ -40,8 +42,8 @@ def test_cache_miss_fetches_remote_once_and_persists(app_client, stub_api_client
 
     assert first_response.status_code == 200
     first_payload = first_response.json()
-    assert len(first_payload["matches"]) == 3
-    assert first_payload["hasMore"] is True
+    assert len(first_payload["matches"]) == 4
+    assert first_payload["hasMore"] is False
 
     first_calls = (
         stub_api_client.get_summoner_calls,
@@ -53,7 +55,7 @@ def test_cache_miss_fetches_remote_once_and_persists(app_client, stub_api_client
 
     assert second_response.status_code == 200
     second_payload = second_response.json()
-    assert len(second_payload["matches"]) == 3
+    assert len(second_payload["matches"]) == 4
 
     second_calls = (
         stub_api_client.get_summoner_calls,
