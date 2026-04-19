@@ -160,3 +160,35 @@ def test_get_matches_applies_pagination(db_session):
 
     assert [match.match_id for match in first_page] == ["match-3", "match-2"]
     assert [match.match_id for match in second_page] == ["match-1"]
+
+
+def test_summoner_lookups_are_case_insensitive(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=2, games_won=1, kill=7, death=3, assist=9))
+    db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.add(DaoMatch(id="match-1", created=100, ended=130, gametype="ranked", patch="14.5"))
+    db_session.add(
+        DaoMatchParticipant(
+            summoner_id="player-1",
+            match_id="match-1",
+            kill=1,
+            death=2,
+            assist=3,
+            gold=1000,
+            team=100,
+            won=True,
+            champion="Ahri",
+        )
+    )
+    db_session.commit()
+
+    summoner = dao.get_summoner("alpha#euw")
+    matches = dao.get_matches("ALPHA#euw", 0, 10)
+    has_matches = dao.summoner_has_matches("alpha#EUW")
+    match_ids = dao.get_match_ids_for_summoner("aLpHa#EuW")
+
+    assert summoner is not None
+    assert summoner.name == "Alpha"
+    assert [match.match_id for match in matches] == ["match-1"]
+    assert has_matches is True
+    assert match_ids == {"match-1"}

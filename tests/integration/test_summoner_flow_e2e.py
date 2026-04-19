@@ -37,6 +37,17 @@ def test_cached_summoner_flow_html_and_ajax(app_client, seed_cached_summoner_dat
 
 
 @pytest.mark.integration
+def test_cached_summoner_lookup_is_case_insensitive(app_client, seed_cached_summoner_data, stub_api_client):
+    response = app_client.get("/summoner/CACHED/EUW")
+
+    assert response.status_code == 200
+    assert "cached#euw" in response.text
+    assert stub_api_client.get_summoner_calls == 0
+    assert stub_api_client.get_match_ids_calls == 0
+    assert stub_api_client.get_match_info_calls == 0
+
+
+@pytest.mark.integration
 def test_cache_miss_fetches_remote_once_and_persists(app_client, stub_api_client):
     first_response = app_client.get("/summoner/remoteplayer/euw?offset=0&ajax=true")
 
@@ -64,3 +75,19 @@ def test_cache_miss_fetches_remote_once_and_persists(app_client, stub_api_client
     )
 
     assert first_calls == second_calls
+
+
+@pytest.mark.integration
+def test_manual_refresh_skips_existing_matches(app_client, stub_api_client):
+    first_response = app_client.get("/summoner/remoteplayer/euw?offset=0&ajax=true")
+    assert first_response.status_code == 200
+
+    match_info_calls_before_refresh = stub_api_client.get_match_info_calls
+    match_id_calls_before_refresh = stub_api_client.get_match_ids_calls
+
+    refresh_response = app_client.post("/summoner/remoteplayer/euw/refresh")
+
+    assert refresh_response.status_code == 200
+    assert refresh_response.json() == {"insertedCount": 0, "failedCount": 0}
+    assert stub_api_client.get_match_ids_calls == match_id_calls_before_refresh + 1
+    assert stub_api_client.get_match_info_calls == match_info_calls_before_refresh

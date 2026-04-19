@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
 	matches_per_page: int = Field(default=20, ge=1)
+	summoner_sync_batch_size: int = Field(default=100, ge=1)
+	summoner_sync_stop_after: int = Field(default=20, ge=1)
 	default_champion_version: str = Field(default="14.5", min_length=1)
 	otel_enabled: bool = Field(default=True)
 	otel_service_name: str = Field(default="psi-api", min_length=1)

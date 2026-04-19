@@ -139,6 +139,10 @@ input {
 }
 
 .section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
     margin-bottom: 18px;
 }
 
@@ -149,6 +153,34 @@ input {
 .section-heading p {
     margin: 0;
     color: var(--muted);
+}
+
+.match-actions {
+    display: grid;
+    justify-items: end;
+    gap: 8px;
+}
+
+.refresh-button {
+    padding: 12px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(118, 212, 255, 0.3);
+    background: rgba(118, 212, 255, 0.1);
+    color: var(--text);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.refresh-button:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+.refresh-status {
+    margin: 0;
+    min-height: 1.2rem;
+    color: var(--muted);
+    font-size: 0.92rem;
 }
 
 .match-list {
@@ -305,6 +337,15 @@ input {
 
     .summary-grid {
         grid-template-columns: 1fr;
+    }
+
+    .section-heading {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .match-actions {
+        justify-items: start;
     }
 
     .match-summary {

@@ -4,7 +4,7 @@ from app.api.config import settings
 from app.endpoints import endpoints
 from app.main import app
 from app.models.summonerModels import Match, MatchPage, Summoner
-from app.services.summonerServices import SummonerPageServiceResult
+from app.services.summonerServices import SummonerPageServiceResult, SummonerRefreshServiceResult
 
 
 client = TestClient(app)
@@ -82,3 +82,19 @@ def test_not_found_page_displays_searched_summoner():
     assert response.status_code == 200
     assert "Summoner Not Found" in response.text
     assert "missing#euw" in response.text
+
+
+def test_summoner_refresh_returns_json(monkeypatch):
+    monkeypatch.setattr(
+        endpoints,
+        "refresh_summoner_matches_service",
+        lambda request, name, tagline, dao: SummonerRefreshServiceResult(
+            summoner=make_summoner(),
+            inserted_count=2,
+            failed_count=1,
+        ),
+    )
+
+    response = client.post("/summoner/test/euw/refresh")
+    assert response.status_code == 200
+    assert response.json() == {"insertedCount": 2, "failedCount": 1}
