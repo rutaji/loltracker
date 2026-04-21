@@ -97,4 +97,9 @@ def test_summoner_refresh_returns_json(monkeypatch):
 
     response = client.post("/summoner/test/euw/refresh")
     assert response.status_code == 200
-    assert response.json() == {"insertedCount": 2, "failedCount": 1}
+    assert response.json() == {
+        "insertedCount": 2,
+        "failedCount": 1,
+        "summonerName": "test",
+        "summonerTagline": "euw",
+    }

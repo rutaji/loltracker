@@ -125,6 +125,8 @@ async def refresh_summoner(
         content={
             "insertedCount": refresh_result.inserted_count,
             "failedCount": refresh_result.failed_count,
+            "summonerName": refresh_result.summoner.name,
+            "summonerTagline": refresh_result.summoner.tagline,
         }
     )
 

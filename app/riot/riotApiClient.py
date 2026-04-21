@@ -55,6 +55,11 @@ class RiotApiClient:
             f"/riot/account/v1/accounts/by-riot-id/{encoded_game_name}/{encoded_tagline}"
         )
 
+    def get_summoner_by_puuid(self, puuid: str) -> dict[str, Any]:
+        return self._get(
+            f"/riot/account/v1/accounts/by-puuid/{quote(puuid, safe='')}"
+        )
+
     def get_match_ids_by_puuid(
         self,
         puuid: str,

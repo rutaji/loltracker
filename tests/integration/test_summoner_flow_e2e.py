@@ -88,6 +88,11 @@ def test_manual_refresh_skips_existing_matches(app_client, stub_api_client):
     refresh_response = app_client.post("/summoner/remoteplayer/euw/refresh")
 
     assert refresh_response.status_code == 200
-    assert refresh_response.json() == {"insertedCount": 0, "failedCount": 0}
+    assert refresh_response.json() == {
+        "insertedCount": 0,
+        "failedCount": 0,
+        "summonerName": "remoteplayer",
+        "summonerTagline": "euw",
+    }
     assert stub_api_client.get_match_ids_calls == match_id_calls_before_refresh + 1
     assert stub_api_client.get_match_info_calls == match_info_calls_before_refresh

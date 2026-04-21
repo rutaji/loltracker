@@ -242,11 +242,29 @@ def refresh_summoner_matches_service(
     puuid = summoner.puuid
     if not puuid:
         account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
-        puuid = SummonerParser.parse(account_data).puuid
+        summoner = SummonerParser.parse(account_data)
+        puuid = summoner.puuid
+    else:
+        account_data = request.app.state.api_client.get_summoner_by_puuid(puuid)
+        remote_summoner = SummonerParser.parse(account_data)
+        
+        # Possible riot ID refresh
+        if (remote_summoner.name, remote_summoner.tagline) != (summoner.name, summoner.tagline):
+            summoner = Summoner(
+                puuid=summoner.puuid,
+                name=remote_summoner.name,
+                tagline=remote_summoner.tagline,
+                wins=summoner.wins,
+                gamesPlayed=summoner.gamesPlayed,
+                kills=summoner.kills,
+                deaths=summoner.deaths,
+                assists=summoner.assists,
+            )
+            dao.add_summoner(summoner)
 
     sync_result = sync_remote_matches(
         request,
-        f"{name}#{tagline}",
+        f"{summoner.name}#{summoner.tagline}",
         puuid,
         dao,
         start=0,
@@ -254,7 +272,7 @@ def refresh_summoner_matches_service(
         stop_after_total=settings.summoner_sync_stop_after,
     )
 
-    refreshed_summoner = dao.get_summoner(f"{name}#{tagline}") or summoner
+    refreshed_summoner = dao.get_summoner(f"{summoner.name}#{summoner.tagline}") or summoner
     return SummonerRefreshServiceResult(
         summoner=refreshed_summoner,
         inserted_count=sync_result.inserted_count,

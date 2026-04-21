@@ -21,6 +21,9 @@ class FakeApiClient:
     def get_summoner_by_riot_id(self, name, tagline):
         return self.account_data
 
+    def get_summoner_by_puuid(self, puuid):
+        return self.account_data
+
     def get_match_ids_by_puuid(self, puuid, start=0, count=20):
         return self.match_ids[start:start + count]
 
@@ -611,6 +614,9 @@ def test_refresh_summoner_matches_service_inserts_only_missing_matches():
             self.added_matches.append(match)
 
     class RefreshApiClient:
+        def get_summoner_by_puuid(self, puuid):
+            return {"puuid": puuid, "gameName": "test", "tagLine": "euw"}
+
         def get_match_ids_by_puuid(self, puuid, start=0, count=20):
             return ["m1", "m2", "m3"]
 
@@ -635,6 +641,63 @@ def test_refresh_summoner_matches_service_inserts_only_missing_matches():
     assert result.inserted_count == 2
     assert result.failed_count == 0
     assert [match.match_id for match in dao.added_matches] == ["m2", "m3"]
+
+
+def test_refresh_summoner_matches_service_updates_renamed_summoner():
+    class RefreshDAO:
+        def __init__(self):
+            self.saved_summoners = []
+            self.lookup_names = []
+
+        def get_summoner(self, summoner_name):
+            self.lookup_names.append(summoner_name)
+            if summoner_name == "Renamed#EUW":
+                return Summoner(
+                    puuid="cached-puuid",
+                    name="Renamed",
+                    tagline="EUW",
+                    wins=1,
+                    gamesPlayed=2,
+                    kills=3,
+                    deaths=4,
+                    assists=5,
+                )
+            return Summoner(
+                puuid="cached-puuid",
+                name="OldName",
+                tagline="EUW",
+                wins=1,
+                gamesPlayed=2,
+                kills=3,
+                deaths=4,
+                assists=5,
+            )
+
+        def get_match_ids_for_summoner(self, summoner_name):
+            return set()
+
+        def add_summoner(self, summoner):
+            self.saved_summoners.append(summoner)
+
+        def add_match(self, match):
+            raise AssertionError("match insertion is not part of this test")
+
+    class RefreshApiClient:
+        def get_summoner_by_puuid(self, puuid):
+            return {"puuid": puuid, "gameName": "Renamed", "tagLine": "EUW"}
+
+        def get_match_ids_by_puuid(self, puuid, start=0, count=20):
+            return []
+
+    dao = RefreshDAO()
+    request = make_request(RefreshApiClient())
+
+    result = refresh_summoner_matches_service(request, "OldName", "EUW", dao)
+
+    assert result.summoner is not None
+    assert result.summoner.name == "Renamed"
+    assert dao.saved_summoners[0].name == "Renamed"
+    assert dao.lookup_names[-1] == "Renamed#EUW"
 
 
 def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_matches(monkeypatch):
@@ -669,6 +732,9 @@ def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_match
     class RefreshApiClient:
         def __init__(self):
             self.starts = []
+
+        def get_summoner_by_puuid(self, puuid):
+            return {"puuid": puuid, "gameName": "test", "tagLine": "euw"}
 
         def get_match_ids_by_puuid(self, puuid, start=0, count=20):
             self.starts.append(start)
@@ -728,6 +794,9 @@ def test_refresh_uses_snapshot_then_match_exists_for_candidates_only():
             self.added_matches.append(match)
 
     class RefreshApiClient:
+        def get_summoner_by_puuid(self, puuid):
+            return {"puuid": puuid, "gameName": "test", "tagLine": "euw"}
+
         def get_match_ids_by_puuid(self, puuid, start=0, count=20):
             return ["m1", "m2", "m3"]
 

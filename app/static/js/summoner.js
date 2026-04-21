@@ -72,9 +72,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 const data = await response.json();
                 const matchLabel = data.insertedCount === 1 ? "match" : "matches";
                 const refreshMessage = `Added ${data.insertedCount} new ${matchLabel}.`;
-                if (data.insertedCount > 0) {
-                    sessionStorage.setItem(refreshMessageStorageKey, refreshMessage);
-                    window.location.reload();
+                const refreshedName = data.summonerName ?? name;
+                const refreshedTagline = data.summonerTagline ?? tagline;
+                const summonerRouteChanged = refreshedName !== name || refreshedTagline !== tagline;
+                const refreshedRefreshMessageStorageKey = `summoner-refresh:${refreshedName}#${refreshedTagline}`;
+                if (data.insertedCount > 0 || summonerRouteChanged) {
+                    sessionStorage.setItem(refreshedRefreshMessageStorageKey, refreshMessage);
+                    window.location.assign(`/summoner/${encodeURIComponent(refreshedName)}/${encodeURIComponent(refreshedTagline)}`);
                     return;
                 }
 
