@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Callable
 
 from fastapi import FastAPI
@@ -13,6 +12,12 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from opentelemetry.semconv.resource import ResourceAttributes
 
+#logger
+import logging
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from app.api.config import settings
 from app.database.database import engine
 
@@ -104,6 +109,27 @@ def setup_telemetry(app: FastAPI) -> Callable[[], None]:
     app.state.tracer = trace.get_tracer(settings.otel_service_name)
     app.state.meter = metrics.get_meter(settings.otel_service_name)
 
+    #logger
+    # 1. Initialize LoggerProvider
+    log_provider = LoggerProvider(resource=resource)
+    set_logger_provider(log_provider)
+
+    # 2. Configure OTLP Log Exporter
+    log_exporter = OTLPLogExporter(
+        endpoint=settings.otel_exporter_otlp_endpoint,
+        insecure=settings.otel_exporter_otlp_insecure,
+    )
+
+    # 3. Add Processor and Handler
+    log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+    # This handler automatically injects trace_id and span_id into the log record
+    otel_handler = LoggingHandler(level=logging.INFO, logger_provider=log_provider)
+
+    # 4. Attach to the root logger or specific app loggers
+    logging.getLogger().addHandler(otel_handler)
+    logging.getLogger("uvicorn").addHandler(otel_handler)# uvicorn logs todo: nedded ?
+
     LOGGER.info(
         "Telemetry initialized for service '%s' (environment=%s).",
         settings.otel_service_name,
@@ -113,5 +139,6 @@ def setup_telemetry(app: FastAPI) -> Callable[[], None]:
     def _shutdown() -> None:
         meter_provider.shutdown()
         provider.shutdown()
+        log_provider.shutdown()
 
     return _shutdown

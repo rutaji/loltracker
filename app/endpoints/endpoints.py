@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -13,6 +14,7 @@ from app.services.championServices import get_champion_service
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+logger = logging.getLogger(__name__)
 
 
 def get_dao():
@@ -28,6 +30,7 @@ def get_dao():
 
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request):
+    logger.info("reguest at root brororoorobobororboo")
     return templates.TemplateResponse(request=request, name="index.html")
 
 @router.post("/", response_class=RedirectResponse)
