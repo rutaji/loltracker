@@ -118,4 +118,7 @@ if champion_image_directory.exists():
         StaticFiles(directory=str(champion_image_directory)),
         name="champion-images",
     )
+    LOGGER.info("Mounted champion images at /champion-images from %s", champion_image_directory)
+else:
+    LOGGER.warning("Champion image directory does not exist: %s", champion_image_directory)
 

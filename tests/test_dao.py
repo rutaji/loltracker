@@ -236,3 +236,30 @@ def test_get_champion_without_patch_returns_all_versions(db_session):
 
     assert champion is not None
     assert len(champion.championStats) == 2
+
+
+def test_get_champion_rates_use_matches_analyzed(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add(
+        ChampionStats(
+            champion_id="Ahri",
+            patch="14.5",
+            gametype="CLASSIC",
+            games_played=20,
+            games_won=10,
+            games_banned=5,
+            kill=30,
+            assist=20,
+            death=10,
+        )
+    )
+    db_session.add(MatchesAnalyzed(patch="14.5", gametype="CLASSIC", count=200))
+    db_session.commit()
+
+    champion = dao.get_champion("Ahri", ["14.5"])
+
+    assert champion is not None
+    stats = champion.championStats[0]
+    assert stats.pickrate == 10
+    assert stats.banrate == 2.5

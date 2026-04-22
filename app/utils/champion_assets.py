@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 import re
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHAMPION_IMAGE_DIR = PROJECT_ROOT / "tools" / "champion_imgs"
+logger = logging.getLogger(__name__)
 
 
 _CHAMPION_ALIASES = {
@@ -37,9 +39,14 @@ def resolve_champion_image_path(champion_name: str) -> str | None:
     if not champion_name:
         return None
 
+    if not _IMAGE_INDEX:
+        # Handles cases where images were unavailable during module import.
+        _IMAGE_INDEX.update(_build_image_index())
+
     alias = _CHAMPION_ALIASES.get(champion_name.lower(), champion_name)
     filename = _IMAGE_INDEX.get(_normalize_key(alias))
     if filename is None:
+        logger.debug("No champion image resolved for '%s' (alias '%s')", champion_name, alias)
         return None
 
     return f"/champion-images/{filename}"

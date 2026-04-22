@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app.database.database import SessionLocal
-from app.database.models import Champion, Match, MatchParticipant, Summoner, ChampionStats
+from app.database.models import Champion, Match, MatchParticipant, Summoner, ChampionStats, MatchesAnalyzed
 
 
 def add_if_missing(session, model, identity, instance):
@@ -46,6 +46,11 @@ def main():
             ChampionStats(champion_id="Lux", patch="14.5", gametype="CLASSIC", games_played=20, games_won=5, games_banned=3, kill=25, death=12, assist=18),
         ]
 
+        matches_analyzed = [
+            MatchesAnalyzed(patch="14.4", gametype="CLASSIC", count=200),
+            MatchesAnalyzed(patch="14.5", gametype="CLASSIC", count=260),
+        ]
+
         for summoner in summoners:
             add_if_missing(session, Summoner, summoner.id, summoner)
         session.commit()
@@ -61,6 +66,11 @@ def main():
         for stats in champion_stats:
             stats_key = {"champion_id": stats.champion_id, "patch": stats.patch, "gametype": stats.gametype}
             add_if_missing(session, ChampionStats, stats_key, stats)
+        session.commit()
+
+        for analyzed in matches_analyzed:
+            analyzed_key = {"patch": analyzed.patch, "gametype": analyzed.gametype}
+            add_if_missing(session, MatchesAnalyzed, analyzed_key, analyzed)
         session.commit()
 
         for participant in participants:
