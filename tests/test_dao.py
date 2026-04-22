@@ -5,7 +5,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database.DAO import DAO
-from app.database.models import Base, Champion, Match as DaoMatch, MatchParticipant as DaoMatchParticipant, Summoner as DaoSummoner
+from app.database.models import (
+    Base,
+    Champion,
+    ChampionStats,
+    Match as DaoMatch,
+    MatchParticipant as DaoMatchParticipant,
+    MatchesAnalyzed,
+    Summoner as DaoSummoner,
+)
 from app.models.summonerModels import Match, MatchParticipant, Summoner
 
 
@@ -192,3 +200,66 @@ def test_summoner_lookups_are_case_insensitive(db_session):
     assert [match.match_id for match in matches] == ["match-1"]
     assert has_matches is True
     assert match_ids == {"match-1"}
+
+
+def test_get_champion_versions_returns_descending_order(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add_all(
+        [
+            ChampionStats(champion_id="Ahri", patch="14.4", gametype="Ranked Solo", games_played=10, games_won=5, games_banned=1, kill=30, assist=20, death=10),
+            ChampionStats(champion_id="Ahri", patch="14.10", gametype="Ranked Solo", games_played=12, games_won=6, games_banned=2, kill=36, assist=24, death=12),
+            ChampionStats(champion_id="Ahri", patch="14.5", gametype="Ranked Solo", games_played=11, games_won=5, games_banned=1, kill=33, assist=22, death=11),
+        ]
+    )
+    db_session.commit()
+
+    versions = dao.get_champion_versions("Ahri")
+
+    assert versions == ["14.10", "14.5", "14.4"]
+
+
+def test_get_champion_without_patch_returns_all_versions(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add_all(
+        [
+            ChampionStats(champion_id="Ahri", patch="14.5", gametype="Ranked Solo", games_played=10, games_won=5, games_banned=1, kill=30, assist=20, death=10),
+            ChampionStats(champion_id="Ahri", patch="14.4", gametype="ARAM", games_played=7, games_won=4, games_banned=0, kill=18, assist=25, death=9),
+            MatchesAnalyzed(patch="14.5", gametype="Ranked Solo", count=100),
+            MatchesAnalyzed(patch="14.4", gametype="ARAM", count=70),
+        ]
+    )
+    db_session.commit()
+
+    champion = dao.get_champion("Ahri", None)
+
+    assert champion is not None
+    assert len(champion.championStats) == 2
+
+
+def test_get_champion_rates_use_matches_analyzed(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add(
+        ChampionStats(
+            champion_id="Ahri",
+            patch="14.5",
+            gametype="CLASSIC",
+            games_played=20,
+            games_won=10,
+            games_banned=5,
+            kill=30,
+            assist=20,
+            death=10,
+        )
+    )
+    db_session.add(MatchesAnalyzed(patch="14.5", gametype="CLASSIC", count=200))
+    db_session.commit()
+
+    champion = dao.get_champion("Ahri", ["14.5"])
+
+    assert champion is not None
+    stats = champion.championStats[0]
+    assert stats.pickrate == 10
+    assert stats.banrate == 2.5

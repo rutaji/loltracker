@@ -9,6 +9,7 @@ import app.models.summonerModels
 from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed
 from app.utils.utils import split_name
+from app.utils.versioning import version_sort_key
 
 
 class DAO:
@@ -32,18 +33,38 @@ class DAO:
             .first()
         )
 
-    def get_champion(self,champion_name :str,patch :list[str]):
-        dao_champions = (
+    def get_champion_versions(self, champion_name: str) -> list[str]:
+        versions = (
+            self.db.query(ChampionStats.patch)
+            .join(Champion)
+            .filter(Champion.champion_name.ilike(champion_name))
+            .distinct()
+            .all()
+        )
+        return sorted(
+            [patch for (patch,) in versions],
+            key=version_sort_key,
+            reverse=True,
+        )
+
+    def get_champion(self, champion_name: str, patch: list[str] | None):
+        query = (
             self.db.query(ChampionStats)
             .join(Champion)
             .filter(Champion.champion_name.ilike(champion_name))
-            .filter(ChampionStats.patch.in_(patch))
-            .all()
         )
+        if patch:
+            query = query.filter(ChampionStats.patch.in_(patch))
+
+        dao_champions = query.all()
         if not dao_champions:
             return None
 
-        matches_analyzed = self.db.query(MatchesAnalyzed).filter(MatchesAnalyzed.patch.in_(patch)).all()
+        matches_analyzed_query = self.db.query(MatchesAnalyzed)
+        if patch:
+            matches_analyzed_query = matches_analyzed_query.filter(MatchesAnalyzed.patch.in_(patch))
+
+        matches_analyzed = matches_analyzed_query.all()
         analyzed_lookup = {(ma.patch, ma.gametype): ma.count for ma in matches_analyzed}
         result = []
         for dao_champion in dao_champions:

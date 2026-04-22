@@ -59,11 +59,28 @@ def test_match_parser_maps_match_and_participants():
     match = MatchParser.parse(match_data)
 
     assert match.match_id == "EUW1_123456789"
-    assert match.version == "15.7.123.4567"
+    assert match.version == "15.7"
     assert match.mode == "CLASSIC"
     assert len(match.participants) == 1
     assert match.participants[0].name == "PlayerOne"
     assert match.participants[0].puuid == "player-puuid"
+
+
+def test_match_parser_keeps_short_version_untouched():
+    match_data = {
+        "metadata": {"matchId": "EUW1_123"},
+        "info": {
+            "gameStartTimestamp": 1710000000000,
+            "gameEndTimestamp": 1710002100000,
+            "gameVersion": "15.8",
+            "gameMode": "CLASSIC",
+            "participants": [],
+        },
+    }
+
+    match = MatchParser.parse(match_data)
+
+    assert match.version == "15.8"
 
 
 def test_summoner_parser_maps_account_data():

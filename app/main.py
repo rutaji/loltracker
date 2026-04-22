@@ -111,3 +111,14 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
 app.include_router(router)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+champion_image_directory = project_root / "tools" / "champion_imgs"
+if champion_image_directory.exists():
+    app.mount(
+        "/champion-images",
+        StaticFiles(directory=str(champion_image_directory)),
+        name="champion-images",
+    )
+    LOGGER.info("Mounted champion images at /champion-images from %s", champion_image_directory)
+else:
+    LOGGER.warning("Champion image directory does not exist: %s", champion_image_directory)
+

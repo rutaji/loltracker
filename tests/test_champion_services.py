@@ -1,5 +1,11 @@
 from app.models.championModels import Champion, ChampionStats
-from app.services.championServices import get_champion_service
+from app.services.championServices import (
+    aggregate_stats_for_version,
+    build_trend_series,
+    get_available_versions,
+    get_champion_service,
+    serialize_stat,
+)
 
 
 class MockChampionDAO:
@@ -106,3 +112,71 @@ def test_champion_stats_to_string():
     stats = ChampionStats(version="14.5", gamemode="Ranked", wins=10, gamesPlayed=20, kills=100, deaths=50, assists=80, banned=10, matchesAnalyzed=200)
     expected_str = " ChampionStats version=14.5 gamemode=Ranked wins=10"
     assert str(stats) == expected_str
+
+
+def test_serialize_stat_has_expected_keys():
+    stats = ChampionStats(
+        version="14.5",
+        gamemode="Ranked",
+        wins=10,
+        gamesPlayed=15,
+        kills=100,
+        deaths=50,
+        assists=80,
+        banned=10,
+        matchesAnalyzed=200,
+    )
+
+    serialized = serialize_stat(stats)
+
+    assert {
+        "version",
+        "gamemode",
+        "gamesPlayed",
+        "totalMatchesPlayed",
+        "winrate",
+        "pickrate",
+        "banrate",
+        "kda",
+    }.issubset(serialized.keys())
+
+
+def test_get_available_versions_normalizes_major_minor():
+    stats = [
+        ChampionStats(version="16.8.777.3456", gamemode="Ranked", wins=1, gamesPlayed=1, kills=1, deaths=1, assists=1, banned=0, matchesAnalyzed=10),
+        ChampionStats(version="16.8.778.9823", gamemode="Ranked", wins=1, gamesPlayed=1, kills=1, deaths=1, assists=1, banned=0, matchesAnalyzed=10),
+        ChampionStats(version="16.9.100.1", gamemode="Ranked", wins=1, gamesPlayed=1, kills=1, deaths=1, assists=1, banned=0, matchesAnalyzed=10),
+    ]
+
+    assert get_available_versions(stats) == ["16.9", "16.8"]
+
+
+def test_aggregate_stats_for_version_sums_modes():
+    stats = [
+        ChampionStats(version="16.8.777.3456", gamemode="Ranked", wins=4, gamesPlayed=10, kills=20, deaths=10, assists=15, banned=2, matchesAnalyzed=100),
+        ChampionStats(version="16.8.778.9823", gamemode="Ranked", wins=6, gamesPlayed=10, kills=25, deaths=10, assists=20, banned=3, matchesAnalyzed=120),
+        ChampionStats(version="16.8.778.9823", gamemode="ARAM", wins=3, gamesPlayed=8, kills=18, deaths=9, assists=12, banned=1, matchesAnalyzed=120),
+    ]
+
+    aggregated = aggregate_stats_for_version(stats, "16.8")
+    ranked = next(item for item in aggregated if item.gamemode == "Ranked")
+
+    assert ranked.version == "16.8"
+    assert ranked.wins == 10
+    assert ranked.gamesPlayed == 20
+    assert ranked.matchesAnalyzed == 220
+
+
+def test_build_trend_series_groups_by_normalized_version():
+    stats = [
+        ChampionStats(version="16.8.777.3456", gamemode="Ranked", wins=4, gamesPlayed=10, kills=20, deaths=10, assists=15, banned=2, matchesAnalyzed=100),
+        ChampionStats(version="16.8.778.9823", gamemode="Ranked", wins=6, gamesPlayed=10, kills=25, deaths=10, assists=20, banned=3, matchesAnalyzed=120),
+        ChampionStats(version="16.9.100.1", gamemode="Ranked", wins=7, gamesPlayed=12, kills=30, deaths=12, assists=22, banned=4, matchesAnalyzed=140),
+    ]
+
+    trend_series = build_trend_series(stats)
+
+    assert len(trend_series) == 1
+    points = trend_series[0]["points"]
+    assert [point["version"] for point in points] == ["16.8", "16.9"]
+    assert points[0]["totalMatchesPlayed"] == 20

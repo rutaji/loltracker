@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ championData.name }} Stats</title>
-    <link href="{{ url_for('static', path='css/champion.css') }}" rel="stylesheet">
-    <script src="{{ url_for('static', path='js/champion.js') }}" defer></script>
+    <link href="{{ url_for('static', path='css/champion.css') }}?v=20260422" rel="stylesheet">
+    <script id="initial-trend-series" type="application/json">{{ trend_series | tojson }}</script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="{{ url_for('static', path='js/champion.js') }}?v=20260422" defer></script>
 </head>
-<body>
+<body data-champion-name="{{ championData.name }}" data-selected-version="{{ version }}">
     <main class="champion-page">
         <section class="top-bar">
             <a href="/" class="home-link">Back to Search</a>
@@ -21,28 +23,51 @@
         </section>
 
         <section class="champion-hero">
-            <div>
-                <p class="eyebrow">Champion Breakdown</p>
-                <h1>{{ championData.name }}</h1>
+            <div class="hero-content">
+                <div class="hero-copy">
+                    <p class="eyebrow">Champion Breakdown</p>
+                    <h1>{{ championData.name }}</h1>
+                    <p class="hero-subtitle">
+                        Explore patch-specific performance and compare trends across multiple versions and game modes.
+                    </p>
+                </div>
+                <div class="hero-portrait-shell {% if not champion_image_path %}hidden{% endif %}">
+                    <img
+                        class="hero-portrait"
+                        data-champion-image
+                        src="{{ champion_image_path if champion_image_path else '' }}"
+                        alt="{{ championData.name }} portrait"
+                    >
+                </div>
             </div>
-            <form method="get" class="patch-form">
-                <input type="hidden" name="name" value="{{ championData.name }}">
+            <form class="patch-form" id="patch-form">
                 <label for="version-select">Select Patch</label>
                 <select id="version-select">
-                    <option value="14.5" {% if version == "14.5" %}selected{% endif %}>14.5</option>
-                    <option value="14.4" {% if version == "14.4" %}selected{% endif %}>14.4</option>
+                    {% for patch in available_versions %}
+                    <option value="{{ patch }}" {% if version == patch %}selected{% endif %}>{{ patch }}</option>
+                    {% endfor %}
                 </select>
-                <button type="submit">Load</button>
             </form>
         </section>
 
         <section class="stats-panel">
+            <div class="section-heading">
+                <h2>Selected Version Statistics</h2>
+                <div class="inline-portrait-shell {% if not champion_image_path %}hidden{% endif %}">
+                    <img
+                        class="inline-portrait"
+                        data-champion-image
+                        src="{{ champion_image_path if champion_image_path else '' }}"
+                        alt="{{ championData.name }} avatar"
+                    >
+                </div>
+            </div>
             <div class="table-shell">
                 <table>
                     <tr>
                         <th>Patch</th>
                         <th>Mode</th>
-                        <th>Games</th>
+                        <th>Total Matches Played</th>
                         <th>Winrate</th>
                         <th>KDA</th>
                         <th>Pickrate</th>
@@ -63,6 +88,35 @@
                     {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <section class="trend-panel">
+            <div class="section-heading">
+                <h2>Performance Progression Across Versions</h2>
+                <p>Each chart compares gamemodes over every available patch for this champion.</p>
+            </div>
+            <div class="chart-grid">
+                <article class="chart-card">
+                    <h3>Win Rate (%)</h3>
+                    <canvas id="chart-winrate" height="180"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3>Pick Rate (%)</h3>
+                    <canvas id="chart-pickrate" height="180"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3>Ban Rate (%)</h3>
+                    <canvas id="chart-banrate" height="180"></canvas>
+                </article>
+                <article class="chart-card">
+                    <h3>KDA</h3>
+                    <canvas id="chart-kda" height="180"></canvas>
+                </article>
+                <article class="chart-card chart-card-wide">
+                    <h3>Total Matches Played</h3>
+                    <canvas id="chart-total-matches" height="220"></canvas>
+                </article>
             </div>
         </section>
     </main>
