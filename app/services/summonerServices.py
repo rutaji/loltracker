@@ -7,6 +7,7 @@ from opentelemetry.trace import Status, StatusCode
 from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
 from app.riot.riotParsers import MatchParser, SummonerParser
+from app.api.config import settings
 
 LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +20,17 @@ class MatchServiceResult(NamedTuple):
 class SummonerPageServiceResult(NamedTuple):
     summoner: Optional[Summoner]
     match_page: Optional[MatchPage]
+
+
+class MatchSyncResult(NamedTuple):
+    inserted_count: int
+    failed_count: int
+
+
+class SummonerRefreshServiceResult(NamedTuple):
+    summoner: Optional[Summoner]
+    inserted_count: int
+    failed_count: int
 
 
 def get_summoner_service(request: Request, name: str, tagline: str, dao: DAO) -> Optional[Summoner]:
@@ -44,6 +56,93 @@ def get_summoner_service(request: Request, name: str, tagline: str, dao: DAO) ->
             span.record_exception(exc)
             span.set_status(Status(StatusCode.ERROR))
             return None
+
+
+def sync_remote_matches(
+    request: Request,
+    summoner_name: str,
+    puuid: str,
+    dao: DAO,
+    *,
+    start: int,
+    batch_size: int,
+    stop_after_total: int | None = None,
+) -> MatchSyncResult:
+    tracer = trace.get_tracer(__name__)
+
+    with tracer.start_as_current_span("service.matches.sync_remote") as span:
+        span.set_attribute("matches.sync.start", start)
+        span.set_attribute("matches.sync.batch_size", batch_size)
+        if stop_after_total is not None:
+            span.set_attribute("matches.sync.stop_after_total", stop_after_total)
+
+        cached_match_ids = dao.get_match_ids_for_summoner(summoner_name)
+        span.set_attribute("matches.cached_id_count", len(cached_match_ids))
+        inserted_count = 0
+        failed_count = 0
+        current_start = start
+
+        while True:
+            try:
+                match_ids = request.app.state.api_client.get_match_ids_by_puuid(
+                    puuid,
+                    start=current_start,
+                    count=batch_size,
+                )
+            except httpx.RequestError as exc:
+                span.record_exception(exc)
+                span.set_attribute("matches.remote_fetch_failed", True)
+                LOGGER.warning(
+                    "Failed to fetch Riot match ids for %s: %s",
+                    summoner_name,
+                    exc,
+                )
+                failed_count += 1
+                break
+
+            if not match_ids:
+                break
+
+            for match_id in match_ids:
+                if match_id in cached_match_ids:
+                    continue
+
+                if dao.match_exist(match_id):
+                    cached_match_ids.add(match_id)
+                    continue
+
+                try:
+                    match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
+                    match = MatchParser.parse(match_data)
+                    inserted = dao.add_match(match)
+                    if inserted is not False:
+                        inserted_count += 1
+                        cached_match_ids.add(match_id)
+                except httpx.RequestError as exc:
+                    failed_count += 1
+                    span.record_exception(exc)
+                    LOGGER.warning(
+                        "Failed to fetch Riot match detail %s for %s: %s",
+                        match_id,
+                        summoner_name,
+                        exc,
+                    )
+                    continue
+
+                if stop_after_total is not None and inserted_count >= stop_after_total:
+                    break
+
+            if len(match_ids) < batch_size:
+                break
+
+            if stop_after_total is not None and inserted_count >= stop_after_total:
+                break
+
+            current_start += batch_size
+
+        span.set_attribute("matches.remote_count", inserted_count)
+        span.set_attribute("matches.remote_failures", failed_count)
+        return MatchSyncResult(inserted_count=inserted_count, failed_count=failed_count)
 
 
 def get_matches_service(
@@ -77,52 +176,19 @@ def get_matches_service(
                 puuid = SummonerParser.parse(account_data).puuid
 
             if puuid:
-                try:
-                    match_ids = request.app.state.api_client.get_match_ids_by_puuid(
-                        puuid,
-                        start=offset,
-                        count=query_count,
-                    )
-                except httpx.RequestError as exc:
-                    span.record_exception(exc)
-                    span.set_attribute("matches.remote_fetch_failed", True)
-                    LOGGER.warning(
-                        "Failed to fetch Riot match ids for %s: %s",
-                        summoner_name,
-                        exc,
-                    )
-                    match_ids = []
-
-                existing_ids = {str(match.match_id) for match in matches}
-                remote_matches = []
-                remote_failures = 0
-
-                for match_id in match_ids:
-                    if match_id in existing_ids:
-                        continue
-
-                    try:
-                        match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
-                        match = MatchParser.parse(match_data)
-                        remote_matches.append(match)
-                        dao.add_match(match)
-                        refreshed_from_remote = True
-                    except httpx.RequestError as exc:
-                        remote_failures += 1
-                        span.record_exception(exc)
-                        LOGGER.warning(
-                            "Failed to fetch Riot match detail %s for %s: %s",
-                            match_id,
-                            summoner_name,
-                            exc,
-                        )
-                        continue
-                    if len(matches) + len(remote_matches) >= query_count:
-                        break
-
-                matches = matches + remote_matches
-                span.set_attribute("matches.remote_count", len(remote_matches))
-                span.set_attribute("matches.remote_failures", remote_failures)
+                sync_result = sync_remote_matches(
+                    request,
+                    summoner_name,
+                    puuid,
+                    dao,
+                    start=offset,
+                    batch_size=settings.summoner_sync_batch_size,
+                    stop_after_total=query_count,
+                )
+                refreshed_from_remote = sync_result.inserted_count > 0
+                matches = dao.get_matches(summoner_name, offset, query_count)
+                span.set_attribute("matches.remote_count", sync_result.inserted_count)
+                span.set_attribute("matches.remote_failures", sync_result.failed_count)
 
         hasMore = len(matches) > count
         span.set_attribute("matches.has_more", hasMore)
@@ -160,4 +226,55 @@ def load_summoner_page(
     return SummonerPageServiceResult(
         summoner=summoner,
         match_page=match_result.match_page,
+    )
+
+
+def refresh_summoner_matches_service(
+    request: Request,
+    name: str,
+    tagline: str,
+    dao: DAO,
+) -> SummonerRefreshServiceResult:
+    summoner = get_summoner_service(request, name, tagline, dao)
+    if summoner is None:
+        return SummonerRefreshServiceResult(summoner=None, inserted_count=0, failed_count=0)
+
+    puuid = summoner.puuid
+    if not puuid:
+        account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
+        summoner = SummonerParser.parse(account_data)
+        puuid = summoner.puuid
+    else:
+        account_data = request.app.state.api_client.get_summoner_by_puuid(puuid)
+        remote_summoner = SummonerParser.parse(account_data)
+        
+        # Possible riot ID refresh
+        if (remote_summoner.name, remote_summoner.tagline) != (summoner.name, summoner.tagline):
+            summoner = Summoner(
+                puuid=summoner.puuid,
+                name=remote_summoner.name,
+                tagline=remote_summoner.tagline,
+                wins=summoner.wins,
+                gamesPlayed=summoner.gamesPlayed,
+                kills=summoner.kills,
+                deaths=summoner.deaths,
+                assists=summoner.assists,
+            )
+            dao.add_summoner(summoner)
+
+    sync_result = sync_remote_matches(
+        request,
+        f"{summoner.name}#{summoner.tagline}",
+        puuid,
+        dao,
+        start=0,
+        batch_size=settings.summoner_sync_batch_size,
+        stop_after_total=settings.summoner_sync_stop_after,
+    )
+
+    refreshed_summoner = dao.get_summoner(f"{summoner.name}#{summoner.tagline}") or summoner
+    return SummonerRefreshServiceResult(
+        summoner=refreshed_summoner,
+        inserted_count=sync_result.inserted_count,
+        failed_count=sync_result.failed_count,
     )

@@ -47,8 +47,14 @@
 
         <section class="matches-section">
             <div class="section-heading">
-                <h2>Recent Matches</h2>
-                <p>Expand each row to inspect participants and match details.</p>
+                <div>
+                    <h2>Recent Matches</h2>
+                    <p>Expand each row to inspect participants and match details.</p>
+                </div>
+                <div class="match-actions">
+                    <button id="refresh-matches" class="refresh-button" type="button">Refresh Data</button>
+                    <p id="refresh-status" class="refresh-status" aria-live="polite"></p>
+                </div>
             </div>
 
             <div id="match-list" class="match-list">

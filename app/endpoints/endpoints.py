@@ -1,7 +1,7 @@
 import logging
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
@@ -9,7 +9,7 @@ from app.api.config import settings
 
 from app.database.DAO import DAO
 
-from app.services.summonerServices import load_summoner_page
+from app.services.summonerServices import load_summoner_page, refresh_summoner_matches_service
 from app.services.championServices import get_champion_service
 
 router = APIRouter()
@@ -120,6 +120,27 @@ async def get_summoner(
             "summoner": summoner,
             "matchData": match_page
         },
+    )
+
+
+@router.post("/summoner/{name}/{tagline}/refresh")
+async def refresh_summoner(
+    request: Request,
+    name: str,
+    tagline: str,
+    dao: DAO = Depends(get_dao),
+):
+    refresh_result = refresh_summoner_matches_service(request, name, tagline, dao)
+    if refresh_result.summoner is None:
+        raise HTTPException(status_code=404, detail="Summoner not found")
+
+    return JSONResponse(
+        content={
+            "insertedCount": refresh_result.inserted_count,
+            "failedCount": refresh_result.failed_count,
+            "summonerName": refresh_result.summoner.name,
+            "summonerTagline": refresh_result.summoner.tagline,
+        }
     )
 
 @router.get("/champion/not-found")

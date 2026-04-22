@@ -44,6 +44,12 @@ class StubRiotApiClient:
             raise RuntimeError("Simulated upstream failure")
         return self._account_data
 
+    def get_summoner_by_puuid(self, _puuid: str) -> dict[str, Any]:
+        self.get_summoner_calls += 1
+        if self.raise_on_summoner_lookup:
+            raise RuntimeError("Simulated upstream failure")
+        return self._account_data
+
     def get_match_ids_by_puuid(self, _puuid: str, start: int, count: int) -> list[str]:
         self.get_match_ids_calls += 1
         return self._match_ids[start:start + count]

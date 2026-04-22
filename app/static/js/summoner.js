@@ -9,6 +9,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const tagline = page.dataset.tagline;
     const puuid = page.dataset.puuid;
     const matchList = document.getElementById("match-list");
+    const refreshButton = document.getElementById("refresh-matches");
+    const refreshStatus = document.getElementById("refresh-status");
+    const refreshMessageStorageKey = `summoner-refresh:${name}#${tagline}`;
+
+    function setRefreshStatus(message) {
+        if (refreshStatus) {
+            refreshStatus.textContent = message;
+        }
+    }
+
+    const persistedRefreshMessage = sessionStorage.getItem(refreshMessageStorageKey);
+    if (persistedRefreshMessage) {
+        setRefreshStatus(persistedRefreshMessage);
+        sessionStorage.removeItem(refreshMessageStorageKey);
+    }
 
     function getMatchResult(match) {
         const viewedParticipant = match.participants.find((participant) => participant.puuid === puuid);
@@ -38,6 +53,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const loadMoreButton = document.getElementById("load-more");
+
+    if (refreshButton) {
+        refreshButton.addEventListener("click", async () => {
+            refreshButton.disabled = true;
+            refreshButton.textContent = "Refreshing...";
+            setRefreshStatus("");
+
+            try {
+                const response = await fetch(`/summoner/${name}/${tagline}/refresh`, {
+                    method: "POST"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Refresh failed");
+                }
+
+                const data = await response.json();
+                const matchLabel = data.insertedCount === 1 ? "match" : "matches";
+                const refreshMessage = `Added ${data.insertedCount} new ${matchLabel}.`;
+                const refreshedName = data.summonerName ?? name;
+                const refreshedTagline = data.summonerTagline ?? tagline;
+                const summonerRouteChanged = refreshedName !== name || refreshedTagline !== tagline;
+                const refreshedRefreshMessageStorageKey = `summoner-refresh:${refreshedName}#${refreshedTagline}`;
+                if (data.insertedCount > 0 || summonerRouteChanged) {
+                    sessionStorage.setItem(refreshedRefreshMessageStorageKey, refreshMessage);
+                    window.location.assign(`/summoner/${encodeURIComponent(refreshedName)}/${encodeURIComponent(refreshedTagline)}`);
+                    return;
+                }
+
+                setRefreshStatus(refreshMessage);
+                refreshButton.disabled = false;
+                refreshButton.textContent = "Refresh Data";
+            } catch (error) {
+                setRefreshStatus("Refresh failed. Please try again.");
+                refreshButton.disabled = false;
+                refreshButton.textContent = "Refresh Data";
+            }
+        });
+    }
 
     if (loadMoreButton) {
         loadMoreButton.addEventListener("click", async () => {

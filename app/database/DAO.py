@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import joinedload
 
 import app.models.championModels
@@ -24,6 +24,13 @@ class DAO:
 
     def close(self):
         self.db.close()
+
+    def _get_summoner_row(self, summoner_name: str):
+        return (
+            self.db.query(Summoner)
+            .filter(func.lower(Summoner.summoner_name) == summoner_name.lower())
+            .first()
+        )
 
     def get_champion(self,champion_name :str,patch :list[str]):
         dao_champions = (
@@ -59,7 +66,7 @@ class DAO:
         )
 
     def get_summoner(self,summoner_name:str):
-        summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+        summoner = self._get_summoner_row(summoner_name)
         if summoner is None:
             return None
 
@@ -76,7 +83,7 @@ class DAO:
         )
 
     def get_matches(self, summoner_name, offset, count):
-        summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+        summoner = self._get_summoner_row(summoner_name)
         if not summoner:
             return []
         matches = (
@@ -129,7 +136,7 @@ class DAO:
         return result
 
     def summoner_has_matches(self, summoner_name: str) -> bool:
-        summoner = self.db.query(Summoner).filter(Summoner.summoner_name == summoner_name).first()
+        summoner = self._get_summoner_row(summoner_name)
         if not summoner:
             return False
 
@@ -139,6 +146,18 @@ class DAO:
             .first()
         )
         return match is not None
+
+    def get_match_ids_for_summoner(self, summoner_name: str) -> set[str]:
+        summoner = self._get_summoner_row(summoner_name)
+        if not summoner:
+            return set()
+
+        match_ids = (
+            self.db.query(MatchParticipant.match_id)
+            .filter(MatchParticipant.summoner_id == summoner.id)
+            .all()
+        )
+        return {match_id for (match_id,) in match_ids}
 
 
 
