@@ -83,13 +83,13 @@ To add test data into database: docker-compose exec api python -m  scripts.seed_
 
 * **Ondřej Braunšveig** (@OndrejBraunsveig) – Search functionality, Riot API calling, frontend design
 * **Martin Čížek** (@cizek-maritn) – FastAPI endpoints, endpoint services, documentation, observability
-* **Jiří Růta** (@rutaji) – PostgreSQL database, DAO
+* **Jiří Růta** (@rutaji) – PostgreSQL database, DAO, logging
 
 ## 📊 NFR Status
 
 TODO: Complete the following items to fulfill the NFRs of PSI:
 * [ ] Production: Link to the app in Production and Dev environments
 * [ ] Monitoring: Link to Azure App Insights (monitoring dashboard)
-* [✅] Tests: Code coverage badge and latest unit & integration test results on `main` branch
-* [ ] CI/CD: Link to GitHub actions forming fully autonomous delivery of (working) code from `main` through `dev` to `prod` environments in a selected cloud (Azure is recommended).
+* ✅ Tests: Code coverage badge and latest unit & integration test results on `main` branch
+* [ ] CI/CD: Link to GitHub actions forming fully autonomous delivery of (working) code from `main` to `prod` environment in a selected cloud (Azure is recommended).
 * [ ] SLO: Aiming at 99% availability - provide a link to SLI dashboard
