@@ -6,6 +6,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const versionSelect = document.getElementById("version-select");
     const tableBody = document.getElementById("stats-body");
     const chartInstances = {};
+    const initialTrendSeries = parseJsonScript("initial-trend-series", []);
+
+    if (!versionSelect || !tableBody) {
+        console.error("Champion page is missing required elements for stats rendering.");
+        return;
+    }
 
     const chartConfigs = {
         "chart-winrate": { key: "winrate", label: "Win Rate (%)", type: "line" },
@@ -25,6 +31,34 @@ document.addEventListener("DOMContentLoaded", () => {
         "#ff9f1c",
         "#3dd5f3",
     ];
+
+    function parseJsonScript(elementId, fallback) {
+        const script = document.getElementById(elementId);
+        if (!script) {
+            return fallback;
+        }
+
+        try {
+            return JSON.parse(script.textContent || "null") ?? fallback;
+        } catch (error) {
+            console.error(`Failed to parse JSON from #${elementId}.`, error);
+            return fallback;
+        }
+    }
+
+    function normalizeSeries(seriesByMode) {
+        if (!Array.isArray(seriesByMode)) {
+            return [];
+        }
+
+        return seriesByMode
+            .filter((series) => series && Array.isArray(series.points))
+            .map((series) => ({
+                gamemode: series.gamemode || "Unknown",
+                points: series.points.filter((point) => point && point.version),
+            }))
+            .filter((series) => series.points.length > 0);
+    }
 
     function versionSortKey(version) {
         return version
@@ -98,17 +132,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderCharts(seriesByMode) {
         if (typeof Chart === "undefined") {
+            console.error("Chart.js is unavailable; skipping chart rendering.");
             return;
         }
+
+        const safeSeries = normalizeSeries(seriesByMode);
 
         Object.values(chartInstances).forEach((chart) => chart.destroy());
         Object.keys(chartInstances).forEach((key) => delete chartInstances[key]);
 
         const allVersions = [...new Set(
-            (seriesByMode || []).flatMap((series) =>
+            safeSeries.flatMap((series) =>
                 series.points.map((point) => point.version)
             )
         )].sort(compareVersionsAscending);
+
+        if (allVersions.length === 0) {
+            return;
+        }
 
         Object.entries(chartConfigs).forEach(([canvasId, config]) => {
             const canvas = document.getElementById(canvasId);
@@ -116,7 +157,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const datasets = (seriesByMode || []).map((series, index) => {
+            const context = canvas.getContext("2d");
+            if (!context) {
+                console.error(`Canvas 2D context is unavailable for '${canvasId}'.`);
+                return;
+            }
+
+            const datasets = safeSeries.map((series, index) => {
                 const valueByVersion = new Map(
                     series.points.map((point) => [point.version, point[config.key]])
                 );
@@ -131,50 +178,60 @@ document.addEventListener("DOMContentLoaded", () => {
                     fill: false,
                     spanGaps: true,
                     borderWidth: 2,
+                    pointRadius: config.type === "line" ? 3 : 0,
                 };
             });
 
-            chartInstances[canvasId] = new Chart(canvas, {
-                type: config.type,
-                data: {
-                    labels: allVersions,
-                    datasets,
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            ticks: { color: "#dce7f2" },
-                            grid: { color: "rgba(255, 255, 255, 0.08)" },
-                        },
-                        y: {
-                            ticks: { color: "#dce7f2" },
-                            grid: { color: "rgba(255, 255, 255, 0.08)" },
-                        },
+            try {
+                chartInstances[canvasId] = new Chart(context, {
+                    type: config.type,
+                    data: {
+                        labels: allVersions,
+                        datasets,
                     },
-                    plugins: {
-                        legend: {
-                            labels: { color: "#edf3fa" },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: config.type === "bar" ? 3.1 : 2.2,
+                        scales: {
+                            x: {
+                                ticks: { color: "#dce7f2" },
+                                grid: { color: "rgba(255, 255, 255, 0.08)" },
+                            },
+                            y: {
+                                ticks: { color: "#dce7f2" },
+                                grid: { color: "rgba(255, 255, 255, 0.08)" },
+                            },
                         },
-                        tooltip: {
-                            callbacks: {
-                                label(context) {
-                                    const value = context.parsed.y;
-                                    if (config.key === "winrate" || config.key === "pickrate" || config.key === "banrate") {
-                                        return `${context.dataset.label}: ${formatNumber(value, "%")}`;
-                                    }
-                                    if (config.key === "kda") {
-                                        return `${context.dataset.label}: ${formatNumber(value)}`;
-                                    }
-                                    return `${context.dataset.label}: ${Math.round(value ?? 0)}`;
+                        plugins: {
+                            legend: {
+                                labels: { color: "#edf3fa" },
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label(context) {
+                                        const value = context.parsed.y;
+                                        if (config.key === "winrate" || config.key === "pickrate" || config.key === "banrate") {
+                                            return `${context.dataset.label}: ${formatNumber(value, "%")}`;
+                                        }
+                                        if (config.key === "kda") {
+                                            return `${context.dataset.label}: ${formatNumber(value)}`;
+                                        }
+                                        return `${context.dataset.label}: ${Math.round(value ?? 0)}`;
+                                    },
                                 },
                             },
                         },
                     },
-                },
-            });
+                });
+            } catch (error) {
+                console.error(`Failed to render chart '${canvasId}'.`, error);
+            }
         });
+
+        if (Object.keys(chartInstances).length === 0) {
+            console.error("No chart instances were created.", { safeSeries, allVersions });
+        }
     }
 
     async function loadVersion(version) {
@@ -203,11 +260,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     versionSelect.addEventListener("change", () => {
         loadVersion(versionSelect.value).catch((error) => {
+            console.error("Failed to switch champion version.", error);
             tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
         });
     });
 
+    // Bootstrap from server-side data so charts are visible even before the first AJAX refresh.
+    renderCharts(initialTrendSeries);
+
     loadVersion(initialVersion || versionSelect.value).catch((error) => {
+        console.error("Failed to load champion version.", error);
         tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
     });
 });

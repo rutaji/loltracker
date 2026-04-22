@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ championData.name }} Stats</title>
-    <link href="{{ url_for('static', path='css/champion.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/champion.css') }}?v=20260422" rel="stylesheet">
+    <script id="initial-trend-series" type="application/json">{{ trend_series | tojson }}</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="{{ url_for('static', path='js/champion.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/champion.js') }}?v=20260422" defer></script>
 </head>
 <body data-champion-name="{{ championData.name }}" data-selected-version="{{ version }}">
     <main class="champion-page">
