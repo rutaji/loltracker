@@ -39,34 +39,43 @@ async def search(
     summoner_tagline: str = Form(default=""),
     champion_name: str = Form(default=""),
 ):
+    logger.info(
+        "Search form submitted",
+        extra={
+            "summoner_name": summoner_name or None,
+            "summoner_tagline": summoner_tagline or None,
+            "champion_name": champion_name or None,
+        },
+    )
+
     summoner_name = summoner_name.strip()
     summoner_tagline = summoner_tagline.strip()
     champion_name = champion_name.strip()
 
     # Summoner path
     if summoner_name:
-        return RedirectResponse(
-            url=(
-                f"/summoner/{quote(summoner_name, safe='')}"
-                f"/{quote(summoner_tagline, safe='')}"
-            ),
-            status_code=303,
+        target = (
+            f"/summoner/{quote(summoner_name, safe='')}"
+            f"/{quote(summoner_tagline, safe='')}"
         )
+        logger.info("Redirecting to summoner page", extra={"target": target})
+        return RedirectResponse(url=target, status_code=303)
 
     # Champion path
     if champion_name:
-        return RedirectResponse(
-            url=f"/champion/{quote(champion_name, safe='')}",
-            status_code=303,
-        )
+        target = f"/champion/{quote(champion_name, safe='')}"
+        logger.info("Redirecting to champion page", extra={"target": target})
+        return RedirectResponse(url=target, status_code=303)
 
-    return RedirectResponse(
-        url=f"/",
-        status_code=303
-    )
+    logger.info("No search input provided, redirecting to root")
+    return RedirectResponse(url=f"/", status_code=303)
 
 @router.get("/summoner/not-found")
 async def summoner_not_found(request: Request, name: str = "", tagline: str = ""):
+    logger.warning(
+        "Summoner page requested but not found",
+        extra={"searched_name": name or None, "searched_tagline": tagline or None},
+    )
 
     return templates.TemplateResponse(
         request=request,
@@ -130,9 +139,28 @@ async def refresh_summoner(
     tagline: str,
     dao: DAO = Depends(get_dao),
 ):
+    logger.info(
+        "Refreshing summoner matches",
+        extra={"summoner_name": name, "tagline": tagline},
+    )
+
     refresh_result = refresh_summoner_matches_service(request, name, tagline, dao)
     if refresh_result.summoner is None:
+        logger.error(
+            "Failed to refresh summoner - not found",
+            extra={"summoner_name": name, "tagline": tagline},
+        )
         raise HTTPException(status_code=404, detail="Summoner not found")
+
+    logger.info(
+        "Refresh completed",
+        extra={
+            "summoner_name": refresh_result.summoner.name,
+            "summoner_tagline": refresh_result.summoner.tagline,
+            "insertedCount": refresh_result.inserted_count,
+            "failedCount": refresh_result.failed_count,
+        },
+    )
 
     return JSONResponse(
         content={
@@ -145,6 +173,7 @@ async def refresh_summoner(
 
 @router.get("/champion/not-found")
 async def champion_not_found(request: Request, name: str = ""):
+    logger.warning("Champion page requested but not found", extra={"searched_name": name or None})
 
     return templates.TemplateResponse(
         request=request,
@@ -162,19 +191,20 @@ async def get_champion(
     ajax: bool = False,
     dao: DAO = Depends(get_dao),
 ):
+    logger.info("Fetching champion data", extra={"name": name, "version": version, "is_ajax": ajax})
+
     champion = get_champion_service(name, [version], dao)
 
     if champion is None:
-        return RedirectResponse(
-            url=(
-                f"/champion/not-found?name={quote(name, safe='')}"
-            ),
-            status_code=303
-        )
+        target = f"/champion/not-found?name={quote(name, safe='')}"
+        logger.warning("Champion not found, redirecting", extra={"target": target})
+        return RedirectResponse(url=target, status_code=303)
     
     if ajax:
+        logger.info("Returning champion JSON (ajax)", extra={"name": name, "version": version})
         return JSONResponse(content=jsonable_encoder(champion))
     
+    logger.info("Rendering champion template", extra={"name": name, "version": version})
     return templates.TemplateResponse(
         request=request,
         name="champion.html",
