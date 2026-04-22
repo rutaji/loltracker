@@ -60,6 +60,11 @@ def test_champion_ajax_response(monkeypatch):
     data = response.json()
     assert data["name"] == "Ahri"
     assert len(data["championStats"]) == 1
+    assert data["selectedVersion"] == "14.5"
+    assert data["availableVersions"] == ["14.5"]
+    assert "trendSeriesByMode" in data
+    assert "selectedVersionStats" in data
+    assert "championImagePath" in data
 
 
 def test_champion_ajax_filters_version(monkeypatch):
@@ -95,3 +100,4 @@ def test_champion_no_stats_for_version(monkeypatch):
     data = response.json()
 
     assert data["championStats"] == []
+    assert data["selectedVersionStats"] == []

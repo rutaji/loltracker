@@ -10,7 +10,9 @@ from app.api.config import settings
 from app.database.DAO import DAO
 
 from app.services.summonerServices import load_summoner_page, refresh_summoner_matches_service
-from app.services.championServices import get_champion_service
+from app.services.championServices import build_trend_series, get_champion_service, serialize_stat
+from app.utils.champion_assets import resolve_champion_image_path
+from app.utils.versioning import version_sort_key
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -163,6 +165,17 @@ async def get_champion(
     dao: DAO = Depends(get_dao),
 ):
     champion = get_champion_service(name, [version], dao)
+    trend_champion = get_champion_service(name, None, dao)
+
+    if champion is None and trend_champion is not None:
+        available_versions = sorted(
+            {stat.version for stat in trend_champion.championStats},
+            key=version_sort_key,
+            reverse=True,
+        )
+        if available_versions:
+            version = available_versions[0]
+            champion = get_champion_service(name, [version], dao)
 
     if champion is None:
         return RedirectResponse(
@@ -171,15 +184,44 @@ async def get_champion(
             ),
             status_code=303
         )
+
+    if trend_champion is None:
+        trend_champion = champion
+
+    available_versions = sorted(
+        {stat.version for stat in trend_champion.championStats},
+        key=version_sort_key,
+        reverse=True,
+    )
+    if not available_versions:
+        available_versions = [version]
+
+    selected_stats = [serialize_stat(stat) for stat in champion.championStats]
+    trend_series = build_trend_series(trend_champion.championStats)
+    champion_image_path = resolve_champion_image_path(champion.name)
     
     if ajax:
-        return JSONResponse(content=jsonable_encoder(champion))
+        return JSONResponse(
+            content={
+                "name": champion.name,
+                "selectedVersion": version,
+                "availableVersions": available_versions,
+                "championImagePath": champion_image_path,
+                "selectedVersionStats": selected_stats,
+                "trendSeriesByMode": trend_series,
+                # Backward compatibility for previous JS/tests
+                "championStats": selected_stats,
+            }
+        )
     
     return templates.TemplateResponse(
         request=request,
         name="champion.html",
         context={
             "championData": champion,
-            "version": version
+            "version": version,
+            "available_versions": available_versions,
+            "champion_image_path": champion_image_path,
+            "trend_series": jsonable_encoder(trend_series),
         },
     )

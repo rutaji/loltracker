@@ -1,6 +1,6 @@
 :root {
-    --bg: #081019;
-    --bg-accent: #122235;
+    --bg: #040a12;
+    --bg-accent: #132338;
     --panel: #101c2d;
     --panel-soft: rgba(16, 28, 45, 0.84);
     --border: rgba(164, 194, 222, 0.18);
@@ -43,7 +43,8 @@ select {
 
 .top-bar,
 .champion-hero,
-.stats-panel {
+.stats-panel,
+.trend-panel {
     border-radius: 24px;
     border: 1px solid var(--border);
     background: var(--panel-soft);
@@ -85,13 +86,49 @@ select {
 }
 
 .champion-hero {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
     padding: 28px;
     margin-bottom: 24px;
+}
+
+.hero-content {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.hero-copy {
+    flex: 1;
+}
+
+.hero-subtitle {
+    margin: 14px 0 0;
+    color: var(--muted);
+    max-width: 62ch;
+    line-height: 1.5;
+}
+
+.hero-portrait-shell {
+    width: 140px;
+    height: 140px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.hero-portrait,
+.inline-portrait {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.hidden {
+    display: none;
 }
 
 .eyebrow {
@@ -109,19 +146,47 @@ select {
 
 .patch-form {
     display: flex;
-    align-items: end;
+    align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .patch-form label {
-    display: block;
-    width: 100%;
+    display: inline;
     color: var(--muted);
 }
 
-.stats-panel {
+.stats-panel,
+.trend-panel {
     padding: 24px;
+    margin-bottom: 24px;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.section-heading p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.inline-portrait-shell {
+    width: 58px;
+    height: 58px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .table-shell {
@@ -149,6 +214,40 @@ th {
 
 tr:hover td {
     background: rgba(255, 255, 255, 0.03);
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.chart-card {
+    min-height: 290px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    background: rgba(8, 17, 28, 0.72);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chart-card h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.chart-card canvas {
+    flex: 1;
+    min-height: 190px;
+}
+
+.chart-card-wide {
+    grid-column: 1 / -1;
 }
 
 input,
@@ -180,5 +279,28 @@ button {
 
     .top-bar {
         align-items: stretch;
+    }
+
+    .champion-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .patch-form {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .chart-grid {
+        grid-template-columns: 1fr;
     }
 }
