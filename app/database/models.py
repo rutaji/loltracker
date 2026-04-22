@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, null
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, null
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -75,6 +75,15 @@ class Champion(Base):
     @classmethod
     def create_default(cls, id: str,name:str = None):
         return Champion(id=id,champion_name=name)
+
+
+class Queue(Base):
+    __tablename__ = "queues"
+
+    queue_id = Column(Integer, primary_key=True, index=True, autoincrement=False)
+    map = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
 
 class SummonerChampion(Base):
     __tablename__ = "summoner_champion"
