@@ -8,6 +8,7 @@ RUN pip install -r requirements.txt
 
 COPY ./app ./app
 COPY ./scripts ./scripts
+COPY ./tools ./tools
 COPY ./alembic ./alembic
 COPY ./alembic.ini ./alembic.ini
 

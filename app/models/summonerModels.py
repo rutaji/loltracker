@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
 
@@ -19,7 +19,8 @@ class Match(BaseModel):
     start: datetime
     end: datetime
     version: str
-    mode: str
+    queueId: int = Field(default=0, exclude=True)
+    queueDescription: str
     participants: List[MatchParticipant]
 
 class Summoner(BaseModel):

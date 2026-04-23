@@ -34,7 +34,8 @@ class MatchParser:
             start=datetime.fromtimestamp(info.get("gameStartTimestamp", 0) / 1000, tz=UTC),
             end=datetime.fromtimestamp(info.get("gameEndTimestamp", 0) / 1000, tz=UTC),
             version=normalize_version(info.get("gameVersion", "")),
-            mode=info.get("gameMode", ""),
+            queueId=info.get("queueId", 0),
+            queueDescription="",
             participants=[
                 MatchParticipantParser.parse(participant)
                 for participant in participants

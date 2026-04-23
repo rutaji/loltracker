@@ -20,6 +20,7 @@ from app.database.models import (
     Match,
     MatchParticipant,
     MatchesAnalyzed,
+    Queue,
     Summoner,
 )
 from app.endpoints import endpoints
@@ -136,6 +137,7 @@ def app_client(monkeypatch: pytest.MonkeyPatch, dao: DAO, stub_api_client: StubR
 def seed_cached_summoner_data(db_session: Session) -> dict[str, str]:
     summoner_id = "cached-puuid"
     db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
     db_session.add(
         Summoner(
             id=summoner_id,
@@ -155,7 +157,7 @@ def seed_cached_summoner_data(db_session: Session) -> dict[str, str]:
                 id=match_id,
                 created=1712000000 + (index * 1000),
                 ended=1712001200 + (index * 1000),
-                gametype="CLASSIC",
+                queue_id=420,
                 patch="14.5",
             )
         )
@@ -182,6 +184,7 @@ def seed_cached_summoner_data(db_session: Session) -> dict[str, str]:
 def seed_partial_matches_data(db_session: Session) -> dict[str, str]:
     summoner_id = "partial-puuid"
     db_session.add(Champion(id="Lux", champion_name="Lux"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
     db_session.add(
         Summoner(
             id=summoner_id,
@@ -201,7 +204,7 @@ def seed_partial_matches_data(db_session: Session) -> dict[str, str]:
                 id=match_id,
                 created=1712100000 + (index * 1000),
                 ended=1712101200 + (index * 1000),
-                gametype="CLASSIC",
+                queue_id=420,
                 patch="14.5",
             )
         )
@@ -230,11 +233,12 @@ def seed_champion_stats_data(db_session: Session) -> dict[str, str]:
     champion_name = "ahri"
 
     db_session.add(Champion(id=champion_id, champion_name=champion_name))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
     db_session.add(
         ChampionStats(
             champion_id=champion_id,
             patch="14.5",
-            gametype="CLASSIC",
+            queue_id=420,
             games_played=20,
             games_won=12,
             games_banned=8,
@@ -247,7 +251,7 @@ def seed_champion_stats_data(db_session: Session) -> dict[str, str]:
         ChampionStats(
             champion_id=champion_id,
             patch="14.4",
-            gametype="CLASSIC",
+            queue_id=420,
             games_played=15,
             games_won=8,
             games_banned=4,
@@ -256,8 +260,8 @@ def seed_champion_stats_data(db_session: Session) -> dict[str, str]:
             death=45,
         )
     )
-    db_session.add(MatchesAnalyzed(patch="14.5", gametype="CLASSIC", count=200))
-    db_session.add(MatchesAnalyzed(patch="14.4", gametype="CLASSIC", count=150))
+    db_session.add(MatchesAnalyzed(patch="14.5", queue_id=420, count=200))
+    db_session.add(MatchesAnalyzed(patch="14.4", queue_id=420, count=150))
 
     db_session.commit()
 

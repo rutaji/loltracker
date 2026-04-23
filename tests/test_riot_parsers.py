@@ -38,7 +38,7 @@ def test_match_parser_maps_match_and_participants():
             "gameStartTimestamp": 1710000000000,
             "gameEndTimestamp": 1710002100000,
             "gameVersion": "15.7.123.4567",
-            "gameMode": "CLASSIC",
+            "queueId": 420,
             "participants": [
                 {
                     "puuid": "player-puuid",
@@ -60,7 +60,7 @@ def test_match_parser_maps_match_and_participants():
 
     assert match.match_id == "EUW1_123456789"
     assert match.version == "15.7"
-    assert match.mode == "CLASSIC"
+    assert match.queueId == 420
     assert len(match.participants) == 1
     assert match.participants[0].name == "PlayerOne"
     assert match.participants[0].puuid == "player-puuid"
@@ -73,7 +73,7 @@ def test_match_parser_keeps_short_version_untouched():
             "gameStartTimestamp": 1710000000000,
             "gameEndTimestamp": 1710002100000,
             "gameVersion": "15.8",
-            "gameMode": "CLASSIC",
+            "queueId": 440,
             "participants": [],
         },
     }

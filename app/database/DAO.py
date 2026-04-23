@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
-from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed
+from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue
 from app.utils.utils import split_name
 from app.utils.versioning import version_sort_key
 
@@ -32,6 +32,16 @@ class DAO:
             .filter(func.lower(Summoner.summoner_name) == summoner_name.lower())
             .first()
         )
+
+    @staticmethod
+    def _get_queue_description(queue: Queue | None, queue_id: int | None) -> str:
+        if queue is not None and queue.description:
+            return queue.description
+        if queue is not None and queue.map:
+            return queue.map
+        if queue_id is not None:
+            return "Unknown Queue"
+        return ""
 
     def get_champion_versions(self, champion_name: str) -> list[str]:
         versions = (
@@ -65,20 +75,21 @@ class DAO:
             matches_analyzed_query = matches_analyzed_query.filter(MatchesAnalyzed.patch.in_(patch))
 
         matches_analyzed = matches_analyzed_query.all()
-        analyzed_lookup = {(ma.patch, ma.gametype): ma.count for ma in matches_analyzed}
+        analyzed_lookup = {(ma.patch, ma.queue_id): ma.count for ma in matches_analyzed}
         result = []
         for dao_champion in dao_champions:
             result.append(
                 app.models.championModels.ChampionStats(
                     version=dao_champion.patch,
-                    gamemode=dao_champion.gametype,
+                    queueId=dao_champion.queue_id,
+                    queueDescription=self._get_queue_description(dao_champion.ChampionStats_Queue, dao_champion.queue_id),
                     wins=dao_champion.games_won,
                     gamesPlayed=dao_champion.games_played,
                     kills=dao_champion.kill,
                     deaths=dao_champion.death,
                     assists=dao_champion.assist,
                     banned=dao_champion.games_banned,
-                    matchesAnalyzed=analyzed_lookup.get((dao_champion.patch, dao_champion.gametype), 0)
+                    matchesAnalyzed=analyzed_lookup.get((dao_champion.patch, dao_champion.queue_id), 0)
                 )
             )
         return app.models.championModels.Champion(
@@ -118,7 +129,8 @@ class DAO:
                 joinedload(Match.Match_MatchParticipant)  # load participants for each match
                 .joinedload(MatchParticipant.MatchParticipant_Summoner),  # load participant's summoner info
                 joinedload(Match.Match_MatchParticipant)
-                .joinedload(MatchParticipant.MatchParticipant_Champion)  # load participant's champion info
+                .joinedload(MatchParticipant.MatchParticipant_Champion),  # load participant's champion info
+                joinedload(Match.Match_Queue),
             )
             .all()
         )
@@ -149,7 +161,7 @@ class DAO:
                     start=datetime.fromtimestamp(match.created),
                     end=datetime.fromtimestamp(match.ended),
                     version=match.patch,
-                    mode=match.gametype,
+                    queueDescription=self._get_queue_description(match.Match_Queue, match.queue_id),
                     participants=participants_list
                 )
             )
@@ -200,7 +212,7 @@ class DAO:
                     id=match_id,
                     created=int(match.start.timestamp()),
                     ended=int(match.end.timestamp()),
-                    gametype=match.mode,
+                    queue_id=match.queueId,
                     patch=match.version,
                 )
 
