@@ -28,7 +28,7 @@
                     <p class="eyebrow">Champion Breakdown</p>
                     <h1>{{ championData.name }}</h1>
                     <p class="hero-subtitle">
-                        Explore patch-specific performance and compare trends across multiple versions and game modes.
+                        Explore patch-specific performance and compare trends across multiple versions and queue types.
                     </p>
                 </div>
                 <div class="hero-portrait-shell {% if not champion_image_path %}hidden{% endif %}">
@@ -66,7 +66,7 @@
                 <table>
                     <tr>
                         <th>Patch</th>
-                        <th>Mode</th>
+                        <th>Queue</th>
                         <th>Total Matches Played</th>
                         <th>Winrate</th>
                         <th>KDA</th>
@@ -78,7 +78,7 @@
                     {% for stat in championData.championStats %}
                     <tr>
                         <td>{{ stat.version }}</td>
-                        <td>{{ stat.gamemode }}</td>
+                        <td>{{ stat.queueDescription }}</td>
                         <td>{{ stat.gamesPlayed }}</td>
                         <td>{{ "%.2f"|format(stat.winrate) }}%</td>
                         <td>{{ "%.2f"|format(stat.kda) }}</td>
@@ -94,7 +94,7 @@
         <section class="trend-panel">
             <div class="section-heading">
                 <h2>Performance Progression Across Versions</h2>
-                <p>Each chart compares gamemodes over every available patch for this champion.</p>
+                <p>Each chart compares queues over every available patch for this champion.</p>
             </div>
             <div class="chart-grid">
                 <article class="chart-card">

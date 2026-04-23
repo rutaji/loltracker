@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 summaryButton.dataset.matchId = match.match_id;
                 summaryButton.innerHTML = `
                     <span>Match ${match.match_id}</span>
-                    <span>${match.mode}</span>
+                    <span>${match.queueDescription}</span>
                     <span>${matchResult.charAt(0).toUpperCase() + matchResult.slice(1)} | Patch ${match.version}</span>
                 `;
                 summaryButton.addEventListener("click", () => toggleMatch(match.match_id));

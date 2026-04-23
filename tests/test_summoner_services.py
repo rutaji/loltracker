@@ -43,7 +43,8 @@ class MockDAO:
                 start=datetime.now(),
                 end=datetime.now(),
                 version="14.5",
-                mode="Ranked",
+                queueId=420,
+                queueDescription="Ranked Solo",
                 participants=[],
             )
             for i in range(5)
@@ -160,7 +161,8 @@ def test_get_matches_has_more_is_false_when_page_is_exactly_full():
                     start=datetime.now(),
                     end=datetime.now(),
                     version="14.5",
-                    mode="Ranked",
+                    queueId=420,
+                    queueDescription="Ranked Solo",
                     participants=[],
                 )
                 for i in range(20)
@@ -232,7 +234,7 @@ def test_get_matches_service_fetches_remote_only_when_cache_empty():
                 "gameStartTimestamp": 1710000000000,
                 "gameEndTimestamp": 1710001800000,
                 "gameVersion": "14.5",
-                "gameMode": "CLASSIC",
+                "queueId": 420,
                 "participants": [
                     {
                         "puuid": "remote-puuid",
@@ -308,7 +310,7 @@ def test_get_matches_service_skips_failed_remote_match_detail():
                 "gameStartTimestamp": 1710000000000,
                 "gameEndTimestamp": 1710001800000,
                 "gameVersion": "14.5",
-                "gameMode": "CLASSIC",
+                "queueId": 420,
                 "participants": [
                     {
                         "puuid": "remote-puuid",
@@ -415,7 +417,7 @@ def test_load_summoner_page_refreshes_summoner_after_remote_matches():
                 "gameStartTimestamp": 1710000000000,
                 "gameEndTimestamp": 1710001800000,
                 "gameVersion": "14.5",
-                "gameMode": "CLASSIC",
+                "queueId": 420,
                 "participants": [
                     {
                         "puuid": "remote-puuid",
@@ -545,7 +547,8 @@ def test_get_matches_service_does_not_fetch_remote_when_cache_exists():
                     start=datetime.now(),
                     end=datetime.now(),
                     version="14.5",
-                    mode="Ranked",
+                    queueId=420,
+                    queueDescription="Ranked Solo",
                     participants=[],
                 )
             ]
@@ -627,7 +630,7 @@ def test_refresh_summoner_matches_service_inserts_only_missing_matches():
                     "gameStartTimestamp": 1_700_000_000_000,
                     "gameEndTimestamp": 1_700_000_600_000,
                     "gameVersion": "14.5",
-                    "gameMode": "Ranked",
+                    "queueId": 420,
                     "participants": [],
                 },
             }
@@ -748,7 +751,7 @@ def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_match
                     "gameStartTimestamp": 1_700_000_000_000,
                     "gameEndTimestamp": 1_700_000_600_000,
                     "gameVersion": "14.5",
-                    "gameMode": "Ranked",
+                    "queueId": 420,
                     "participants": [],
                 },
             }
@@ -807,7 +810,7 @@ def test_refresh_uses_snapshot_then_match_exists_for_candidates_only():
                     "gameStartTimestamp": 1_700_000_000_000,
                     "gameEndTimestamp": 1_700_000_600_000,
                     "gameVersion": "14.5",
-                    "gameMode": "Ranked",
+                    "queueId": 420,
                     "participants": [],
                 },
             }

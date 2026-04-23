@@ -1,9 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List
 
 class ChampionStats(BaseModel):
     version: str
-    gamemode: str
+    queueId: int = Field(default=0, exclude=True)
+    queueDescription: str
     wins: int
     gamesPlayed: int
     kills: int
@@ -13,7 +14,7 @@ class ChampionStats(BaseModel):
     matchesAnalyzed: int
 
     def __str__(self):
-        return f" ChampionStats version={self.version} gamemode={self.gamemode} wins={self.wins}"
+        return f" ChampionStats version={self.version} queueDescription={self.queueDescription} wins={self.wins}"
     
     @property
     def winrate(self):

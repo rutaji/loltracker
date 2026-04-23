@@ -46,15 +46,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function normalizeSeries(seriesByMode) {
-        if (!Array.isArray(seriesByMode)) {
+    function normalizeSeries(seriesByQueue) {
+        if (!Array.isArray(seriesByQueue)) {
             return [];
         }
 
-        return seriesByMode
+        return seriesByQueue
             .filter((series) => series && Array.isArray(series.points))
             .map((series) => ({
-                gamemode: series.gamemode || "Unknown",
+                queueDescription: series.queueDescription || "Unknown Queue",
                 points: series.points.filter((point) => point && point.version),
             }))
             .filter((series) => series.points.length > 0);
@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${stat.version}</td>
-                <td>${stat.gamemode}</td>
+                <td>${stat.queueDescription}</td>
                 <td>${stat.totalMatchesPlayed ?? stat.gamesPlayed}</td>
                 <td>${formatNumber(stat.winrate, "%")}</td>
                 <td>${formatNumber(stat.kda)}</td>
@@ -130,13 +130,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function renderCharts(seriesByMode) {
+    function renderCharts(seriesByQueue) {
         if (typeof Chart === "undefined") {
             console.error("Chart.js is unavailable; skipping chart rendering.");
             return;
         }
 
-        const safeSeries = normalizeSeries(seriesByMode);
+        const safeSeries = normalizeSeries(seriesByQueue);
 
         Object.values(chartInstances).forEach((chart) => chart.destroy());
         Object.keys(chartInstances).forEach((key) => delete chartInstances[key]);
@@ -170,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const color = palette[index % palette.length];
 
                 return {
-                    label: series.gamemode,
+                    label: series.queueDescription,
                     data: allVersions.map((version) => valueByVersion.get(version) ?? null),
                     borderColor: color,
                     backgroundColor: `${color}55`,
@@ -254,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         renderTable(payload.selectedVersionStats || payload.championStats || []);
-        renderCharts(payload.trendSeriesByMode || []);
+        renderCharts(payload.trendSeriesByQueue || []);
         setChampionImages(payload.championImagePath || "");
     }
 

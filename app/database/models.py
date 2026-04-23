@@ -26,10 +26,11 @@ class Match(Base):
     id = Column(String, primary_key=True, index=True)
     created = Column(Integer)
     ended = Column(Integer)
-    gametype=Column(String)
+    queue_id = Column(Integer, ForeignKey("queues.queue_id"), nullable=True, index=True)
     patch=Column(String)
 
     Match_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Match")
+    Match_Queue = relationship("Queue")
 
 class MatchParticipant(Base):
     __tablename__ = "match_participant"
@@ -53,7 +54,7 @@ class ChampionStats(Base):
     __tablename__ = "champion_stats"
     champion_id = Column(String, ForeignKey("champion.id"), primary_key=True, index=True)
     patch = Column(String,primary_key=True, index=True)
-    gametype = Column(String, primary_key=True, index=True)
+    queue_id = Column(Integer, ForeignKey("queues.queue_id"), primary_key=True, index=True)
     games_played = Column(Integer)
     games_won = Column(Integer)
     games_banned = Column(Integer)
@@ -62,6 +63,7 @@ class ChampionStats(Base):
     death = Column(Integer)
 
     ChampionStats_Champion = relationship("Champion", back_populates="Champion_ChampionStats")
+    ChampionStats_Queue = relationship("Queue")
 
 class Champion(Base):
     __tablename__ = "champion"
@@ -98,7 +100,7 @@ class SummonerChampion(Base):
 class MatchesAnalyzed(Base):
     __tablename__ = "matches_analyzed"
     patch = Column(String,primary_key=True, index=True)
-    gametype = Column(String, primary_key=True, index=True)
+    queue_id = Column(Integer, ForeignKey("queues.queue_id"), primary_key=True, index=True)
     count = Column(Integer)
 
 

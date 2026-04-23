@@ -202,7 +202,7 @@ async def get_champion(
                 "availableVersions": available_versions,
                 "championImagePath": champion_image_path,
                 "selectedVersionStats": selected_stats,
-                "trendSeriesByMode": trend_series,
+                "trendSeriesByQueue": trend_series,
                 # Backward compatibility for previous JS/tests
                 "championStats": selected_stats,
             }

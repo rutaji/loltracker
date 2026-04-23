@@ -30,7 +30,8 @@ def make_match_page() -> MatchPage:
             start=__import__("datetime").datetime.now(),
             end=__import__("datetime").datetime.now(),
             version="14.5",
-            mode="Ranked Solo",
+            queueId=420,
+            queueDescription="Ranked Solo",
             participants=[],
         )
         for i in range(settings.matches_per_page)
@@ -75,6 +76,8 @@ def test_summoner_matches_ajax_response(monkeypatch):
     data = response.json()
     assert len(data["matches"]) == settings.matches_per_page
     assert data["nextOffset"] == settings.matches_per_page
+    assert data["matches"][0]["queueDescription"] == "Ranked Solo"
+    assert "queueId" not in data["matches"][0]
 
 
 def test_not_found_page_displays_searched_summoner():

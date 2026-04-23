@@ -28,14 +28,14 @@ def _accumulate_stat(entry: dict[str, int], stat: ChampionStats) -> None:
     entry["matchesAnalyzed"] += stat.matchesAnalyzed
 
 
-def _aggregate_by_mode_and_version(stats: list[ChampionStats]) -> dict[str, dict[str, dict[str, int]]]:
+def _aggregate_by_queue_and_version(stats: list[ChampionStats]) -> dict[str, dict[str, dict[str, int]]]:
     grouped: dict[str, dict[str, dict[str, int]]] = defaultdict(
         lambda: defaultdict(_empty_aggregate_bucket)
     )
 
     for stat in stats:
         normalized = normalize_version(stat.version)
-        _accumulate_stat(grouped[stat.gamemode][normalized], stat)
+        _accumulate_stat(grouped[stat.queueDescription][normalized], stat)
 
     return grouped
 
@@ -49,18 +49,18 @@ def get_available_versions(stats: list[ChampionStats]) -> list[str]:
 
 
 def aggregate_stats_for_version(stats: list[ChampionStats], version: str) -> list[ChampionStats]:
-    grouped = _aggregate_by_mode_and_version(stats)
+    grouped = _aggregate_by_queue_and_version(stats)
 
     aggregated = []
-    for gamemode in sorted(grouped):
-        values = grouped[gamemode].get(version)
+    for queue_description in sorted(grouped):
+        values = grouped[queue_description].get(version)
         if values is None:
             continue
 
         aggregated.append(
             ChampionStats(
                 version=version,
-                gamemode=gamemode,
+                queueDescription=queue_description,
                 wins=values["wins"],
                 gamesPlayed=values["gamesPlayed"],
                 kills=values["kills"],
@@ -77,7 +77,7 @@ def aggregate_stats_for_version(stats: list[ChampionStats], version: str) -> lis
 def serialize_stat(stat: ChampionStats) -> dict:
     return {
         "version": stat.version,
-        "gamemode": stat.gamemode,
+        "queueDescription": stat.queueDescription,
         "wins": stat.wins,
         "gamesPlayed": stat.gamesPlayed,
         "kills": stat.kills,
@@ -94,14 +94,14 @@ def serialize_stat(stat: ChampionStats) -> dict:
 
 
 def build_trend_series(stats: list[ChampionStats]) -> list[dict]:
-    grouped = _aggregate_by_mode_and_version(stats)
+    grouped = _aggregate_by_queue_and_version(stats)
 
     trend_series = []
-    for gamemode, by_version in grouped.items():
+    for queue_description, by_version in grouped.items():
         ordered_versions = sorted(by_version, key=version_sort_key)
         trend_series.append(
             {
-                "gamemode": gamemode,
+                "queueDescription": queue_description,
                 "points": [
                     {
                         "version": version,
@@ -123,7 +123,7 @@ def build_trend_series(stats: list[ChampionStats]) -> list[dict]:
             }
         )
 
-    return sorted(trend_series, key=lambda series: series["gamemode"])
+    return sorted(trend_series, key=lambda series: series["queueDescription"])
 
 def get_champion_service(name: str, version: list[str] | None, dao: DAO) -> Optional[Champion]:
     tracer = trace.get_tracer(__name__)

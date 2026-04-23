@@ -5,7 +5,7 @@
       "gameStartTimestamp": 1712500000000,
       "gameEndTimestamp": 1712501800000,
       "gameVersion": "14.5",
-      "gameMode": "CLASSIC",
+      "queueId": 420,
       "participants": [
         {
           "puuid": "remote-player-puuid",
@@ -28,7 +28,7 @@
       "gameStartTimestamp": 1712510000000,
       "gameEndTimestamp": 1712511700000,
       "gameVersion": "14.5",
-      "gameMode": "CLASSIC",
+      "queueId": 420,
       "participants": [
         {
           "puuid": "remote-player-puuid",
@@ -51,7 +51,7 @@
       "gameStartTimestamp": 1712520000000,
       "gameEndTimestamp": 1712521900000,
       "gameVersion": "14.5",
-      "gameMode": "CLASSIC",
+      "queueId": 420,
       "participants": [
         {
           "puuid": "remote-player-puuid",
@@ -74,7 +74,7 @@
       "gameStartTimestamp": 1712530000000,
       "gameEndTimestamp": 1712532100000,
       "gameVersion": "14.4",
-      "gameMode": "CLASSIC",
+      "queueId": 420,
       "participants": [
         {
           "puuid": "remote-player-puuid",

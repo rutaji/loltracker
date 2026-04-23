@@ -68,7 +68,7 @@
                 <article class="match match--{{ match_state.result }}">
                     <button type="button" class="match-summary match-summary--{{ match_state.result }}" data-match-id="{{ match.match_id }}">
                         <span>Match {{ match.match_id }}</span>
-                        <span>{{ match.mode }}</span>
+                        <span>{{ match.queueDescription }}</span>
                         <span>{{ match_state.result|capitalize }} | Patch {{ match.version }}</span>
                     </button>
                     <div id="match-{{ match.match_id }}" class="match-details" style="display:none">

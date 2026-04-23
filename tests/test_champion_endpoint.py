@@ -14,7 +14,7 @@ def make_champion(name: str = "Ahri") -> Champion:
         championStats=[
             ChampionStats(
                 version="14.5",
-                gamemode="Ranked Solo",
+                queueDescription="Ranked Solo",
                 wins=10,
                 gamesPlayed=20,
                 kills=100,
@@ -62,9 +62,11 @@ def test_champion_ajax_response(monkeypatch):
     assert len(data["championStats"]) == 1
     assert data["selectedVersion"] == "14.5"
     assert data["availableVersions"] == ["14.5"]
-    assert "trendSeriesByMode" in data
+    assert "trendSeriesByQueue" in data
     assert "selectedVersionStats" in data
     assert "championImagePath" in data
+    assert data["selectedVersionStats"][0]["queueDescription"] == "Ranked Solo"
+    assert "gamemode" not in data["selectedVersionStats"][0]
 
 
 def test_champion_ajax_filters_version(monkeypatch):
@@ -73,7 +75,7 @@ def test_champion_ajax_filters_version(monkeypatch):
         championStats=[
             ChampionStats(
                 version="14.4",
-                gamemode="Ranked Solo",
+                queueDescription="Ranked Solo",
                 wins=8,
                 gamesPlayed=16,
                 kills=80,
@@ -109,7 +111,7 @@ def test_champion_ajax_switches_stats_between_versions(monkeypatch):
         championStats=[
             ChampionStats(
                 version="16.8.777.3456",
-                gamemode="Ranked Solo",
+                queueDescription="Ranked Solo",
                 wins=8,
                 gamesPlayed=20,
                 kills=80,
@@ -120,7 +122,7 @@ def test_champion_ajax_switches_stats_between_versions(monkeypatch):
             ),
             ChampionStats(
                 version="16.8.778.9823",
-                gamemode="Ranked Solo",
+                queueDescription="Ranked Solo",
                 wins=12,
                 gamesPlayed=20,
                 kills=110,
@@ -131,7 +133,7 @@ def test_champion_ajax_switches_stats_between_versions(monkeypatch):
             ),
             ChampionStats(
                 version="16.9.100.1",
-                gamemode="Ranked Solo",
+                queueDescription="Ranked Solo",
                 wins=15,
                 gamesPlayed=20,
                 kills=130,
@@ -155,5 +157,5 @@ def test_champion_ajax_switches_stats_between_versions(monkeypatch):
     assert data_168["selectedVersionStats"][0]["wins"] == 20
     assert data_169["selectedVersionStats"][0]["wins"] == 15
     assert data_168["availableVersions"] == ["16.9", "16.8"]
-    assert "trendSeriesByMode" in data_168
+    assert "trendSeriesByQueue" in data_168
     assert "championImagePath" in data_168
