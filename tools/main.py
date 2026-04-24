@@ -1,5 +1,5 @@
 import json
-only_id = True
+only_id = False
 
 if __name__ == '__main__':
     with open('champion.json', 'r') as file:
@@ -9,5 +9,5 @@ if __name__ == '__main__':
         if only_id:
             print("""conn.execute(query, {"id": \"""" + i["id"] + """"})""")
         else:
-            print("""conn.execute(query, {"id": \"""" + i["id"] + """\", "name": \"""" + i["name"] + """\"})""")
+            print("""conn.execute(query, {"id": \"""" + i["id"] + """\", "name": \"""" + i["name"] + """\", "key": \"""" + i["key"] + """\"})""")
 

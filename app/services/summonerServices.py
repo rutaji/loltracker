@@ -114,8 +114,10 @@ def sync_remote_matches(
                 try:
                     match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
                     match = MatchParser.parse(match_data)
-                    inserted = dao.add_match(match)
-                    if inserted is not False:
+                    inserted_match = dao.add_match(match)
+                    bans = MatchParser.parse_bans(match_data)
+                    dao.add_ban(bans)
+                    if inserted_match is not False:
                         inserted_count += 1
                         cached_match_ids.add(match_id)
                 except httpx.RequestError as exc:

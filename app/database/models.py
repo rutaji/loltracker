@@ -31,6 +31,7 @@ class Match(Base):
 
     Match_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Match")
     Match_Queue = relationship("Queue")
+    Match_Ban = relationship("Ban", back_populates="Ban_Match")
 
 class MatchParticipant(Base):
     __tablename__ = "match_participant"
@@ -69,6 +70,7 @@ class Champion(Base):
     __tablename__ = "champion"
     id = Column(String, primary_key=True, index=True)
     champion_name = Column(String, index=True,nullable=True)
+    key=Column(Integer,index=True,nullable=True)
 
     Champion_ChampionStats = relationship("ChampionStats", back_populates="ChampionStats_Champion")
     Champion_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Champion")
@@ -76,7 +78,7 @@ class Champion(Base):
 
     @classmethod
     def create_default(cls, id: str,name:str = None):
-        return Champion(id=id,champion_name=name)
+        return Champion(id=id,champion_name=name,key=None)
 
 
 class Queue(Base):
@@ -102,5 +104,13 @@ class MatchesAnalyzed(Base):
     patch = Column(String,primary_key=True, index=True)
     queue_id = Column(Integer, ForeignKey("queues.queue_id"), primary_key=True, index=True)
     count = Column(Integer)
+
+class Ban(Base):
+    __tablename__ = "ban"
+    match_id = Column(String, ForeignKey("match.id"), primary_key=True, index=True)
+    team = Column(Integer,primary_key=True, index=True)
+    champion_key = Column(Integer, primary_key=True, index=True)
+
+    Ban_Match = relationship("Match", back_populates="Match_Ban")
 
 

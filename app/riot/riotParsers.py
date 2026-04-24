@@ -1,13 +1,25 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from app.models.summonerModels import Match, MatchParticipant, Summoner
+import logging
+
+from sqlalchemy.ext.asyncio import result
+
+from app.models.summonerModels import Match, MatchParticipant, Summoner, Ban, BanParsed
 from app.utils.versioning import normalize_version
+logger = logging.getLogger(__name__)
 
 
 class MatchParticipantParser:
     @staticmethod
     def parse(participant_data: dict[str, Any]) -> MatchParticipant:
+        # Log the identity of the participant being parsed for easier tracing
+        logger.debug(
+            "MatchParticipantParser.parse: puuid=%s name=%s champion=%s",
+            participant_data.get("puuid"),
+            participant_data.get("riotIdGameName") or participant_data.get("summonerName"),
+            participant_data.get("championName"),
+        )
         return MatchParticipant(
             puuid=participant_data.get("puuid", ""),
             name=participant_data.get("riotIdGameName") or participant_data.get("summonerName", ""),
@@ -28,6 +40,7 @@ class MatchParser:
         metadata = match_data.get("metadata", {})
         info = match_data.get("info", {})
         participants = info.get("participants", [])
+        logger.debug("MatchParser.parse: match_id=%s",metadata.get("matchId", ""))
 
         return Match(
             match_id=metadata.get("matchId", ""),
@@ -41,6 +54,21 @@ class MatchParser:
                 for participant in participants
             ],
         )
+    @staticmethod
+    def parse_bans(match_data: dict[str, Any]) -> list[BanParsed]:
+        result =[]
+        metadata = match_data.get("metadata", {})
+        match_id = metadata.get("matchId", "")
+        info = match_data.get("info", {})
+        teams = info.get("teams", [])
+        for team in teams:
+            id = team.get("teamId", 0)
+            bans = team.get("bans", [])
+            for ban in bans:
+                result.append(BanParsed(match_id=match_id,team=id,champion_key=ban.get("championId", 0)))
+        return result
+
+
 
 
 class SummonerParser:
@@ -49,6 +77,7 @@ class SummonerParser:
         account_data: dict[str, Any],
     ) -> Summoner:
         puuid = account_data.get("puuid")
+        logger.debug("SummonerParser.parse: puuid=%s name=%s", puuid, account_data.get("gameName"))
         kills = 0
         deaths = 0
         assists = 0

@@ -19,12 +19,6 @@ def main():
             Summoner.create_default(id="s3", name="Uzi#eune"),
         ]
 
-        champions = [
-            Champion.create_default(id="Ahri", name="Ahri"),
-            Champion.create_default(id="Yasuo", name="Yasuo"),
-            Champion.create_default(id="Lux", name="Lux"),
-        ]
-
         now = int(datetime.now().timestamp())
         matches = [
             Match(id="m1", created=now, ended=now + 1200, gametype="Ranked", patch="14.4"),
@@ -53,10 +47,6 @@ def main():
 
         for summoner in summoners:
             add_if_missing(session, Summoner, summoner.id, summoner)
-        session.commit()
-
-        for champion in champions:
-            add_if_missing(session, Champion, champion.id, champion)
         session.commit()
 
         for match in matches:
