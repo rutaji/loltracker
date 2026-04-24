@@ -197,6 +197,7 @@ def test_get_matches_service_fetches_remote_only_when_cache_empty():
     class EmptyMatchDAO:
         def __init__(self):
             self.saved_matches = []
+            self.saved_bans= []
 
         def get_matches(self, summoner_name, offset, count):
             return self.saved_matches[offset:offset + count]
@@ -224,6 +225,8 @@ def test_get_matches_service_fetches_remote_only_when_cache_empty():
 
         def add_match(self, match):
             self.saved_matches.append(match)
+        def add_ban(self, bans):
+            self.saved_bans.extend(bans)
 
     api_client = FakeApiClient()
     api_client.match_ids = ["EUW1_1"]
@@ -267,6 +270,7 @@ def test_get_matches_service_skips_failed_remote_match_detail():
     class EmptyMatchDAO:
         def __init__(self):
             self.saved_matches = []
+            self.saved_bans = []
 
         def get_matches(self, summoner_name, offset, count):
             return self.saved_matches[offset:offset + count]
@@ -294,6 +298,8 @@ def test_get_matches_service_skips_failed_remote_match_detail():
 
         def add_match(self, match):
             self.saved_matches.append(match)
+        def add_ban(self,bans):
+            self.saved_bans.extend(bans)
 
     class FlakyApiClient(FakeApiClient):
         def get_match_info_by_match_id(self, match_id):
@@ -368,6 +374,7 @@ def test_load_summoner_page_refreshes_summoner_after_remote_matches():
         def __init__(self):
             self.saved_matches = []
             self.get_summoner_calls = 0
+            self.added_bans = []
 
         def get_summoner(self, summoner_name):
             self.get_summoner_calls += 1
@@ -407,6 +414,8 @@ def test_load_summoner_page_refreshes_summoner_after_remote_matches():
 
         def add_match(self, match):
             self.saved_matches.append(match)
+        def add_ban(self,bans):
+            self.added_bans.extend(bans)
 
     api_client = FakeApiClient()
     api_client.match_ids = ["EUW1_1"]
@@ -594,6 +603,7 @@ def test_refresh_summoner_matches_service_inserts_only_missing_matches():
     class RefreshDAO:
         def __init__(self):
             self.added_matches = []
+            self.added_bans = []
 
         def get_summoner(self, summoner_name):
             return Summoner(
@@ -615,6 +625,9 @@ def test_refresh_summoner_matches_service_inserts_only_missing_matches():
 
         def add_match(self, match):
             self.added_matches.append(match)
+        def add_ban(self, bans):
+            self.added_bans.extend(bans)
+
 
     class RefreshApiClient:
         def get_summoner_by_puuid(self, puuid):
@@ -651,6 +664,7 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
         def __init__(self):
             self.saved_summoners = []
             self.lookup_names = []
+            self.added_bans=[]
 
         def get_summoner(self, summoner_name):
             self.lookup_names.append(summoner_name)
@@ -684,6 +698,8 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
 
         def add_match(self, match):
             raise AssertionError("match insertion is not part of this test")
+        def add_ban(self, bans):
+            self.added_bans.extend(bans)
 
     class RefreshApiClient:
         def get_summoner_by_puuid(self, puuid):
@@ -710,6 +726,7 @@ def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_match
     class RefreshDAO:
         def __init__(self):
             self.added_matches = []
+            self.added_bans = []
 
         def get_summoner(self, summoner_name):
             return Summoner(
@@ -731,6 +748,9 @@ def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_match
 
         def add_match(self, match):
             self.added_matches.append(match)
+
+        def add_ban(self,bans):
+            self.added_bans.extend(bans)
 
     class RefreshApiClient:
         def __init__(self):
@@ -773,6 +793,7 @@ def test_refresh_uses_snapshot_then_match_exists_for_candidates_only():
         def __init__(self):
             self.added_matches = []
             self.match_exists_calls = []
+            self.added_bans = []
 
         def get_summoner(self, summoner_name):
             return Summoner(
@@ -795,6 +816,8 @@ def test_refresh_uses_snapshot_then_match_exists_for_candidates_only():
 
         def add_match(self, match):
             self.added_matches.append(match)
+        def add_ban(self, bans):
+            self.added_bans.extend(bans)
 
     class RefreshApiClient:
         def get_summoner_by_puuid(self, puuid):

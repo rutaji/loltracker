@@ -4,6 +4,8 @@ from opentelemetry import trace
 from app.models.championModels import Champion, ChampionStats
 from app.database.DAO import DAO
 from app.utils.versioning import normalize_version, version_sort_key
+import logging
+logger = logging.getLogger(__name__)
 
 
 def _empty_aggregate_bucket() -> dict[str, int]:
@@ -134,7 +136,9 @@ def get_champion_service(name: str, version: list[str] | None, dao: DAO) -> Opti
 
         if champion is None:
             span.set_attribute("champion.found", False)
+            logger.debug("ChampionService: champion %s not found", name)
             return None
 
         span.set_attribute("champion.found", True)
+        logger.debug("ChampionService: champion %s found", name)
         return champion

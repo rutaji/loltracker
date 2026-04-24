@@ -18,7 +18,7 @@ from app.riot.riotApiClient import RiotApiClient
 from app.instrumentation import setup_telemetry
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(__name__)
 
 # Load environment variables early

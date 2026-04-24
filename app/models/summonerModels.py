@@ -23,6 +23,17 @@ class Match(BaseModel):
     queueDescription: str
     participants: List[MatchParticipant]
 
+class Ban(BaseModel):
+    match_id: str
+    team: int
+    champion: str
+
+class BanParsed(BaseModel):
+    match_id: str
+    team: int
+    champion_key: int
+
+
 class Summoner(BaseModel):
     puuid: str
     name: str
