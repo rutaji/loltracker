@@ -30,7 +30,7 @@ def get_dao():
 
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    logger.info("request at root: %s",request)
+    logger.info("Endpoint root get: %s",request)
     return templates.TemplateResponse(request=request, name="index.html")
 
 @router.post("/", response_class=RedirectResponse)
@@ -39,15 +39,6 @@ async def search(
     summoner_tagline: str = Form(default=""),
     champion_name: str = Form(default=""),
 ):
-    logger.info(
-        "Search form submitted",
-        extra={
-            "summoner_name": summoner_name or None,
-            "summoner_tagline": summoner_tagline or None,
-            "champion_name": champion_name or None,
-        },
-    )
-
     summoner_name = summoner_name.strip()
     summoner_tagline = summoner_tagline.strip()
     champion_name = champion_name.strip()
@@ -72,7 +63,7 @@ async def search(
 
 @router.get("/summoner/not-found")
 async def summoner_not_found(request: Request, name: str = "", tagline: str = ""):
-    logger.warning(
+    logger.info(
         "Summoner page requested but not found",
         extra={"searched_name": name or None, "searched_tagline": tagline or None},
     )
@@ -96,7 +87,7 @@ async def get_summoner(
     dao: DAO = Depends(get_dao),
 ):
     logger.info(
-        "Fetching summoner data",
+        "Endpoint started /summoner/{name}/{tagline}",
         extra={
             "summoner_name": name,
             "tagline": tagline,
@@ -119,6 +110,8 @@ async def get_summoner(
         )
     match_page = page_data.match_page
 
+    logger.info(
+        "Endpoint ended /summoner/{name}/{tagline}",extra= {"summoner_name": name, "tagline": tagline, "match_page":match_page})
     if ajax:
         return JSONResponse(content=jsonable_encoder(match_page))
 
@@ -140,20 +133,20 @@ async def refresh_summoner(
     dao: DAO = Depends(get_dao),
 ):
     logger.info(
-        "Refreshing summoner matches",
+        "Endpoint started /summoner/{name}/{tagline}/refresh",
         extra={"summoner_name": name, "tagline": tagline},
     )
 
     refresh_result = refresh_summoner_matches_service(request, name, tagline, dao)
     if refresh_result.summoner is None:
-        logger.error(
+        logger.info(
             "Failed to refresh summoner - not found",
             extra={"summoner_name": name, "tagline": tagline},
         )
         raise HTTPException(status_code=404, detail="Summoner not found")
 
     logger.info(
-        "Refresh completed",
+        "Endpoint finished /summoner/{name}/{tagline}/refresh",
         extra={
             "summoner_name": refresh_result.summoner.name,
             "summoner_tagline": refresh_result.summoner.tagline,
@@ -191,20 +184,19 @@ async def get_champion(
     ajax: bool = False,
     dao: DAO = Depends(get_dao),
 ):
-    logger.info("Fetching champion data", extra={"name": name, "version": version, "is_ajax": ajax})
+    logger.info("Endpoint started /champion/{name}", extra={"name": name, "version": version, "is_ajax": ajax})
 
     champion = get_champion_service(name, [version], dao)
 
     if champion is None:
         target = f"/champion/not-found?name={quote(name, safe='')}"
-        logger.warning("Champion not found, redirecting", extra={"target": target})
+        logger.info("Champion not found, redirecting", extra={"target": target})
         return RedirectResponse(url=target, status_code=303)
     
     if ajax:
-        logger.info("Returning champion JSON (ajax)", extra={"name": name, "version": version})
         return JSONResponse(content=jsonable_encoder(champion))
     
-    logger.info("Rendering champion template", extra={"name": name, "version": version})
+    logger.info("Endpoint finished /champion/{name}", extra={"name": name, "version": version})
     return templates.TemplateResponse(
         request=request,
         name="champion.html",
