@@ -29,6 +29,8 @@ services:
         condition: service_started
     ports:
       - "8000:8000"
+    volumes:
+      - ./tools/champion_imgs:/app/tools/champion_imgs
     env_file:
       - .env
     environment:

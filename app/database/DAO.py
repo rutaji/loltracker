@@ -8,8 +8,9 @@ from sqlalchemy.orm import joinedload
 import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
-from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed
+from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue
 from app.utils.utils import split_name
+from app.utils.versioning import version_sort_key
 
 logger = logging.getLogger(__name__)
 
@@ -37,34 +38,65 @@ class DAO:
         logger.debug("_get_summoner_row: found=%s for name=%s id=%s", bool(result), summoner_name,result.id)
         return result
 
-    def get_champion(self,champion_name :str,patch :list[str]):
-        dao_champions = (
+    @staticmethod
+    def _get_queue_description(queue: Queue | None, queue_id: int | None) -> str:
+        if queue is not None and queue.description:
+            return queue.description
+        if queue is not None and queue.map:
+            return queue.map
+        if queue_id is not None:
+            return "Unknown Queue"
+        return ""
+
+    def get_champion_versions(self, champion_name: str) -> list[str]:
+        versions = (
+            self.db.query(ChampionStats.patch)
+            .join(Champion)
+            .filter(Champion.champion_name.ilike(champion_name))
+            .distinct()
+            .all()
+        )
+        return sorted(
+            [patch for (patch,) in versions],
+            key=version_sort_key,
+            reverse=True,
+        )
+
+    def get_champion(self, champion_name: str, patch: list[str] | None):
+        query = (
             self.db.query(ChampionStats)
             .join(Champion)
             .filter(Champion.champion_name.ilike(champion_name))
-            .filter(ChampionStats.patch.in_(patch))
-            .all()
         )
+        if patch:
+            query = query.filter(ChampionStats.patch.in_(patch))
+
+        dao_champions = query.all()
         if not dao_champions:
             logger.debug("Get_champion: champion not found for champion_name=%s patch=%r " , champion_name,patch)
             return None
         logger.debug("Get_champion: champion found for champion_name=%s patch=%r " , champion_name,patch)
 
-        matches_analyzed = self.db.query(MatchesAnalyzed).filter(MatchesAnalyzed.patch.in_(patch)).all()
-        analyzed_lookup = {(ma.patch, ma.gametype): ma.count for ma in matches_analyzed}
+        matches_analyzed_query = self.db.query(MatchesAnalyzed)
+        if patch:
+            matches_analyzed_query = matches_analyzed_query.filter(MatchesAnalyzed.patch.in_(patch))
+
+        matches_analyzed = matches_analyzed_query.all()
+        analyzed_lookup = {(ma.patch, ma.queue_id): ma.count for ma in matches_analyzed}
         result = []
         for dao_champion in dao_champions:
             result.append(
                 app.models.championModels.ChampionStats(
                     version=dao_champion.patch,
-                    gamemode=dao_champion.gametype,
+                    queueId=dao_champion.queue_id,
+                    queueDescription=self._get_queue_description(dao_champion.ChampionStats_Queue, dao_champion.queue_id),
                     wins=dao_champion.games_won,
                     gamesPlayed=dao_champion.games_played,
                     kills=dao_champion.kill,
                     deaths=dao_champion.death,
                     assists=dao_champion.assist,
                     banned=dao_champion.games_banned,
-                    matchesAnalyzed=analyzed_lookup.get((dao_champion.patch, dao_champion.gametype), 0)
+                    matchesAnalyzed=analyzed_lookup.get((dao_champion.patch, dao_champion.queue_id), 0)
                 )
             )
         logger.debug("get_champion: returning %d championStats for %s", len(result), champion_name)
@@ -111,7 +143,8 @@ class DAO:
                 joinedload(Match.Match_MatchParticipant)  # load participants for each match
                 .joinedload(MatchParticipant.MatchParticipant_Summoner),  # load participant's summoner info
                 joinedload(Match.Match_MatchParticipant)
-                .joinedload(MatchParticipant.MatchParticipant_Champion)  # load participant's champion info
+                .joinedload(MatchParticipant.MatchParticipant_Champion),  # load participant's champion info
+                joinedload(Match.Match_Queue),
             )
             .all()
         )
@@ -143,7 +176,7 @@ class DAO:
                     start=datetime.fromtimestamp(match.created),
                     end=datetime.fromtimestamp(match.ended),
                     version=match.patch,
-                    mode=match.gametype,
+                    queueDescription=self._get_queue_description(match.Match_Queue, match.queue_id),
                     participants=participants_list
                 )
             )
@@ -196,7 +229,7 @@ class DAO:
                     id=match_id,
                     created=int(match.start.timestamp()),
                     ended=int(match.end.timestamp()),
-                    gametype=match.mode,
+                    queue_id=match.queueId,
                     patch=match.version,
                 )
 

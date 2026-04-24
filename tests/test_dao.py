@@ -5,7 +5,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database.DAO import DAO
-from app.database.models import Base, Champion, Match as DaoMatch, MatchParticipant as DaoMatchParticipant, Summoner as DaoSummoner
+from app.database.models import (
+    Base,
+    Champion,
+    ChampionStats,
+    Match as DaoMatch,
+    MatchParticipant as DaoMatchParticipant,
+    MatchesAnalyzed,
+    Queue,
+    Summoner as DaoSummoner,
+)
 from app.models.summonerModels import Match, MatchParticipant, Summoner
 
 
@@ -88,6 +97,7 @@ def test_add_champion(db_session):
 def test_add_match(db_session):
     dao = DAO(db_session)
     db_session.add(Champion.create_default(id="champ_akali", name="Akali"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
     db_session.commit()
 
     match = Match(
@@ -95,7 +105,8 @@ def test_add_match(db_session):
         start=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
         end=datetime(2026, 4, 7, 12, 30, tzinfo=UTC),
         version="1.27.2",
-        mode="summoners rift",
+        queueId=420,
+        queueDescription="Ranked Solo",
         participants=[
             MatchParticipant(
                 puuid="player-1",
@@ -138,12 +149,13 @@ def test_get_matches_applies_pagination(db_session):
     dao = DAO(db_session)
     db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=3, games_won=2, kill=10, death=5, assist=8))
     db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
     db_session.commit()
 
     matches = [
-        DaoMatch(id="match-1", created=100, ended=130, gametype="ranked", patch="14.5"),
-        DaoMatch(id="match-2", created=200, ended=230, gametype="ranked", patch="14.5"),
-        DaoMatch(id="match-3", created=300, ended=330, gametype="ranked", patch="14.5"),
+        DaoMatch(id="match-1", created=100, ended=130, queue_id=420, patch="14.5"),
+        DaoMatch(id="match-2", created=200, ended=230, queue_id=420, patch="14.5"),
+        DaoMatch(id="match-3", created=300, ended=330, queue_id=420, patch="14.5"),
     ]
     db_session.add_all(matches)
     db_session.add_all(
@@ -166,7 +178,8 @@ def test_summoner_lookups_are_case_insensitive(db_session):
     dao = DAO(db_session)
     db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=2, games_won=1, kill=7, death=3, assist=9))
     db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
-    db_session.add(DaoMatch(id="match-1", created=100, ended=130, gametype="ranked", patch="14.5"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add(DaoMatch(id="match-1", created=100, ended=130, queue_id=420, patch="14.5"))
     db_session.add(
         DaoMatchParticipant(
             summoner_id="player-1",
@@ -192,3 +205,74 @@ def test_summoner_lookups_are_case_insensitive(db_session):
     assert [match.match_id for match in matches] == ["match-1"]
     assert has_matches is True
     assert match_ids == {"match-1"}
+
+
+def test_get_champion_versions_returns_descending_order(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add_all(
+        [
+            ChampionStats(champion_id="Ahri", patch="14.4", queue_id=420, games_played=10, games_won=5, games_banned=1, kill=30, assist=20, death=10),
+            ChampionStats(champion_id="Ahri", patch="14.10", queue_id=420, games_played=12, games_won=6, games_banned=2, kill=36, assist=24, death=12),
+            ChampionStats(champion_id="Ahri", patch="14.5", queue_id=420, games_played=11, games_won=5, games_banned=1, kill=33, assist=22, death=11),
+        ]
+    )
+    db_session.commit()
+
+    versions = dao.get_champion_versions("Ahri")
+
+    assert versions == ["14.10", "14.5", "14.4"]
+
+
+def test_get_champion_without_patch_returns_all_versions(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add_all(
+        [
+            Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None),
+            Queue(queue_id=450, map="Howling Abyss", description="ARAM", notes=None),
+        ]
+    )
+    db_session.add_all(
+        [
+            ChampionStats(champion_id="Ahri", patch="14.5", queue_id=420, games_played=10, games_won=5, games_banned=1, kill=30, assist=20, death=10),
+            ChampionStats(champion_id="Ahri", patch="14.4", queue_id=450, games_played=7, games_won=4, games_banned=0, kill=18, assist=25, death=9),
+            MatchesAnalyzed(patch="14.5", queue_id=420, count=100),
+            MatchesAnalyzed(patch="14.4", queue_id=450, count=70),
+        ]
+    )
+    db_session.commit()
+
+    champion = dao.get_champion("Ahri", None)
+
+    assert champion is not None
+    assert len(champion.championStats) == 2
+
+
+def test_get_champion_rates_use_matches_analyzed(db_session):
+    dao = DAO(db_session)
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add(
+        ChampionStats(
+            champion_id="Ahri",
+            patch="14.5",
+            queue_id=420,
+            games_played=20,
+            games_won=10,
+            games_banned=5,
+            kill=30,
+            assist=20,
+            death=10,
+        )
+    )
+    db_session.add(MatchesAnalyzed(patch="14.5", queue_id=420, count=200))
+    db_session.commit()
+
+    champion = dao.get_champion("Ahri", ["14.5"])
+
+    assert champion is not None
+    stats = champion.championStats[0]
+    assert stats.pickrate == 10
+    assert stats.banrate == 2.5

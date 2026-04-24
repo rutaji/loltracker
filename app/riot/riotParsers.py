@@ -4,6 +4,7 @@ from typing import Any
 import logging
 
 from app.models.summonerModels import Match, MatchParticipant, Summoner
+from app.utils.versioning import normalize_version
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,9 @@ class MatchParser:
             match_id=metadata.get("matchId", ""),
             start=datetime.fromtimestamp(info.get("gameStartTimestamp", 0) / 1000, tz=UTC),
             end=datetime.fromtimestamp(info.get("gameEndTimestamp", 0) / 1000, tz=UTC),
-            version=info.get("gameVersion", ""),
-            mode=info.get("gameMode", ""),
+            version=normalize_version(info.get("gameVersion", "")),
+            queueId=info.get("queueId", 0),
+            queueDescription="",
             participants=[
                 MatchParticipantParser.parse(participant)
                 for participant in participants

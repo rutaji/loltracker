@@ -12,12 +12,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from opentelemetry.semconv.resource import ResourceAttributes
 
-#logger
 import logging
-from opentelemetry._logs import set_logger_provider
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from app.api.config import settings
 from app.database.database import engine
 
@@ -47,6 +42,11 @@ HTTPXClientInstrumentor = _MissingHTTPXClientInstrumentor
 SQLAlchemyInstrumentor = _MissingSQLAlchemyInstrumentor
 OTLPSpanExporter = None
 OTLPMetricExporter = None
+set_logger_provider = None
+OTLPLogExporter = None
+LoggerProvider = None
+LoggingHandler = None
+BatchLogRecordProcessor = None
 
 try:
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -54,6 +54,10 @@ try:
     from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+    from opentelemetry._logs import set_logger_provider
+    from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+    from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+    from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 except Exception as exc:  # pragma: no cover - exercised indirectly in test envs
     _OTEL_IMPORT_ERROR = exc
 
@@ -110,21 +114,31 @@ def setup_telemetry(app: FastAPI) -> Callable[[], None]:
     app.state.meter = metrics.get_meter(settings.otel_service_name)
 
     # Logging integration
-    log_provider = LoggerProvider(resource=resource)
-    set_logger_provider(log_provider)
+    log_provider = None
+    if (
+        OTLPLogExporter is not None
+        and set_logger_provider is not None
+        and LoggerProvider is not None
+        and LoggingHandler is not None
+        and BatchLogRecordProcessor is not None
+    ):
+        log_provider = LoggerProvider(resource=resource)
+        set_logger_provider(log_provider)
 
-    log_exporter = OTLPLogExporter(
-        endpoint=settings.otel_exporter_otlp_endpoint,
-        insecure=settings.otel_exporter_otlp_insecure,
-    )
-    log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+        log_exporter = OTLPLogExporter(
+            endpoint=settings.otel_exporter_otlp_endpoint,
+            insecure=settings.otel_exporter_otlp_insecure,
+        )
+        log_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-    # This handler automatically injects trace_id and span_id into the log record
-    otel_handler = LoggingHandler(level=logging.INFO, logger_provider=log_provider)
-
-    # 4. Attach to the root logger or specific app loggers
-    logging.getLogger().addHandler(otel_handler)
-    logging.getLogger("uvicorn").addHandler(otel_handler)#adds uvicorn logs
+        otel_handler = LoggingHandler(level=logging.INFO, logger_provider=log_provider)
+        logging.getLogger().addHandler(otel_handler)
+        logging.getLogger("uvicorn").addHandler(otel_handler)
+    elif _OTEL_IMPORT_ERROR is not None:
+        LOGGER.warning(
+            "Telemetry log exporting is unavailable; traces and metrics remain enabled. Cause: %s",
+            _OTEL_IMPORT_ERROR,
+        )
 
     LOGGER.info(
         "Telemetry initialized for service '%s' (environment=%s).",
@@ -135,6 +149,7 @@ def setup_telemetry(app: FastAPI) -> Callable[[], None]:
     def _shutdown() -> None:
         meter_provider.shutdown()
         provider.shutdown()
-        log_provider.shutdown()
+        if log_provider is not None:
+            log_provider.shutdown()
 
     return _shutdown
