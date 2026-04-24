@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,6 +11,7 @@ from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed
 from app.utils.utils import split_name
 
+logger = logging.getLogger(__name__)
 
 class DAO:
     def __init__(self, db):
@@ -26,11 +28,14 @@ class DAO:
         self.db.close()
 
     def _get_summoner_row(self, summoner_name: str):
-        return (
+        logger.debug("_get_summoner_row: looking up summoner=%s", summoner_name)
+        result = (
             self.db.query(Summoner)
             .filter(func.lower(Summoner.summoner_name) == summoner_name.lower())
             .first()
         )
+        logger.debug("_get_summoner_row: found=%s for name=%s id=%s", bool(result), summoner_name,result.id)
+        return result
 
     def get_champion(self,champion_name :str,patch :list[str]):
         dao_champions = (
@@ -41,7 +46,9 @@ class DAO:
             .all()
         )
         if not dao_champions:
+            logger.debug("Get_champion: champion not found for champion_name=%s patch=%r " , champion_name,patch)
             return None
+        logger.debug("Get_champion: champion found for champion_name=%s patch=%r " , champion_name,patch)
 
         matches_analyzed = self.db.query(MatchesAnalyzed).filter(MatchesAnalyzed.patch.in_(patch)).all()
         analyzed_lookup = {(ma.patch, ma.gametype): ma.count for ma in matches_analyzed}
@@ -60,18 +67,21 @@ class DAO:
                     matchesAnalyzed=analyzed_lookup.get((dao_champion.patch, dao_champion.gametype), 0)
                 )
             )
+        logger.debug("get_champion: returning %d championStats for %s", len(result), champion_name)
         return app.models.championModels.Champion(
             name=dao_champions[0].ChampionStats_Champion.champion_name or champion_name,
             championStats=result,
         )
 
     def get_summoner(self,summoner_name:str):
+        logger.debug("get_summoner: looking up summoner=%s", summoner_name)
         summoner = self._get_summoner_row(summoner_name)
         if summoner is None:
+            logger.info("get_summoner: summoner not found=%s", summoner_name)
             return None
 
         name = split_name(summoner.summoner_name)
-        return app.models.summonerModels.Summoner(
+        result = app.models.summonerModels.Summoner(
             puuid=summoner.id,
             name = name[0],
             tagline = name[1],
@@ -81,10 +91,14 @@ class DAO:
             deaths = summoner.death or 0,
             assists = summoner.assist or 0,
         )
+        logger.debug("get_summoner: returning summoner puuid=%s", result.puuid)
+        return result
 
     def get_matches(self, summoner_name, offset, count):
+        logger.debug("get_matches: summoner=%s offset=%s count=%s", summoner_name, offset, count)
         summoner = self._get_summoner_row(summoner_name)
         if not summoner:
+            logger.info("get_matches: no summoner found=%s", summoner_name)
             return []
         matches = (
             self.db.query(Match)
@@ -101,6 +115,7 @@ class DAO:
             )
             .all()
         )
+        logger.debug("get_matches: retrieved %d matches for summoner=%s", len(matches), summoner_name)
         result = []
         for match in matches:
             participants_list = []
@@ -132,7 +147,7 @@ class DAO:
                     participants=participants_list
                 )
             )
-
+        logger.debug("get_matches: returning %d formatted matches for summoner=%s", len(result), summoner_name)
         return result
 
     def summoner_has_matches(self, summoner_name: str) -> bool:
@@ -172,7 +187,9 @@ class DAO:
     def add_match(self, match: app.models.summonerModels.Match):
             try:
                 match_id = str(match.match_id)
+                logger.info("add_match: attempting to add match_id=%s", match_id)
                 if self.match_exist(match_id):
+                    logger.debug("add_match: match already exists match_id=%s", match_id)
                     return False
 
                 dao_match = Match(
@@ -219,18 +236,23 @@ class DAO:
                 for participant, summoner_name in dao_participants:
                     self.db.add(participant)
                     if participant.summoner_id not in queued_summoner_ids and not self.summoner_exist(participant.summoner_id):
+                        logger.debug("add_match: creating default summoner id=%s name=%s", participant.summoner_id, summoner_name)
                         self.db.merge(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
                         queued_summoner_ids.add(participant.summoner_id)
                     if participant.champion not in queued_champion_ids and not self.champion_exist(participant.champion):
+                        logger.debug("add_match: creating default champion id=%s", participant.champion)
                         self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
                         queued_champion_ids.add(participant.champion)
                 self.db.commit()
+                logger.info("add_match: successfully added match_id=%s", match_id)
             except SQLAlchemyError:
+                logger.error("add_match: failed to add match_id=%s", match_id)
                 self.db.rollback()
                 raise
 
     def add_summoner(self, summoner: app.models.summonerModels.Summoner):
             try:
+                logger.info("add_summoner: adding summoner puuid=%s", summoner.puuid)
                 dao_summoner = Summoner(
                     id=summoner.puuid,
                     summoner_name=f"{summoner.name}#{summoner.tagline}",
@@ -242,7 +264,9 @@ class DAO:
                 )
                 self.db.merge(dao_summoner)
                 self.db.commit()
+                logger.info("add_summoner: committed summoner puuid=%s", summoner.puuid)
             except SQLAlchemyError:
+                logger.error("add_summoner: failed to add summoner puuid=%s", getattr(summoner, 'puuid', None))
                 self.db.rollback()
                 raise
 
@@ -251,9 +275,12 @@ class DAO:
 
     def add_champion(self,champion:Champion):
             try:
+                logger.info("add_champion: merging champion id=%s", getattr(champion, 'id', None))
                 self.db.merge(champion)
                 self.db.commit()
+                logger.info("add_champion: committed champion id=%s", getattr(champion, 'id', None))
             except SQLAlchemyError:
+                logger.error("add_champion: failed for champion id=%s", getattr(champion, 'id', None))
                 self.db.rollback()
                 raise
 
@@ -264,16 +291,19 @@ class DAO:
 
 
     def match_exist(self,id) -> bool:
-        match = self.db.query(Match).filter(Match.id == id).first()
-        return match is not None
+        exists = self.db.query(Match).filter(Match.id == id).first() is not None
+        logger.debug("match_exist: id=%s exists=%s", id, exists)
+        return exists
 
     def summoner_exist(self,id) -> bool:
-        summoner = self.db.query(Summoner).filter(Summoner.id == id).first()
-        return summoner is not None
+        exists = self.db.query(Summoner).filter(Summoner.id == id).first() is not None
+        logger.debug("summoner_exist: id=%s exists=%s", id, exists)
+        return exists
 
     def champion_exist(self,id) -> bool:
-        champion = self.db.query(Champion).filter(Champion.id == id).first()
-        return champion is not None
+        exists = self.db.query(Champion).filter(Champion.id == id).first() is not None
+        logger.debug("champion_exist: id=%s exists=%s", id, exists)
+        return exists
 
 
 

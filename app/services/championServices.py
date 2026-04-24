@@ -1,7 +1,10 @@
+import logging
 from typing import Optional
 from opentelemetry import trace
 from app.models.championModels import Champion
 from app.database.DAO import DAO
+
+logger = logging.getLogger(__name__)
 
 def get_champion_service(name: str, version: list[str], dao: DAO) -> Optional[Champion]:
     tracer = trace.get_tracer(__name__)
@@ -12,7 +15,9 @@ def get_champion_service(name: str, version: list[str], dao: DAO) -> Optional[Ch
 
         if champion is None:
             span.set_attribute("champion.found", False)
+            logger.debug("ChampionService: champion %s not found", name)
             return None
 
         span.set_attribute("champion.found", True)
+        logger.debug("ChampionService: champion %s found", name)
         return champion

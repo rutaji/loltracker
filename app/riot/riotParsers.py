@@ -1,12 +1,23 @@
 from datetime import UTC, datetime
 from typing import Any
 
+import logging
+
 from app.models.summonerModels import Match, MatchParticipant, Summoner
+
+logger = logging.getLogger(__name__)
 
 
 class MatchParticipantParser:
     @staticmethod
     def parse(participant_data: dict[str, Any]) -> MatchParticipant:
+        # Log the identity of the participant being parsed for easier tracing
+        logger.debug(
+            "MatchParticipantParser.parse: puuid=%s name=%s champion=%s",
+            participant_data.get("puuid"),
+            participant_data.get("riotIdGameName") or participant_data.get("summonerName"),
+            participant_data.get("championName"),
+        )
         return MatchParticipant(
             puuid=participant_data.get("puuid", ""),
             name=participant_data.get("riotIdGameName") or participant_data.get("summonerName", ""),
@@ -27,6 +38,7 @@ class MatchParser:
         metadata = match_data.get("metadata", {})
         info = match_data.get("info", {})
         participants = info.get("participants", [])
+        logger.debug("MatchParser.parse: match_id=%s",metadata.get("matchId", ""))
 
         return Match(
             match_id=metadata.get("matchId", ""),
@@ -47,6 +59,7 @@ class SummonerParser:
         account_data: dict[str, Any],
     ) -> Summoner:
         puuid = account_data.get("puuid")
+        logger.debug("SummonerParser.parse: puuid=%s name=%s", puuid, account_data.get("gameName"))
         kills = 0
         deaths = 0
         assists = 0
