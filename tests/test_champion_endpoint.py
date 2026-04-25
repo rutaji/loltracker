@@ -34,7 +34,7 @@ def test_champion_page_found(monkeypatch):
     assert response.status_code == 200
     assert "Ahri" in response.text
     assert "Banrate" in response.text
-    assert "Kit" in response.text
+    assert "Abilities" in response.text
 
 
 def test_champion_page_not_found_redirects(monkeypatch):
