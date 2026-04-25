@@ -17,6 +17,7 @@ from app.services.championServices import (
     get_champion_service,
     serialize_stat,
 )
+from app.utils.champion_kit import resolve_champion_kit
 from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.versioning import normalize_version
 
@@ -193,6 +194,7 @@ async def get_champion(
 
     trend_series = build_trend_series(trend_champion.championStats)
     champion_image_path = resolve_champion_image_path(trend_champion.name)
+    champion_kit = resolve_champion_kit(trend_champion.name)
     
     if ajax:
         return JSONResponse(
@@ -201,6 +203,7 @@ async def get_champion(
                 "selectedVersion": selected_version,
                 "availableVersions": available_versions,
                 "championImagePath": champion_image_path,
+                "championKit": champion_kit,
                 "selectedVersionStats": selected_stats,
                 "trendSeriesByQueue": trend_series,
                 # Backward compatibility for previous JS/tests
@@ -216,6 +219,7 @@ async def get_champion(
             "version": selected_version,
             "available_versions": available_versions,
             "champion_image_path": champion_image_path,
+            "champion_kit": jsonable_encoder(champion_kit),
             "trend_series": jsonable_encoder(trend_series),
         },
     )

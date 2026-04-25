@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ championData.name }} Stats</title>
-    <link href="{{ url_for('static', path='css/champion.css') }}?v=20260422" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/champion.css') }}?v=20260425" rel="stylesheet">
     <script id="initial-trend-series" type="application/json">{{ trend_series | tojson }}</script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="{{ url_for('static', path='js/champion.js') }}?v=20260422" defer></script>
+    <script src="{{ url_for('static', path='js/champion.js') }}?v=20260425" defer></script>
 </head>
 <body data-champion-name="{{ championData.name }}" data-selected-version="{{ version }}">
     <main class="champion-page">
@@ -48,6 +48,51 @@
                     {% endfor %}
                 </select>
             </form>
+        </section>
+
+        {% set kit_spells = champion_kit.spells if champion_kit else [] %}
+        <section class="kit-panel {% if not champion_kit or (not champion_kit.passive and not kit_spells) %}hidden{% endif %}" id="kit-panel">
+            <div class="section-heading kit-heading">
+                <div>
+                    <h2 id="kit-title">Abilities of {{ championData.name }}</h2>
+                    <p id="kit-subtitle">{{ champion_kit.title if champion_kit else '' }}</p>
+                </div>
+            </div>
+            <div class="kit-grid" id="kit-grid">
+                {% if champion_kit and champion_kit.passive %}
+                <article class="ability-card ability-card-passive">
+                    <div class="ability-icon-shell">
+                        {% if champion_kit.passive.icon %}
+                        <img src="{{ champion_kit.passive.icon }}" alt="{{ champion_kit.passive.name }} icon">
+                        {% else %}
+                        <span>Passive</span>
+                        {% endif %}
+                    </div>
+                    <div class="ability-copy">
+                        <p class="ability-slot">Passive</p>
+                        <h3>{{ champion_kit.passive.name }}</h3>
+                        <p>{{ champion_kit.passive.description }}</p>
+                    </div>
+                </article>
+                {% endif %}
+
+                {% for spell in kit_spells %}
+                <article class="ability-card">
+                    <div class="ability-icon-shell">
+                        {% if spell.icon %}
+                        <img src="{{ spell.icon }}" alt="{{ spell.name }} icon">
+                        {% else %}
+                        <span>{{ spell.slot }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="ability-copy">
+                        <p class="ability-slot">{{ spell.slot }}</p>
+                        <h3>{{ spell.name }}</h3>
+                        <p>{{ spell.description }}</p>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
         </section>
 
         <section class="stats-panel">

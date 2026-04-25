@@ -34,6 +34,7 @@ def test_champion_page_found(monkeypatch):
     assert response.status_code == 200
     assert "Ahri" in response.text
     assert "Banrate" in response.text
+    assert "Kit" in response.text
 
 
 def test_champion_page_not_found_redirects(monkeypatch):
@@ -65,6 +66,9 @@ def test_champion_ajax_response(monkeypatch):
     assert "trendSeriesByQueue" in data
     assert "selectedVersionStats" in data
     assert "championImagePath" in data
+    assert "championKit" in data
+    assert data["championKit"]["championName"] == "Ahri"
+    assert len(data["championKit"]["spells"]) == 4
     assert data["selectedVersionStats"][0]["queueDescription"] == "Ranked Solo"
     assert "gamemode" not in data["selectedVersionStats"][0]
 

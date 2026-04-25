@@ -122,3 +122,25 @@ if champion_image_directory.exists():
 else:
     LOGGER.warning("Champion image directory does not exist: %s", champion_image_directory)
 
+passive_image_directory = project_root / "tools" / "passive"
+if passive_image_directory.exists():
+    app.mount(
+        "/champion-passives",
+        StaticFiles(directory=str(passive_image_directory)),
+        name="champion-passives",
+    )
+    LOGGER.info("Mounted champion passive images at /champion-passives from %s", passive_image_directory)
+else:
+    LOGGER.warning("Champion passive image directory does not exist: %s", passive_image_directory)
+
+spell_image_directory = project_root / "tools" / "spell"
+if spell_image_directory.exists():
+    app.mount(
+        "/champion-spells",
+        StaticFiles(directory=str(spell_image_directory)),
+        name="champion-spells",
+    )
+    LOGGER.info("Mounted champion spell images at /champion-spells from %s", spell_image_directory)
+else:
+    LOGGER.warning("Champion spell image directory does not exist: %s", spell_image_directory)
+
