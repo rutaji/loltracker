@@ -5,6 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const versionSelect = document.getElementById("version-select");
     const tableBody = document.getElementById("stats-body");
+    const kitPanel = document.getElementById("kit-panel");
+    const kitTitle = document.getElementById("kit-title");
+    const kitSubtitle = document.getElementById("kit-subtitle");
+    const kitGrid = document.getElementById("kit-grid");
     const chartInstances = {};
     const initialTrendSeries = parseJsonScript("initial-trend-series", []);
 
@@ -102,6 +106,76 @@ document.addEventListener("DOMContentLoaded", () => {
             } else if (shell) {
                 shell.classList.add("hidden");
             }
+        });
+    }
+
+    function createAbilityCard(slot, ability, variantClass = "") {
+        const card = document.createElement("article");
+        card.className = `ability-card${variantClass ? ` ${variantClass}` : ""}`;
+
+        const iconShell = document.createElement("div");
+        iconShell.className = "ability-icon-shell";
+
+        if (ability.icon) {
+            const icon = document.createElement("img");
+            icon.src = ability.icon;
+            icon.alt = `${ability.name} icon`;
+            iconShell.appendChild(icon);
+        } else {
+            const iconFallback = document.createElement("span");
+            iconFallback.textContent = slot;
+            iconShell.appendChild(iconFallback);
+        }
+
+        const copy = document.createElement("div");
+        copy.className = "ability-copy";
+
+        const abilitySlot = document.createElement("p");
+        abilitySlot.className = "ability-slot";
+        abilitySlot.textContent = slot;
+
+        const name = document.createElement("h3");
+        name.textContent = ability.name || "Ability";
+
+        const description = document.createElement("p");
+        description.textContent = ability.description || "No description available.";
+
+        copy.append(abilitySlot, name, description);
+        card.append(iconShell, copy);
+        return card;
+    }
+
+    function renderKit(kit) {
+        if (!kitPanel || !kitGrid) {
+            return;
+        }
+
+        kitGrid.innerHTML = "";
+
+        const hasPassive = Boolean(kit && kit.passive);
+        const spells = Array.isArray(kit?.spells) ? kit.spells : [];
+
+        if (!hasPassive && spells.length === 0) {
+            kitPanel.classList.add("hidden");
+            return;
+        }
+
+        kitPanel.classList.remove("hidden");
+
+        if (kitTitle) {
+            kitTitle.textContent = `Abilities of ${kit.championName || championName}`;
+        }
+
+        if (kitSubtitle) {
+            kitSubtitle.textContent = kit.title || "";
+        }
+
+        if (hasPassive) {
+            kitGrid.appendChild(createAbilityCard("Passive", kit.passive, "ability-card-passive"));
+        }
+
+        spells.forEach((spell) => {
+            kitGrid.appendChild(createAbilityCard(spell.slot || "?", spell));
         });
     }
 
@@ -255,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         renderTable(payload.selectedVersionStats || payload.championStats || []);
         renderCharts(payload.trendSeriesByQueue || []);
+        renderKit(payload.championKit || null);
         setChampionImages(payload.championImagePath || "");
     }
 

@@ -30,7 +30,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./tools/champion_imgs:/app/tools/champion_imgs
+      - ./tools:/app/tools
     env_file:
       - .env
     environment:
