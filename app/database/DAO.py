@@ -100,6 +100,7 @@ class DAO:
         return app.models.championModels.Champion(
             name=dao_champions[0].ChampionStats_Champion.champion_name or champion_name,
             championStats=result,
+            id= dao_champions[0].champion_id
         )
 
     def get_summoner(self,summoner_name:str):
