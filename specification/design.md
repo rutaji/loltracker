@@ -56,7 +56,7 @@ Schema changes are managed with **Alembic** (the standard migration tool for SQL
 
 ### Database Schema
 
-The database uses triggers to automatically update statistics in **Champion_Stats** and **Summoner** whenever a **Match_Participant** is added. Likewise the **count** field of **Matches_Analyzed** gets incremented when a new **Match** is added to the database.
+The database uses triggers to automatically update statistics in **Champion_Stats** and **Summoner** whenever a **Match_Participant** is added. Likewise the **count** field of **Matches_Analyzed** gets incremented when a new **Match** is added to the database. For futher information, read the [`SQL-specification.md`](SQL-specification.md).
 
 ![alt text](diagrams/Database.svg)
 
