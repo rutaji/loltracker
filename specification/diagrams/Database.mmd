@@ -1,61 +1,87 @@
 erDiagram
+
    Match {
         string id PK
+        int queue_id FK
         int created
         int ended
-        string gametype
         string patch
     } 
+
     Match_Participant{
         string summoner_id PK,FK
         string match_id PK, FK
-        int kill
-        int death
-        int assist
+        string champion_id FK
+        int kills
+        int deaths
+        int assists
         int gold
         int team
         bool won
-        int champion FK
+        
     }
+
     Champion{
         string id PK
         string name 
+        int champion_key
     }
+
     Champion_Stats{
-        string champion PK, FK
+        string champion_id PK, FK
+        int queue_id PK, FK
         string patch PK
-        string gametype PK
-        int game_played 
-        int game_won 
-        int games_ban
-        int kill
-        int death
-        int assist
+        int games_played 
+        int games_won 
+        int games_banned
+        int kills
+        int deaths
+        int assists
     }
+
     Summoner{
-        string name  "INDEX"
         string id PK
-        int game_played
-        int game_won
+        string name
+        int games_played
+        int games_won
+        int kills
+        int deaths
+        int assists
     }
+
     Matches_Analyzed{
         string patch PK
-        string gametype PK
+        int queue_id PK, FK
         int count
     }
-    SummonerChampion{
-        string summoner_id PK
-        string champion_name PK
+
+    Summoner_Champion{
+        string summoner_id PK, FK
+        string champion_id PK, FK
         int    games_played 
         int    games_won
     }
 
-    Champion ||--o{ SummonerChampion : ""
-    Summoner ||--o{ SummonerChampion : ""
+    Queues {
+        int id PK
+        string map
+        text description
+        text notes
+    }
+
+    Bans {
+        string match_id PK, FK
+        int team PK
+        int champion_key PK
+    }
+
+    Champion ||--o{ Summoner_Champion : ""
+    Summoner ||--o{ Summoner_Champion : ""
     Summoner ||--o{ Match_Participant : ""
     Match ||--o{ Match_Participant : ""
     Champion ||--o{ Match_Participant : ""
     Champion ||--o{ Champion_Stats : ""
-
-
-
+    Queues ||--o{ Match : ""
+    Queues ||--o{ Champion_Stats : ""
+    Queues ||--o{ Matches_Analyzed : ""
+    Match ||--o{ Bans : ""
