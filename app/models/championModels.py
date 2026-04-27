@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
+
 
 class ChampionStats(BaseModel):
     version: str
@@ -39,3 +40,5 @@ class ChampionStats(BaseModel):
 class Champion(BaseModel):
     name: str
     championStats: List[ChampionStats]
+    id: Optional[str] = None
+

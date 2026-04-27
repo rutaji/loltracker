@@ -32,6 +32,7 @@ def create_champion():
     return Champion(
         name="Ahri",
         championStats=[stats],
+        id="Ahri"
     )
 
 

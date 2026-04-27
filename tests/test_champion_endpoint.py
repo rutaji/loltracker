@@ -24,6 +24,7 @@ def make_champion(name: str = "Ahri") -> Champion:
                 matchesAnalyzed=100,
             )
         ],
+        id ="ahri"
     )
 
 
@@ -89,6 +90,7 @@ def test_champion_ajax_filters_version(monkeypatch):
                 matchesAnalyzed=100,
             )
         ],
+        id="Ahri"
     )
     monkeypatch.setattr(endpoints, "get_champion_service", lambda name, version, dao: champion)
 
@@ -147,6 +149,7 @@ def test_champion_ajax_switches_stats_between_versions(monkeypatch):
                 matchesAnalyzed=250,
             ),
         ],
+        id="Ahri"
     )
     monkeypatch.setattr(endpoints, "get_champion_service", lambda name, version, dao: champion)
 

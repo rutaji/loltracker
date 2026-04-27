@@ -193,8 +193,8 @@ async def get_champion(
     selected_stats = [serialize_stat(stat) for stat in selected_stat_models]
 
     trend_series = build_trend_series(trend_champion.championStats)
-    champion_image_path = resolve_champion_image_path(trend_champion.name)
-    champion_kit = resolve_champion_kit(trend_champion.name)
+    champion_image_path = resolve_champion_image_path(trend_champion.id)
+    champion_kit = resolve_champion_kit(trend_champion.id)
     
     if ajax:
         return JSONResponse(
