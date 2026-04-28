@@ -65,15 +65,41 @@
                 </div>
             </div>
 
+            <div class="loaded-summary" aria-live="polite">
+                <article class="loaded-stat">
+                    <span>Games Shown</span>
+                    <strong id="loaded-games">0</strong>
+                </article>
+                <article class="loaded-stat">
+                    <span>Winrate</span>
+                    <strong id="loaded-winrate">0.00%</strong>
+                </article>
+                <article class="loaded-stat">
+                    <span>KDA</span>
+                    <strong id="loaded-kda">0.00</strong>
+                </article>
+            </div>
+
             <div id="match-list" class="match-list">
                 {% for match in matchData.matches %}
                 {% set match_state = namespace(result='unknown') %}
+                {% set player_stats = namespace(kills=0, deaths=0, assists=0, won=false) %}
                 {% for p in match.participants %}
                     {% if p.puuid == summoner.puuid %}
                         {% set match_state.result = 'win' if p.won else 'loss' %}
+                        {% set player_stats.kills = p.kills %}
+                        {% set player_stats.deaths = p.deaths %}
+                        {% set player_stats.assists = p.assists %}
+                        {% set player_stats.won = p.won %}
                     {% endif %}
                 {% endfor %}
-                <article class="match match--{{ match_state.result }}">
+                <article
+                    class="match match--{{ match_state.result }}"
+                    data-player-kills="{{ player_stats.kills }}"
+                    data-player-deaths="{{ player_stats.deaths }}"
+                    data-player-assists="{{ player_stats.assists }}"
+                    data-player-won="{{ 'true' if player_stats.won else 'false' }}"
+                >
                     <button type="button" class="match-summary match-summary--{{ match_state.result }}" data-match-id="{{ match.match_id }}">
                         <span>Match {{ match.match_id }}</span>
                         <span>{{ match.queueDescription }}</span>

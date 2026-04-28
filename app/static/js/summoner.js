@@ -13,6 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const refreshButton = document.getElementById("refresh-matches");
     const refreshStatus = document.getElementById("refresh-status");
     const queueFilterSelect = document.getElementById("queue-filter");
+    const loadedGamesValue = document.getElementById("loaded-games");
+    const loadedWinrateValue = document.getElementById("loaded-winrate");
+    const loadedKdaValue = document.getElementById("loaded-kda");
     const refreshMessageStorageKey = `summoner-refresh:${name}#${tagline}`;
 
     function buildSummonerUrl(baseOffset = 0, ajax = false, selectedQueueFilter = queueFilter) {
@@ -39,6 +42,45 @@ document.addEventListener("DOMContentLoaded", () => {
         if (refreshStatus) {
             refreshStatus.textContent = message;
         }
+    }
+
+    function readNumber(value) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatDecimal(value) {
+        return value.toFixed(2);
+    }
+
+    function updateLoadedMatchSummary() {
+        if (!loadedGamesValue || !loadedWinrateValue || !loadedKdaValue) {
+            return;
+        }
+
+        const matchCards = Array.from(matchList.querySelectorAll(".match"));
+        let wins = 0;
+        let kills = 0;
+        let deaths = 0;
+        let assists = 0;
+
+        matchCards.forEach((matchCard) => {
+            kills += readNumber(matchCard.dataset.playerKills);
+            deaths += readNumber(matchCard.dataset.playerDeaths);
+            assists += readNumber(matchCard.dataset.playerAssists);
+
+            if (matchCard.dataset.playerWon === "true") {
+                wins += 1;
+            }
+        });
+
+        const gamesShown = matchCards.length;
+        const winrate = gamesShown > 0 ? (wins / gamesShown) * 100 : 0;
+        const kda = (kills + assists) / Math.max(1, deaths);
+
+        loadedGamesValue.textContent = String(gamesShown);
+        loadedWinrateValue.textContent = `${formatDecimal(winrate)}%`;
+        loadedKdaValue.textContent = formatDecimal(kda);
     }
 
     const persistedRefreshMessage = sessionStorage.getItem(refreshMessageStorageKey);
@@ -73,6 +115,8 @@ document.addEventListener("DOMContentLoaded", () => {
             toggleMatch(button.dataset.matchId);
         });
     });
+
+    updateLoadedMatchSummary();
 
     if (queueFilterSelect) {
         queueFilterSelect.addEventListener("change", () => {
@@ -132,6 +176,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 const matchResult = getMatchResult(match);
                 const matchDiv = document.createElement("article");
                 matchDiv.className = `match match--${matchResult}`;
+                const viewedParticipant = match.participants.find((participant) => participant.puuid === puuid);
+                matchDiv.dataset.playerKills = String(viewedParticipant?.kills ?? 0);
+                matchDiv.dataset.playerDeaths = String(viewedParticipant?.deaths ?? 0);
+                matchDiv.dataset.playerAssists = String(viewedParticipant?.assists ?? 0);
+                matchDiv.dataset.playerWon = viewedParticipant?.won ? "true" : "false";
 
                 const summaryButton = document.createElement("button");
                 summaryButton.type = "button";
@@ -179,6 +228,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!data.hasMore) {
                 loadMoreButton.style.display = "none";
             }
+
+            updateLoadedMatchSummary();
         });
     }
 });

@@ -53,6 +53,7 @@ def test_summoner_page_found(monkeypatch):
     assert response.status_code == 200
     assert "test#euw" in response.text
     assert "Recent Matches" in response.text
+    assert "Games Shown" in response.text
 
 
 def test_summoner_page_not_found_redirects(monkeypatch):
