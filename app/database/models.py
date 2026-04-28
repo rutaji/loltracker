@@ -30,7 +30,7 @@ class Match(Base):
     patch=Column(String)
 
     Match_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Match")
-    Match_Queue = relationship("Queue")
+    Match_Queue = relationship("Queue", back_populates="Queue_Match")
     Match_Ban = relationship("Ban", back_populates="Ban_Match")
 
 class MatchParticipant(Base):
@@ -89,6 +89,9 @@ class Queue(Base):
     description = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
 
+    Queue_MatchesAnalyzed= relationship("MatchesAnalyzed", back_populates="MatchesAnalyzed_Queue")
+    Queue_Match = relationship("Match", back_populates="Match_Queue")
+
 class SummonerChampion(Base):
     __tablename__ = "summoner_champion"
     summoner_id = Column(String,ForeignKey("summoner.id"), primary_key=True, index=True)
@@ -104,6 +107,8 @@ class MatchesAnalyzed(Base):
     patch = Column(String,primary_key=True, index=True)
     queue_id = Column(Integer, ForeignKey("queues.queue_id"), primary_key=True, index=True)
     count = Column(Integer)
+
+    MatchesAnalyzed_Queue = relationship("Queue", back_populates="Queue_MatchesAnalyzed")
 
 class Ban(Base):
     __tablename__ = "ban"

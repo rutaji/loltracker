@@ -15,13 +15,6 @@ CHAMPION_SPELL_DIR = PROJECT_ROOT / "tools" / "spell"
 
 logger = logging.getLogger(__name__)
 
-_CHAMPION_ALIASES = {
-    "wukong": "MonkeyKing",
-    "nunu and willump": "Nunu",
-    "nunu & willump": "Nunu",
-    "dr mundo": "DrMundo",
-}
-
 
 def _normalize_key(value: str) -> str:
     return re.sub(r"[^a-z0-9]", "", value.lower())
@@ -41,10 +34,6 @@ def _build_file_index(directory: Path) -> dict[str, str]:
 _CHAMPION_INFO_INDEX = _build_file_index(CHAMPION_INFO_DIR)
 _PASSIVE_IMAGE_INDEX = _build_file_index(CHAMPION_PASSIVE_DIR)
 _SPELL_IMAGE_INDEX = _build_file_index(CHAMPION_SPELL_DIR)
-
-
-def _resolve_alias(champion_name: str) -> str:
-    return _CHAMPION_ALIASES.get(champion_name.lower(), champion_name)
 
 
 def _resolve_file_name(index: dict[str, str], value: str | None) -> str | None:
@@ -73,11 +62,10 @@ def _clean_description(description: Any) -> str:
     return text.strip()
 
 
-def _load_champion_info(champion_name: str) -> dict[str, Any] | None:
-    resolved_name = _resolve_alias(champion_name)
-    file_name = _resolve_file_name(_CHAMPION_INFO_INDEX, resolved_name)
+def _load_champion_info(champion_id: str) -> dict[str, Any] | None:
+    file_name = _resolve_file_name(_CHAMPION_INFO_INDEX, champion_id)
     if file_name is None:
-        logger.debug("No champion kit JSON found for '%s'", champion_name)
+        logger.debug("No champion kit JSON found for '%s'", champion_id)
         return None
 
     file_path = CHAMPION_INFO_DIR / file_name
@@ -98,11 +86,11 @@ def _load_champion_info(champion_name: str) -> dict[str, Any] | None:
     return next(iter(champion_entries.values()))
 
 
-def resolve_champion_kit(champion_name: str) -> dict[str, Any] | None:
-    if not champion_name:
+def resolve_champion_kit(champion_id: str) -> dict[str, Any] | None:
+    if not champion_id:
         return None
 
-    champion_info = _load_champion_info(champion_name)
+    champion_info = _load_champion_info(champion_id)
     if champion_info is None:
         return None
 
@@ -139,7 +127,7 @@ def resolve_champion_kit(champion_name: str) -> dict[str, Any] | None:
         )
 
     return {
-        "championName": champion_info.get("name", champion_name),
+        "championName": champion_info.get("name", champion_id),
         "title": champion_info.get("title", ""),
         "passive": passive if passive["name"] or passive["description"] or passive["icon"] else None,
         "spells": spells,
