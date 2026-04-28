@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from app.api.config import settings
 from app.endpoints import endpoints
 from app.main import app
-from app.models.summonerModels import Match, MatchPage, Summoner
+from app.models.summonerModels import Match, MatchPage, Summoner, SummonerChampion
 from app.services.summonerServices import SummonerPageServiceResult, SummonerRefreshServiceResult
 
 
@@ -38,6 +38,9 @@ def make_match_page() -> MatchPage:
     ]
     return MatchPage(matches=matches, hasMore=True, nextOffset=settings.matches_per_page)
 
+def make_SummonerChampion() -> list[SummonerChampion]:
+    return [SummonerChampion(id="fake_id",champion_name="fake_name",games_played=3,wins=1)]
+
 
 def make_page_data() -> SummonerPageServiceResult:
     return SummonerPageServiceResult(
@@ -48,8 +51,14 @@ def make_page_data() -> SummonerPageServiceResult:
 
 def test_summoner_page_found(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+    # Prevent creating a real DAO (avoids DB connection during tests)
+    from app.main import app as _app
+    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.get("/summoner/test/euw")
+    # clear override to avoid leaking state between tests
+    _app.dependency_overrides.pop(endpoints.get_dao, None)
+
     assert response.status_code == 200
     assert "test#euw" in response.text
     assert "Recent Matches" in response.text
@@ -61,16 +70,22 @@ def test_summoner_page_not_found_redirects(monkeypatch):
         "load_summoner_page",
         lambda request, name, tagline, offset, count, dao: SummonerPageServiceResult(summoner=None, match_page=None),
     )
+    from app.main import app as _app
+    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
+    _app.dependency_overrides.pop(endpoints.get_dao, None)
     assert response.status_code == 303
     assert response.headers["location"] == "/summoner/not-found?name=nonexistent&tagline=euw"
 
 
 def test_summoner_matches_ajax_response(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+    from app.main import app as _app
+    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.get("/summoner/test/euw?offset=0&ajax=true")
+    _app.dependency_overrides.pop(endpoints.get_dao, None)
     assert response.status_code == 200
 
     data = response.json()
@@ -97,8 +112,11 @@ def test_summoner_refresh_returns_json(monkeypatch):
             failed_count=1,
         ),
     )
+    from app.main import app as _app
+    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.post("/summoner/test/euw/refresh")
+    _app.dependency_overrides.pop(endpoints.get_dao, None)
     assert response.status_code == 200
     assert response.json() == {
         "insertedCount": 2,
