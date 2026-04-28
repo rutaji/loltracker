@@ -8,10 +8,32 @@ document.addEventListener("DOMContentLoaded", () => {
     const name = page.dataset.name;
     const tagline = page.dataset.tagline;
     const puuid = page.dataset.puuid;
+    const queueFilter = page.dataset.queueFilter || "all";
     const matchList = document.getElementById("match-list");
     const refreshButton = document.getElementById("refresh-matches");
     const refreshStatus = document.getElementById("refresh-status");
+    const queueFilterSelect = document.getElementById("queue-filter");
     const refreshMessageStorageKey = `summoner-refresh:${name}#${tagline}`;
+
+    function buildSummonerUrl(baseOffset = 0, ajax = false, selectedQueueFilter = queueFilter) {
+        const params = new URLSearchParams();
+        if (baseOffset > 0) {
+            params.set("offset", String(baseOffset));
+        }
+        if (ajax) {
+            params.set("ajax", "true");
+        }
+        if (selectedQueueFilter && selectedQueueFilter !== "all") {
+            params.set("queue_filter", selectedQueueFilter);
+        }
+
+        const query = params.toString();
+        if (!query) {
+            return `/summoner/${encodeURIComponent(name)}/${encodeURIComponent(tagline)}`;
+        }
+
+        return `/summoner/${encodeURIComponent(name)}/${encodeURIComponent(tagline)}?${query}`;
+    }
 
     function setRefreshStatus(message) {
         if (refreshStatus) {
@@ -52,6 +74,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    if (queueFilterSelect) {
+        queueFilterSelect.addEventListener("change", () => {
+            window.location.assign(buildSummonerUrl(0, false, queueFilterSelect.value));
+        });
+    }
+
     const loadMoreButton = document.getElementById("load-more");
 
     if (refreshButton) {
@@ -78,7 +106,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refreshedRefreshMessageStorageKey = `summoner-refresh:${refreshedName}#${refreshedTagline}`;
                 if (data.insertedCount > 0 || summonerRouteChanged) {
                     sessionStorage.setItem(refreshedRefreshMessageStorageKey, refreshMessage);
-                    window.location.assign(`/summoner/${encodeURIComponent(refreshedName)}/${encodeURIComponent(refreshedTagline)}`);
+                    const refreshedUrl = new URL(buildSummonerUrl(0, false, queueFilter), window.location.origin);
+                    refreshedUrl.pathname = `/summoner/${encodeURIComponent(refreshedName)}/${encodeURIComponent(refreshedTagline)}`;
+                    window.location.assign(refreshedUrl.pathname + refreshedUrl.search);
                     return;
                 }
 
@@ -95,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (loadMoreButton) {
         loadMoreButton.addEventListener("click", async () => {
-            const response = await fetch(`/summoner/${name}/${tagline}?offset=${offset}&ajax=true`);
+            const response = await fetch(buildSummonerUrl(offset, true, queueFilter));
             const data = await response.json();
 
             data.matches.forEach((match) => {

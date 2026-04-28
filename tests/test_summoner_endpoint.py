@@ -47,7 +47,7 @@ def make_page_data() -> SummonerPageServiceResult:
 
 
 def test_summoner_page_found(monkeypatch):
-    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
 
     response = client.get("/summoner/test/euw")
     assert response.status_code == 200
@@ -59,7 +59,7 @@ def test_summoner_page_not_found_redirects(monkeypatch):
     monkeypatch.setattr(
         endpoints,
         "load_summoner_page",
-        lambda request, name, tagline, offset, count, dao: SummonerPageServiceResult(summoner=None, match_page=None),
+        lambda request, name, tagline, offset, count, dao, queue_filter: SummonerPageServiceResult(summoner=None, match_page=None),
     )
 
     response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
@@ -68,7 +68,7 @@ def test_summoner_page_not_found_redirects(monkeypatch):
 
 
 def test_summoner_matches_ajax_response(monkeypatch):
-    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
 
     response = client.get("/summoner/test/euw?offset=0&ajax=true")
     assert response.status_code == 200
@@ -78,6 +78,21 @@ def test_summoner_matches_ajax_response(monkeypatch):
     assert data["nextOffset"] == settings.matches_per_page
     assert data["matches"][0]["queueDescription"] == "Ranked Solo"
     assert "queueId" not in data["matches"][0]
+
+
+def test_summoner_queue_filter_is_forwarded(monkeypatch):
+    captured = {}
+
+    def fake_load_summoner_page(request, name, tagline, offset, count, dao, queue_filter):
+        captured["queue_filter"] = queue_filter
+        return make_page_data()
+
+    monkeypatch.setattr(endpoints, "load_summoner_page", fake_load_summoner_page)
+
+    response = client.get("/summoner/test/euw?queue_filter=aram")
+
+    assert response.status_code == 200
+    assert captured["queue_filter"] == "aram"
 
 
 def test_not_found_page_displays_searched_summoner():

@@ -15,6 +15,7 @@
         data-tagline="{{ summoner.tagline }}"
         data-puuid="{{ summoner.puuid }}"
         data-next-offset="{{ matchData.nextOffset }}"
+        data-queue-filter="{{ queue_filter }}"
     >
         <section class="top-bar">
             <a href="/" class="home-link">Back to Search</a>
@@ -52,6 +53,13 @@
                     <p>Expand each row to inspect participants and match details.</p>
                 </div>
                 <div class="match-actions">
+                    <div class="filter-control">
+                        <select id="queue-filter" name="queue_filter" class="filter-select" aria-label="Filter matches by queue">
+                            {% for value, label in queue_filters %}
+                            <option value="{{ value }}" {% if queue_filter == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <button id="refresh-matches" class="refresh-button" type="button">Refresh Data</button>
                     <p id="refresh-status" class="refresh-status" aria-live="polite"></p>
                 </div>

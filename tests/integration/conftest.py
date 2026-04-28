@@ -137,7 +137,13 @@ def app_client(monkeypatch: pytest.MonkeyPatch, dao: DAO, stub_api_client: StubR
 def seed_cached_summoner_data(db_session: Session) -> dict[str, str]:
     summoner_id = "cached-puuid"
     db_session.add(Champion(id="Ahri", champion_name="Ahri"))
-    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add_all(
+        [
+            Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None),
+            Queue(queue_id=450, map="Howling Abyss", description="ARAM", notes=None),
+            Queue(queue_id=1700, map="Rings of Wrath", description="Arena", notes=None),
+        ]
+    )
     db_session.add(
         Summoner(
             id=summoner_id,
@@ -150,6 +156,7 @@ def seed_cached_summoner_data(db_session: Session) -> dict[str, str]:
         )
     )
 
+    queue_ids = [420, 450, 1700]
     for index in range(3):
         match_id = f"CACHED_{index + 1}"
         db_session.add(
@@ -157,7 +164,7 @@ def seed_cached_summoner_data(db_session: Session) -> dict[str, str]:
                 id=match_id,
                 created=1712000000 + (index * 1000),
                 ended=1712001200 + (index * 1000),
-                queue_id=420,
+                queue_id=queue_ids[index],
                 patch="14.5",
             )
         )
