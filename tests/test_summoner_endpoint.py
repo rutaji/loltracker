@@ -51,12 +51,16 @@ def make_page_data() -> SummonerPageServiceResult:
 
 def test_summoner_page_found(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
-    # Prevent creating a real DAO (avoids DB connection during tests)
+    # Provide a fake DAO so load_favorite_champions can call dao.get_summoner_champions
+    class FakeDAO:
+        def get_summoner_champions(self, summoner_id, count):
+            return make_SummonerChampion()
+
+    fake_dao = FakeDAO()
     from app.main import app as _app
-    _app.dependency_overrides[endpoints.get_dao] = lambda: None
+    _app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
 
     response = client.get("/summoner/test/euw")
-    # clear override to avoid leaking state between tests
     _app.dependency_overrides.pop(endpoints.get_dao, None)
 
     assert response.status_code == 200
@@ -70,22 +74,16 @@ def test_summoner_page_not_found_redirects(monkeypatch):
         "load_summoner_page",
         lambda request, name, tagline, offset, count, dao: SummonerPageServiceResult(summoner=None, match_page=None),
     )
-    from app.main import app as _app
-    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
-    _app.dependency_overrides.pop(endpoints.get_dao, None)
     assert response.status_code == 303
     assert response.headers["location"] == "/summoner/not-found?name=nonexistent&tagline=euw"
 
 
 def test_summoner_matches_ajax_response(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
-    from app.main import app as _app
-    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.get("/summoner/test/euw?offset=0&ajax=true")
-    _app.dependency_overrides.pop(endpoints.get_dao, None)
     assert response.status_code == 200
 
     data = response.json()
@@ -112,11 +110,8 @@ def test_summoner_refresh_returns_json(monkeypatch):
             failed_count=1,
         ),
     )
-    from app.main import app as _app
-    _app.dependency_overrides[endpoints.get_dao] = lambda: None
 
     response = client.post("/summoner/test/euw/refresh")
-    _app.dependency_overrides.pop(endpoints.get_dao, None)
     assert response.status_code == 200
     assert response.json() == {
         "insertedCount": 2,
