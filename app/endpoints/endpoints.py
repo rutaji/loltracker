@@ -9,7 +9,7 @@ from app.api.config import settings
 
 from app.database.DAO import DAO
 
-from app.services.summonerServices import load_summoner_page, refresh_summoner_matches_service
+from app.services.summonerServices import load_summoner_page, refresh_summoner_matches_service, load_favorite_champions
 from app.services.championServices import (
     aggregate_stats_for_version,
     build_trend_series,
@@ -109,6 +109,7 @@ async def get_summoner(
 
     page_data = load_summoner_page(request, name, tagline, offset, count, dao)
     summoner = page_data.summoner
+
     if summoner is None:
         return RedirectResponse(
             url=(
@@ -117,6 +118,7 @@ async def get_summoner(
             ),
             status_code=303
         )
+    favorite_champion = load_favorite_champions(summoner.puuid,dao,settings.favorite_champion_count)
     match_page = page_data.match_page
 
     if ajax:
@@ -127,7 +129,8 @@ async def get_summoner(
         name="summoner.html",
         context={
             "summoner": summoner,
-            "matchData": match_page
+            "matchData": match_page,
+            "favoriteChampios":favorite_champion
         },
     )
 

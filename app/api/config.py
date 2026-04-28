@@ -7,6 +7,7 @@ class Settings(BaseSettings):
 	summoner_sync_batch_size: int = Field(default=100, ge=1)
 	summoner_sync_stop_after: int = Field(default=20, ge=1)
 	default_champion_version: str = Field(default="14.5", min_length=1)
+	favorite_champion_count:int = Field(default=3, ge=1)
 	otel_enabled: bool = Field(default=True)
 	otel_service_name: str = Field(default="psi-api", min_length=1)
 	otel_service_version: str = Field(default="0.1.0", min_length=1)

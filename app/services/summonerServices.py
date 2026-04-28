@@ -205,6 +205,10 @@ def get_matches_service(
             refreshed_from_remote=refreshed_from_remote,
         )
 
+def load_favorite_champions(summoner_id,dao,count):
+    favorite_champions = dao.get_summoner_champions(summoner_id,count)
+    return favorite_champions
+
 
 def load_summoner_page(
     request: Request,
