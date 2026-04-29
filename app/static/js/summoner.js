@@ -203,9 +203,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr><th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th></tr>`;
                 match.participants.forEach((participant) => {
                     const selfBadge = participant.puuid === puuid ? `<span class="player-badge">You</span>` : ``;
+                    const championImageHtml = participant.championImagePath
+                        ? `<img src="${participant.championImagePath}" alt="${participant.champion}" class="champion-avatar" loading="lazy">`
+                        : ``;
                     html += `<tr class="${getParticipantRowClass(participant)}">
                         <td>${participant.name} ${selfBadge}</td>
-                        <td>${participant.champion}</td>
+                        <td><a href="/champion/${encodeURIComponent(participant.champion)}" class="champion-link">${championImageHtml}<span>${participant.champion}</span></a></td>
                         <td>${participant.kills}</td>
                         <td>${participant.deaths}</td>
                         <td>${participant.assists}</td>

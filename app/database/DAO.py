@@ -9,6 +9,7 @@ import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban
+from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.utils import split_name
 from app.utils.queue_filters import (
     FILTER_TO_QUEUE_ID,
@@ -207,6 +208,7 @@ class DAO:
             for p in ordered_participants:
                 summoner_name = p.MatchParticipant_Summoner.summoner_name if p.MatchParticipant_Summoner else ""
                 name = split_name(summoner_name)
+                champion_name = (p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or ""
                 participants_list.append(
                     app.models.summonerModels.MatchParticipant(
                         puuid=p.summoner_id,
@@ -217,7 +219,8 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
-                        champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
+                        champion=champion_name,
+                        championImagePath=resolve_champion_image_path(champion_name),
                         won=p.won
                     )
                 )

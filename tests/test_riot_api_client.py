@@ -37,11 +37,13 @@ def test_init_stores_configuration():
     client = RiotApiClient(
         api_key="test-key",
         regional_routing="asia",
+        platform_routing="kr",
         timeout=15.0,
     )
 
     assert client.api_key == "test-key"
     assert client.regional_routing == "asia"
+    assert client.platform_routing == "kr"
     assert client.timeout == 15.0
     assert client._headers == {"X-Riot-Token": "test-key"}
 
@@ -114,3 +116,62 @@ def test_get_match_info_by_match_id_requests_single_match(monkeypatch):
     )
     assert capture["headers"] == {"X-Riot-Token": "test-key"}
     assert capture["params"] is None
+
+
+def test_get_league_entries_uses_platform_routing(monkeypatch):
+    capture = {}
+    response = DummyResponse([{"summonerId": "enc"}])
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "GOLD", "II")
+
+    assert result == [{"summonerId": "enc"}]
+    assert capture["url"] == "https://euw1.api.riotgames.com/lol/league/v4/entries/RANKED_SOLO_5x5/GOLD/II"
+
+
+def test_get_summoner_by_encrypted_id_uses_platform_routing(monkeypatch):
+    capture = {}
+    response = DummyResponse({"puuid": "p"})
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_summoner_by_encrypted_id("abc/123")
+
+    assert result == {"puuid": "p"}
+    assert capture["url"] == f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/{quote('abc/123', safe='')}"
+
+
+def test_get_consumes_rate_limiter_tokens(monkeypatch):
+    capture = {}
+    response = DummyResponse({"ok": True})
+
+    def fake_client(*, timeout):
+        return DummyClient(response, capture)
+
+    class DummyRateLimiter:
+        def __init__(self):
+            self.calls = []
+
+        def acquire(self, tokens=1, block=True, timeout=None):
+            self.calls.append((tokens, block, timeout))
+            return True
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+    limiter = DummyRateLimiter()
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", rate_limiter=limiter)
+
+    result = client.get_match_info_by_match_id("EUW1_1")
+
+    assert result == {"ok": True}
+    assert limiter.calls == [(1, True, 10)]

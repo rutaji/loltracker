@@ -12,6 +12,7 @@ class MatchParticipant(BaseModel):
     gold: int
     team: int
     champion: str
+    championImagePath: str | None = None
     won: bool
 
 class Match(BaseModel):

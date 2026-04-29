@@ -68,7 +68,7 @@ The following is Out of Scope for this project:
 ## Non-Functional Requirements
 
 *   **Riot API Communication:** The app must be able to communicate with the official Riot API to retrieve data about individual matches.
-    * **Rate limiting** for Riot API calls has to be implemented to ensure we can comfortably stay within the limit imposed on us. Similarily, **burst calls** should be implemented to utilize all available API calls before their amount is refreshed.
+    * **Rate limiting** for Riot API calls doesn't have to be implemented to ensure we can comfortably stay within the limit imposed on us as the limit is generous and refreshed often enough for the scope of this project. Even then, **periodic API calls** should be implemented to utilize all available API calls before their amount is refreshed.
 *   **Availability & Reliability:** The application must be hosted online (preferrably on Azure) with a target availability of 99%.
     * **Health checks** should be implemented to allow for automated instance recovery once hosted online.
 *   **Observability:** Real-time monitoring and logging must be configured using available tools.

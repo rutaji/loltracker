@@ -15,11 +15,18 @@ from opentelemetry.trace import Status, StatusCode
 from app.router import router
 from fastapi.staticfiles import StaticFiles
 from app.riot.riotApiClient import RiotApiClient
+from app.services.rate_limiter import TokenBucket
+from app.services.riot_ingestor import start_ingestor, stop_ingestor
 from app.instrumentation import setup_telemetry
 
 
 logging.basicConfig(level=logging.DEBUG)
 LOGGER = logging.getLogger(__name__)
+
+# Reduce noisy debug from third-party HTTP libraries and scheduler
+logging.getLogger("httpcore").setLevel(logging.INFO)
+logging.getLogger("httpx").setLevel(logging.INFO)
+logging.getLogger("apscheduler").setLevel(logging.INFO)
 
 # Load environment variables early
 project_root = Path(__file__).resolve().parents[1]
@@ -34,11 +41,34 @@ async def lifespan(app: FastAPI):
     api_key = os.getenv("RIOT_API_KEY")
     if not api_key:
         raise RuntimeError("RIOT_API_KEY is missing from the .env file.")
+    # Configure rate limiter and ingestor
+    reserved_calls = int(os.getenv("RIOT_RESERVED_CALLS", "10"))
+    riot_capacity = int(os.getenv("RIOT_RATE_LIMIT_TOTAL", "100"))
+    riot_refill_interval = int(os.getenv("RIOT_RATE_LIMIT_WINDOW_SECONDS", "120"))
 
-    app.state.api_client = RiotApiClient(api_key=api_key, regional_routing="europe")
+    app.state.rate_limiter = TokenBucket(capacity=riot_capacity, refill_interval_seconds=riot_refill_interval, reserved=reserved_calls)
+
+    regional_routing = os.getenv("RIOT_REGIONAL_ROUTING", "europe")
+    platform_routing = os.getenv("RIOT_PLATFORM_ROUTING", "euw1")
+
+    app.state.api_client = RiotApiClient(
+        api_key=api_key,
+        regional_routing=regional_routing,
+        platform_routing=platform_routing,
+        rate_limiter=app.state.rate_limiter,
+    )
+    ingest_enabled = os.getenv("RIOT_INGEST_ENABLED", "true").lower() in ("1", "true", "yes")
+    if ingest_enabled:
+        interval_seconds = int(os.getenv("RIOT_INGEST_INTERVAL_SECONDS", "30"))
+        start_ingestor(app, interval_seconds=interval_seconds)
     try:
         yield
     finally:
+        # Stop ingestor if running
+        try:
+            stop_ingestor(app)
+        except Exception:
+            LOGGER.exception("Error stopping ingestor")
         if telemetry_shutdown is not None:
             telemetry_shutdown()
 

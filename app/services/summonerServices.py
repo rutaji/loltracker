@@ -115,6 +115,39 @@ def sync_remote_matches(
                 try:
                     match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
                     match = MatchParser.parse(match_data)
+                    
+                    # Fetch and persist full summoner data for all match participants
+                    # before adding match/participant rows to ensure complete stats.
+                    for participant in match.participants:
+                        participant_puuid = participant.puuid
+                        if not participant_puuid or participant_puuid == puuid:
+                            continue  # Skip empty PUUIDs and the main summoner (already fetched)
+                        
+                        # Check if summoner already exists in DB
+                        try:
+                            existing = dao.get_summoner_dao(participant_puuid)
+                            if existing:
+                                continue  # Summoner already in DB, skip fetch
+                        except Exception:
+                            pass  # Error checking, proceed with fetch
+                        
+                        try:
+                            participant_account = request.app.state.api_client.get_summoner_by_puuid(participant_puuid)
+                            participant_summoner = SummonerParser.parse(participant_account)
+                            dao.add_summoner(participant_summoner)
+                            LOGGER.debug(
+                                "Fetched and added participant summoner puuid=%s name=%s",
+                                participant_puuid,
+                                participant_summoner.name,
+                            )
+                        except Exception as exc:
+                            # Log but don't fail the match insert if participant fetch fails
+                            LOGGER.warning(
+                                "Failed to fetch participant summoner puuid=%s: %s",
+                                participant_puuid,
+                                exc,
+                            )
+                    
                     inserted_match = dao.add_match(match)
                     bans = MatchParser.parse_bans(match_data)
                     dao.add_ban(bans)
@@ -277,6 +310,33 @@ def refresh_summoner_matches_service(
         start=0,
         batch_size=settings.summoner_sync_batch_size,
         stop_after_total=settings.summoner_sync_stop_after,
+    )
+
+    refreshed_summoner = dao.get_summoner(f"{summoner.name}#{summoner.tagline}") or summoner
+    return SummonerRefreshServiceResult(
+        summoner=refreshed_summoner,
+        inserted_count=sync_result.inserted_count,
+        failed_count=sync_result.failed_count,
+    )
+
+
+def ingest_matches_from_puuid_service(
+    request: Request,
+    puuid: str,
+    dao: DAO,
+) -> SummonerRefreshServiceResult:
+    account_data = request.app.state.api_client.get_summoner_by_puuid(puuid)
+    summoner = SummonerParser.parse(account_data)
+    dao.add_summoner(summoner)
+
+    sync_result = sync_remote_matches(
+        request,
+        f"{summoner.name}#{summoner.tagline}",
+        puuid,
+        dao,
+        start=0,
+        batch_size=settings.summoner_sync_batch_size,
+        stop_after_total=settings.periodic_sync_stop_after,
     )
 
     refreshed_summoner = dao.get_summoner(f"{summoner.name}#{summoner.tagline}") or summoner
