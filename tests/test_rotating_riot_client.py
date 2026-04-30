@@ -1,6 +1,7 @@
 """Tests for the rotating Riot API client."""
 
 import asyncio
+import httpx
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -162,3 +163,25 @@ class TestRotatingRiotApiClient:
         for subclient in client.clients:
             assert subclient.regional_routing == "americas"
             assert subclient.platform_routing == "na1"
+
+    def test_quarantines_key_after_decrypt_error(self):
+        """Should skip a key that returns a Riot decrypt 400 and retry with another key."""
+        client = RotatingRiotApiClient(api_keys=["key1", "key2"])
+
+        decrypt_response = httpx.Response(
+            status_code=400,
+            request=httpx.Request("GET", "https://example.com"),
+            text='{"status":{"message":"Bad Request - Exception decrypting abc","status_code":400}}',
+        )
+
+        def bad_get_summoner_by_puuid(*, puuid: str):
+            raise httpx.HTTPStatusError("Bad Request", request=decrypt_response.request, response=decrypt_response)
+
+        client.clients[0].get_summoner_by_puuid = bad_get_summoner_by_puuid
+        client.clients[1].get_summoner_by_puuid = MagicMock(return_value={"puuid": "ok"})
+
+        result = client.get_summoner_by_puuid("abc")
+
+        assert result == {"puuid": "ok"}
+        assert 0 in client._disabled_client_indexes
+        assert 1 not in client._disabled_client_indexes

@@ -86,20 +86,10 @@ class RiotIngestor:
             sample = random.sample(entries, sample_size)
 
             for e in sample:
+                # League entries endpoint already provides puuid directly
                 puuid = e.get("puuid")
                 if not puuid:
-                    encrypted_summoner_id = e.get("summonerId")
-                    if encrypted_summoner_id:
-                        try:
-                            summoner_data = api_client.get_summoner_by_encrypted_id(encrypted_summoner_id)
-                            puuid = summoner_data.get("puuid")
-                        except Exception:
-                            LOGGER.exception(
-                                "Failed to resolve puuid for encryptedSummonerId=%s",
-                                encrypted_summoner_id,
-                            )
-
-                if not puuid:
+                    LOGGER.warning("League entry missing puuid; skipping entry with keys: %s", list(e.keys()))
                     continue
 
                 # Use a minimal request-like object that holds the app

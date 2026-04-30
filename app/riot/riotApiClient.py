@@ -59,6 +59,7 @@ class RiotApiClient:
             params,
             self.key_identifier,
         )
+        logger.debug("riot.api.request: path_repr=%r url_repr=%r", path, url)
         tracer = trace.get_tracer(__name__)
 
         attempts = 0

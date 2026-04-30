@@ -5,6 +5,7 @@ import httpx
 from app.api.config import settings
 from app.models.summonerModels import Match, Summoner
 from app.services.summonerServices import (
+    ingest_matches_from_puuid_service,
     get_matches_service,
     get_summoner_service,
     load_summoner_page,
@@ -893,6 +894,54 @@ def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_match
     assert result.failed_count == 0
     assert [match.match_id for match in dao.added_matches] == ["m5", "m6"]
     assert api_client.starts == [0, 3]
+
+
+def test_ingest_matches_from_puuid_service_retries_encrypted_identifier(monkeypatch):
+    class RefreshDAO:
+        def __init__(self):
+            self.saved_summoner = None
+
+        def get_summoner(self, summoner_name):
+            return None
+
+        def get_match_ids_for_summoner(self, summoner_name):
+            return set()
+
+        def add_summoner(self, summoner):
+            self.saved_summoner = summoner
+
+    class RefreshApiClient:
+        def __init__(self):
+            self.calls = []
+
+        def get_summoner_by_puuid(self, puuid):
+            self.calls.append(("get_summoner_by_puuid", puuid))
+            if puuid == "encrypted-id":
+                response = type("Resp", (), {"status_code": 400, "text": "Bad Request - Exception decrypting encrypted-id"})()
+                raise httpx.HTTPStatusError("Bad Request", request=httpx.Request("GET", "https://example.com"), response=response)
+            return {"puuid": puuid, "gameName": "resolved-player", "tagLine": "euw"}
+
+        def get_summoner_by_encrypted_id(self, encrypted_id):
+            self.calls.append(("get_summoner_by_encrypted_id", encrypted_id))
+            return {"puuid": "resolved-puuid", "name": "resolved-player"}
+
+        def get_match_ids_by_puuid(self, puuid, start=0, count=20):
+            self.calls.append(("get_match_ids_by_puuid", puuid, start, count))
+            return []
+
+    monkeypatch.setattr(settings, "summoner_sync_batch_size", 20)
+    monkeypatch.setattr(settings, "periodic_sync_stop_after", 5)
+
+    dao = RefreshDAO()
+    request = make_request(RefreshApiClient())
+
+    result = ingest_matches_from_puuid_service(request, "encrypted-id", dao)
+
+    assert result.summoner is not None
+    assert result.summoner.puuid == "resolved-puuid"
+    assert result.failed_count == 0
+    assert dao.saved_summoner is not None
+    assert dao.saved_summoner.puuid == "resolved-puuid"
 
 
 def test_refresh_uses_snapshot_then_match_exists_for_candidates_only():
