@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 from types import SimpleNamespace
@@ -35,7 +36,7 @@ class RiotIngestor:
 
     def start(self) -> None:
         LOGGER.info("Starting Riot ingestor scheduler; interval=%ss", self.interval_seconds)
-        self.scheduler.add_job(self._iteration, "interval", seconds=self.interval_seconds, max_instances=1)
+        self.scheduler.add_job(self._iteration_sync, "interval", seconds=self.interval_seconds, max_instances=1)
         self.scheduler.start()
 
     def stop(self) -> None:
@@ -52,7 +53,14 @@ class RiotIngestor:
         idx = max(0, min(len(TIERS) - 1, idx))
         return TIERS[idx]
 
-    def _iteration(self) -> None:
+    def _iteration_sync(self) -> None:
+        """Synchronous wrapper that runs the async iteration in a new event loop."""
+        try:
+            asyncio.run(self._iteration_async())
+        except Exception:
+            LOGGER.exception("Error in ingestor iteration wrapper")
+
+    async def _iteration_async(self) -> None:
         try:
             api_client = self.app.state.api_client
             dao = DAO.get_dao()

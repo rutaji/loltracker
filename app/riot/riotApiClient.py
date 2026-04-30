@@ -28,11 +28,15 @@ class RiotApiClient:
         self.timeout = timeout
         self.rate_limiter = rate_limiter
         self.max_retries = max_retries
+        # Log a safe identifier for the key (last 8 chars only for security)
+        key_suffix = api_key[-8:] if api_key and len(api_key) > 8 else "UNKNOWN"
+        self.key_identifier = f"key_ends_with_{key_suffix}"
         logger.debug(
-            "RiotApiClient initialized: regional_routing=%s platform_routing=%s timeout=%s",
+            "RiotApiClient initialized: regional_routing=%s platform_routing=%s timeout=%s key=%s",
             self.regional_routing,
             self.platform_routing,
             self.timeout,
+            self.key_identifier,
         )
 
     @property
@@ -49,7 +53,12 @@ class RiotApiClient:
     ) -> Any:
         routing = self.platform_routing if use_platform_routing else self.regional_routing
         url = f"https://{routing}.api.riotgames.com{path}"
-        logger.debug("riot.api.request: url=%s params=%s", url, params)
+        logger.debug(
+            "riot.api.request: url=%s params=%s key=%s",
+            url,
+            params,
+            self.key_identifier,
+        )
         tracer = trace.get_tracer(__name__)
 
         attempts = 0
@@ -101,7 +110,17 @@ class RiotApiClient:
                         logger.warning("Riot API server error %s - retrying in %.1fs (attempt %s)", status, sleep_for, attempts)
                         time.sleep(sleep_for)
                         continue
-                    logger.error("riot.api.request: HTTP error url=%s status=%s", url, status)
+                    # Log response body for client errors to help debug
+                    try:
+                        error_body = exc.response.text[:500]  # Limit to first 500 chars
+                    except Exception:
+                        error_body = "(could not read response)"
+                    logger.error(
+                        "riot.api.request: HTTP error url=%s status=%s response=%s",
+                        url,
+                        status,
+                        error_body,
+                    )
                     raise
                 except httpx.RequestError as exc:
                     span.record_exception(exc)
