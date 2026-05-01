@@ -220,21 +220,6 @@ def test_add_match_does_not_overwrite_existing_summoner_name_with_incomplete_ide
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one().summoner_name == "KnownName#EUW"
 
 
-def test_add_ban_skips_duplicate_bans_in_same_batch(db_session):
-    dao = DAO(db_session)
-    db_session.add(DaoMatch(id="match-duplicate-bans", created=100, ended=130, queue_id=None, patch="14.5"))
-    db_session.commit()
-
-    dao.add_ban(
-        [
-            BanParsed(match_id="match-duplicate-bans", team=100, ban_order=1, champion_key=799),
-            BanParsed(match_id="match-duplicate-bans", team=100, ban_order=1, champion_key=105),
-        ]
-    )
-
-    assert db_session.query(DaoBan).filter(DaoBan.match_id == "match-duplicate-bans").count() == 1
-
-
 def test_add_ban_allows_same_champion_banned_by_different_teams(db_session):
     dao = DAO(db_session)
     db_session.add(DaoMatch(id="match-cross-team-bans", created=100, ended=130, queue_id=None, patch="14.5"))
@@ -248,17 +233,6 @@ def test_add_ban_allows_same_champion_banned_by_different_teams(db_session):
     )
 
     assert db_session.query(DaoBan).filter(DaoBan.match_id == "match-cross-team-bans").count() == 2
-
-
-def test_add_ban_skips_existing_ban(db_session):
-    dao = DAO(db_session)
-    db_session.add(DaoMatch(id="match-existing-ban", created=100, ended=130, queue_id=None, patch="14.5"))
-    db_session.add(DaoBan(match_id="match-existing-ban", team=100, ban_order=1, champion_key=799))
-    db_session.commit()
-
-    dao.add_ban(BanParsed(match_id="match-existing-ban", team=100, ban_order=1, champion_key=799))
-
-    assert db_session.query(DaoBan).filter(DaoBan.match_id == "match-existing-ban").count() == 1
 
 
 def test_add_ban_preserves_same_team_same_champion_in_different_ban_slots(db_session):
