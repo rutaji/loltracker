@@ -11,6 +11,7 @@ def test_match_participant_parser_maps_riot_fields():
         "assists": 10,
         "goldEarned": 14500,
         "teamId": 100,
+        "teamPosition": "MIDDLE",
         "championName": "Ahri",
         "win": True,
     }
@@ -25,6 +26,7 @@ def test_match_participant_parser_maps_riot_fields():
     assert participant.assists == 10
     assert participant.gold == 14500
     assert participant.team == 100
+    assert participant.position == "MIDDLE"
     assert participant.champion == "Ahri"
     assert participant.won is True
 
@@ -49,6 +51,7 @@ def test_match_parser_maps_match_and_participants():
                     "assists": 10,
                     "goldEarned": 14500,
                     "teamId": 100,
+                    "teamPosition": "MIDDLE",
                     "championName": "Ahri",
                     "win": True,
                 }
@@ -64,6 +67,7 @@ def test_match_parser_maps_match_and_participants():
     assert len(match.participants) == 1
     assert match.participants[0].name == "PlayerOne"
     assert match.participants[0].puuid == "player-puuid"
+    assert match.participants[0].position == "MIDDLE"
 
 
 def test_match_parser_keeps_short_version_untouched():
@@ -81,6 +85,20 @@ def test_match_parser_keeps_short_version_untouched():
     match = MatchParser.parse(match_data)
 
     assert match.version == "15.8"
+
+
+def test_match_participant_parser_treats_invalid_position_as_unknown():
+    participant = MatchParticipantParser.parse(
+        {
+            "puuid": "player-puuid",
+            "riotIdGameName": "PlayerOne",
+            "riotIdTagline": "EUW",
+            "teamPosition": "",
+            "individualPosition": "INVALID",
+        }
+    )
+
+    assert participant.position == ""
 
 
 def test_summoner_parser_maps_account_data():

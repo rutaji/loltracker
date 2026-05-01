@@ -22,6 +22,17 @@ from app.utils.versioning import version_sort_key
 logger = logging.getLogger(__name__)
 
 class DAO:
+    POSITION_ORDER = {
+        "TOP": 1,
+        "JUNGLE": 2,
+        "MIDDLE": 3,
+        "MID": 3,
+        "BOTTOM": 4,
+        "BOT": 4,
+        "UTILITY": 5,
+        "SUPPORT": 5,
+    }
+
     def __init__(self, db):
         self.db = db
 
@@ -56,10 +67,11 @@ class DAO:
         return ""
 
     @staticmethod
-    def _participant_sort_key(participant: MatchParticipant) -> tuple[int, str, str, str]:
+    def _participant_sort_key(participant: MatchParticipant) -> tuple[int, int, str, str, str, str]:
         summoner_name = ""
         tagline = ""
         champion_name = ""
+        position = (participant.position or "").upper()
 
         if participant.MatchParticipant_Summoner and participant.MatchParticipant_Summoner.summoner_name:
             name_parts = split_name(participant.MatchParticipant_Summoner.summoner_name)
@@ -71,6 +83,8 @@ class DAO:
 
         return (
             participant.team or 0,
+            DAO.POSITION_ORDER.get(position, 99),
+            position,
             summoner_name,
             tagline,
             champion_name,
@@ -217,6 +231,7 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
+                        position=p.position or "",
                         champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
                         won=p.won
                     )
@@ -316,6 +331,7 @@ class DAO:
                                 assist=participant.assists,
                                 gold=participant.gold,
                                 team=participant.team,
+                                position=(participant.position or "").upper(),
                                 won=participant.won,
                                 champion=champion_id,
                             ),
