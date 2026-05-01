@@ -226,7 +226,6 @@ class DAO:
             for p in ordered_participants:
                 summoner_name = p.MatchParticipant_Summoner.summoner_name if p.MatchParticipant_Summoner else ""
                 name = split_name(summoner_name)
-                champion_name = (p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or ""
                 participants_list.append(
                     app.models.summonerModels.MatchParticipant(
                         puuid=p.summoner_id,
@@ -237,7 +236,7 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
-                        championImagePath=resolve_champion_image_path(champion_name),
+                        championImagePath=resolve_champion_image_path(p.champion),
                         position=p.position or "",
                         champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
                         won=p.won
