@@ -74,9 +74,11 @@ The database uses triggers to automatically update statistics in **Champion_Stat
 
 The system is dependent on the availability and functionality of the Riot Games API service. In the event where this service is unavailable, it will be impossible to update the database with new data (old data will still be available and displayed).
 
-### API Limits
+### API Limits & Periodic Calls
 
-The Riot Games API limits how many requests can be sent to it within a specific period of time. As a result, the backend must implement a mechanism for limiting the flow of requests to it (rate limiting).
+The Riot Games API limits how many requests can be sent to it within a specific period of time. However, this limit is rather generous for the scope of this project (max 100 requests every 2 minutes) and as a result rate limitting need not be implemented.
+
+Currently the app calls the Riot API periodically once every minute to recieve match data. This consumes up to 60 API calls. The plan is to implement API key rotation to allow for more data to be collected passively.
 
 ## API & Interface Specification
 

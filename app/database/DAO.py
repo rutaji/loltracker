@@ -9,6 +9,7 @@ import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban
+from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.utils import split_name
 from app.utils.queue_filters import (
     FILTER_TO_QUEUE_ID,
@@ -235,6 +236,7 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
+                        championImagePath=resolve_champion_image_path(p.champion),
                         position=p.position or "",
                         champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
                         won=p.won
