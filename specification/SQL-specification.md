@@ -92,7 +92,7 @@ Below is a rundown of the indices present in the database.
 
 **Champion** - ``id``, ``name`` and ``champion_key``
 
-**Champion_Stats** - ``champion_id``, ``patch`` and ``gametype``
+**Champion_Stats** - ``champion_id``, ``patch`` and ``queue_id``
 
 **Summoner** - ``id``
 
@@ -104,7 +104,7 @@ Below is a rundown of the indices present in the database.
 
 **Match_Participant** - ``summoner_id`` and ``match_id``
 
-**Matches_Analyzed** - ``patch`` and ``gametype``
+**Matches_Analyzed** - ``patch`` and ``queue_id``
 
 **Bans** - ``match_id``, ``team`` and ``champion_key``
 

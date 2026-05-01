@@ -19,6 +19,7 @@ from app.services.championServices import (
 )
 from app.utils.champion_kit import resolve_champion_kit
 from app.utils.champion_assets import resolve_champion_image_path
+from app.utils.queue_filters import QUEUE_FILTER_OPTIONS, normalize_queue_filter
 from app.utils.versioning import normalize_version
 
 router = APIRouter()
@@ -93,6 +94,7 @@ async def get_summoner(
     tagline: str,
     offset: int = 0,
     ajax: bool = False,
+    queue_filter: str = "all",
     dao: DAO = Depends(get_dao),
 ):
     logger.info(
@@ -106,8 +108,9 @@ async def get_summoner(
     )
 
     count = settings.matches_per_page
+    selected_queue_filter = normalize_queue_filter(queue_filter)
 
-    page_data = load_summoner_page(request, name, tagline, offset, count, dao)
+    page_data = load_summoner_page(request, name, tagline, offset, count, dao, selected_queue_filter)
     summoner = page_data.summoner
 
     if summoner is None:
@@ -131,6 +134,8 @@ async def get_summoner(
             "summoner": summoner,
             "matchData": match_page,
             "favoriteChampios":favorite_champion
+            "queue_filter": selected_queue_filter,
+            "queue_filters": QUEUE_FILTER_OPTIONS,
         },
     )
 

@@ -3,7 +3,8 @@ from fastapi.testclient import TestClient
 from app.api.config import settings
 from app.endpoints import endpoints
 from app.main import app
-from app.models.summonerModels import Match, MatchPage, Summoner, SummonerChampion
+
+from app.models.summonerModels import Match, MatchPage, Summoner, SummonerChampion, MatchParticipant
 from app.services.summonerServices import SummonerPageServiceResult, SummonerRefreshServiceResult
 
 
@@ -50,7 +51,7 @@ def make_page_data() -> SummonerPageServiceResult:
 
 
 def test_summoner_page_found(monkeypatch):
-    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
     # Provide a fake DAO so load_favorite_champions can call dao.get_summoner_champions
     class FakeDAO:
         def get_summoner_champions(self, summoner_id, count):
@@ -60,19 +61,46 @@ def test_summoner_page_found(monkeypatch):
     from app.main import app as _app
     _app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
 
+
     response = client.get("/summoner/test/euw")
     _app.dependency_overrides.pop(endpoints.get_dao, None)
 
     assert response.status_code == 200
     assert "test#euw" in response.text
     assert "Recent Matches" in response.text
+    assert "Games Shown" in response.text
+
+
+def test_summoner_page_links_match_participants(monkeypatch):
+    page_data = make_page_data()
+    page_data.match_page.matches[0].participants = [
+        MatchParticipant(
+            puuid="participant-puuid",
+            name="Other Player",
+            tagline="EUW",
+            kills=1,
+            deaths=2,
+            assists=3,
+            gold=1000,
+            team=100,
+            position="TOP",
+            champion="Ahri",
+            won=True,
+        )
+    ]
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: page_data)
+
+    response = client.get("/summoner/test/euw")
+
+    assert response.status_code == 200
+    assert 'href="/summoner/Other%20Player/EUW"' in response.text
 
 
 def test_summoner_page_not_found_redirects(monkeypatch):
     monkeypatch.setattr(
         endpoints,
         "load_summoner_page",
-        lambda request, name, tagline, offset, count, dao: SummonerPageServiceResult(summoner=None, match_page=None),
+        lambda request, name, tagline, offset, count, dao, queue_filter: SummonerPageServiceResult(summoner=None, match_page=None),
     )
     class FakeDAO:
         def get_summoner_champions(self, summoner_id, count):
@@ -89,7 +117,7 @@ def test_summoner_page_not_found_redirects(monkeypatch):
 
 
 def test_summoner_matches_ajax_response(monkeypatch):
-    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
 
     class FakeDAO:
         def get_summoner_champions(self, summoner_id, count):
@@ -107,6 +135,21 @@ def test_summoner_matches_ajax_response(monkeypatch):
     assert data["nextOffset"] == settings.matches_per_page
     assert data["matches"][0]["queueDescription"] == "Ranked Solo"
     assert "queueId" not in data["matches"][0]
+
+
+def test_summoner_queue_filter_is_forwarded(monkeypatch):
+    captured = {}
+
+    def fake_load_summoner_page(request, name, tagline, offset, count, dao, queue_filter):
+        captured["queue_filter"] = queue_filter
+        return make_page_data()
+
+    monkeypatch.setattr(endpoints, "load_summoner_page", fake_load_summoner_page)
+
+    response = client.get("/summoner/test/euw?queue_filter=aram")
+
+    assert response.status_code == 200
+    assert captured["queue_filter"] == "aram"
 
 
 def test_not_found_page_displays_searched_summoner():

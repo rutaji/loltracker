@@ -8,6 +8,7 @@ from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
 from app.riot.riotParsers import MatchParser, SummonerParser
 from app.api.config import settings
+from app.utils.queue_filters import QUEUE_FILTER_ALL, normalize_queue_filter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -154,18 +155,21 @@ def get_matches_service(
     offset: int,
     count: int,
     dao: DAO,
+    queue_filter: str = QUEUE_FILTER_ALL,
 ) -> MatchServiceResult:
     tracer = trace.get_tracer(__name__)
     summoner_name = f"{name}#{tagline}"
     refreshed_from_remote = False
     query_count = count + 1
+    normalized_queue_filter = normalize_queue_filter(queue_filter)
 
     with tracer.start_as_current_span("service.matches.get") as span:
         span.set_attribute("matches.offset", offset)
         span.set_attribute("matches.count", count)
-        matches = dao.get_matches(summoner_name, offset, query_count)
+        span.set_attribute("matches.queue_filter", normalized_queue_filter)
+        matches = dao.get_matches(summoner_name, offset, query_count, normalized_queue_filter)
         span.set_attribute("matches.cached_count", len(matches))
-        has_cached_matches = dao.summoner_has_matches(summoner_name)
+        has_cached_matches = dao.summoner_has_matches(summoner_name, normalized_queue_filter)
         span.set_attribute("matches.cache_populated", has_cached_matches)
 
         if not has_cached_matches and request is not None:
@@ -188,7 +192,7 @@ def get_matches_service(
                     stop_after_total=query_count,
                 )
                 refreshed_from_remote = sync_result.inserted_count > 0
-                matches = dao.get_matches(summoner_name, offset, query_count)
+                matches = dao.get_matches(summoner_name, offset, query_count, normalized_queue_filter)
                 span.set_attribute("matches.remote_count", sync_result.inserted_count)
                 span.set_attribute("matches.remote_failures", sync_result.failed_count)
 
@@ -217,12 +221,13 @@ def load_summoner_page(
     offset: int,
     count: int,
     dao: DAO,
+    queue_filter: str = QUEUE_FILTER_ALL,
 ) -> SummonerPageServiceResult:
     summoner = get_summoner_service(request, name, tagline, dao)
     if summoner is None:
         return SummonerPageServiceResult(summoner=None, match_page=None)
 
-    match_result = get_matches_service(request, name, tagline, offset, count, dao)
+    match_result = get_matches_service(request, name, tagline, offset, count, dao, queue_filter)
 
     if match_result.refreshed_from_remote:
         refreshed_summoner = dao.get_summoner(f"{name}#{tagline}")

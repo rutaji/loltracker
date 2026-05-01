@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import joinedload
 
 import app.models.championModels
@@ -11,11 +11,29 @@ from app.database.database import SessionLocal
 from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban, \
     SummonerChampion
 from app.utils.utils import split_name
+from app.utils.queue_filters import (
+    FILTER_TO_QUEUE_ID,
+    PRIMARY_QUEUE_IDS,
+    QUEUE_FILTER_ALL,
+    QUEUE_FILTER_OTHER,
+    normalize_queue_filter,
+)
 from app.utils.versioning import version_sort_key
 
 logger = logging.getLogger(__name__)
 
 class DAO:
+    POSITION_ORDER = {
+        "TOP": 1,
+        "JUNGLE": 2,
+        "MIDDLE": 3,
+        "MID": 3,
+        "BOTTOM": 4,
+        "BOT": 4,
+        "UTILITY": 5,
+        "SUPPORT": 5,
+    }
+
     def __init__(self, db):
         self.db = db
 
@@ -48,6 +66,55 @@ class DAO:
         if queue_id is not None:
             return "Unknown Queue"
         return ""
+
+    @staticmethod
+    def _has_complete_riot_id(name: str | None, tagline: str | None) -> bool:
+        return bool((name or "").strip() and (tagline or "").strip())
+
+    @staticmethod
+    def _participant_sort_key(participant: MatchParticipant) -> tuple[int, int, str, str, str, str]:
+        summoner_name = ""
+        tagline = ""
+        champion_name = ""
+        position = (participant.position or "").upper()
+
+        if participant.MatchParticipant_Summoner and participant.MatchParticipant_Summoner.summoner_name:
+            name_parts = split_name(participant.MatchParticipant_Summoner.summoner_name)
+            summoner_name = (name_parts[0] or "").lower()
+            tagline = (name_parts[1] or "").lower()
+
+        if participant.MatchParticipant_Champion and participant.MatchParticipant_Champion.champion_name:
+            champion_name = participant.MatchParticipant_Champion.champion_name.lower()
+
+        return (
+            participant.team or 0,
+            DAO.POSITION_ORDER.get(position, 99),
+            position,
+            summoner_name,
+            tagline,
+            champion_name,
+        )
+
+    @staticmethod
+    def _apply_queue_filter_to_match_query(query, queue_filter: str):
+        normalized = normalize_queue_filter(queue_filter)
+
+        if normalized == QUEUE_FILTER_ALL:
+            return query
+
+        if normalized == QUEUE_FILTER_OTHER:
+            return query.filter(
+                or_(
+                    Match.queue_id.is_(None),
+                    Match.queue_id.notin_(PRIMARY_QUEUE_IDS),
+                )
+            )
+
+        queue_id = FILTER_TO_QUEUE_ID.get(normalized)
+        if queue_id is None:
+            return query
+
+        return query.filter(Match.queue_id == queue_id)
 
     def get_champion_versions(self, champion_name: str) -> list[str]:
         versions = (
@@ -125,16 +192,20 @@ class DAO:
         logger.debug("get_summoner: returning summoner puuid=%s", result.puuid)
         return result
 
-    def get_matches(self, summoner_name, offset, count):
+    def get_matches(self, summoner_name, offset, count, queue_filter: str = QUEUE_FILTER_ALL):
         logger.debug("get_matches: summoner=%s offset=%s count=%s", summoner_name, offset, count)
         summoner = self._get_summoner_row(summoner_name)
         if not summoner:
             logger.info("get_matches: no summoner found=%s", summoner_name)
             return []
-        matches = (
+        match_query = (
             self.db.query(Match)
             .join(MatchParticipant)
             .filter(MatchParticipant.summoner_id == summoner.id)
+        )
+        match_query = self._apply_queue_filter_to_match_query(match_query, queue_filter)
+        matches = (
+            match_query
             .order_by(desc(Match.created), desc(Match.id))
             .offset(offset)
             .limit(count)
@@ -151,7 +222,8 @@ class DAO:
         result = []
         for match in matches:
             participants_list = []
-            for p in match.Match_MatchParticipant:
+            ordered_participants = sorted(match.Match_MatchParticipant, key=self._participant_sort_key)
+            for p in ordered_participants:
                 summoner_name = p.MatchParticipant_Summoner.summoner_name if p.MatchParticipant_Summoner else ""
                 name = split_name(summoner_name)
                 participants_list.append(
@@ -164,6 +236,7 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
+                        position=p.position or "",
                         champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
                         won=p.won
                     )
@@ -182,16 +255,18 @@ class DAO:
         logger.debug("get_matches: returning %d formatted matches for summoner=%s", len(result), summoner_name)
         return result
 
-    def summoner_has_matches(self, summoner_name: str) -> bool:
+    def summoner_has_matches(self, summoner_name: str, queue_filter: str = QUEUE_FILTER_ALL) -> bool:
         summoner = self._get_summoner_row(summoner_name)
         if not summoner:
             return False
 
-        match = (
+        match_query = (
             self.db.query(MatchParticipant)
+            .join(Match, Match.id == MatchParticipant.match_id)
             .filter(MatchParticipant.summoner_id == summoner.id)
-            .first()
         )
+        match_query = self._apply_queue_filter_to_match_query(match_query, queue_filter)
+        match = match_query.first()
         return match is not None
 
     def get_match_ids_for_summoner(self, summoner_name: str) -> set[str]:
@@ -223,6 +298,10 @@ class DAO:
                 if self.match_exist(match_id):
                     logger.debug("add_match: match already exists match_id=%s", match_id)
                     return False
+
+                if match.queueId and not self.queue_exist(match.queueId):
+                    logger.debug("add_match: creating placeholder queue row queue_id=%s", match.queueId)
+                    self.db.merge(Queue(queue_id=match.queueId, map=None, description=None, notes=None))
 
                 dao_match = Match(
                     id=match_id,
@@ -257,6 +336,7 @@ class DAO:
                                 assist=participant.assists,
                                 gold=participant.gold,
                                 team=participant.team,
+                                position=(participant.position or "").upper(),
                                 won=participant.won,
                                 champion=champion_id,
                             ),
@@ -267,10 +347,21 @@ class DAO:
                 self.db.add(dao_match)
                 for participant, summoner_name in dao_participants:
                     self.db.add(participant)
-                    if participant.summoner_id not in queued_summoner_ids and not self.summoner_exist(participant.summoner_id):
+                    existing_summoner = self.get_summoner_dao(participant.summoner_id)
+                    if participant.summoner_id not in queued_summoner_ids and existing_summoner is None:
                         logger.debug("add_match: creating default summoner id=%s name=%s", participant.summoner_id, summoner_name)
                         self.db.merge(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
                         queued_summoner_ids.add(participant.summoner_id)
+                    elif existing_summoner is not None:
+                        name, tagline = split_name(summoner_name)
+                        if self._has_complete_riot_id(name, tagline) and existing_summoner.summoner_name != summoner_name:
+                            logger.debug(
+                                "add_match: updating summoner name id=%s old=%s new=%s",
+                                participant.summoner_id,
+                                existing_summoner.summoner_name,
+                                summoner_name,
+                            )
+                            existing_summoner.summoner_name = summoner_name
                     if participant.champion not in queued_champion_ids and not self.champion_exist(participant.champion):
                         logger.debug("add_match: creating default champion id=%s", participant.champion)
                         self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
@@ -281,6 +372,8 @@ class DAO:
                 logger.error("add_match: failed to add match_id=%s", match_id)
                 self.db.rollback()
                 raise
+
+            
     def add_ban(self, bans: list[app.models.summonerModels.BanParsed] | app.models.summonerModels.BanParsed):
         """Add one or multiple ban records. Accepts a single BanParsed or a list of them."""
         # normalize to list
@@ -376,6 +469,11 @@ class DAO:
     def champion_exist(self,id) -> bool:
         exists = self.db.query(Champion).filter(Champion.id == id).first() is not None
         logger.debug("champion_exist: id=%s exists=%s", id, exists)
+        return exists
+
+    def queue_exist(self, queue_id: int) -> bool:
+        exists = self.db.query(Queue).filter(Queue.queue_id == queue_id).first() is not None
+        logger.debug("queue_exist: queue_id=%s exists=%s", queue_id, exists)
         return exists
 
 

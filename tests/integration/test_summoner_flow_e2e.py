@@ -37,6 +37,23 @@ def test_cached_summoner_flow_html_and_ajax(app_client, seed_cached_summoner_dat
 
 
 @pytest.mark.integration
+def test_cached_summoner_flow_filters_by_queue(app_client, seed_cached_summoner_data):
+    aram_response = app_client.get("/summoner/cached/euw?offset=0&ajax=true&queue_filter=aram")
+    other_response = app_client.get("/summoner/cached/euw?offset=0&ajax=true&queue_filter=other")
+
+    assert aram_response.status_code == 200
+    assert other_response.status_code == 200
+
+    aram_payload = aram_response.json()
+    other_payload = other_response.json()
+
+    assert [match["queueDescription"] for match in aram_payload["matches"]] == ["ARAM"]
+    assert [match["queueDescription"] for match in other_payload["matches"]] == ["Arena"]
+    assert aram_payload["hasMore"] is False
+    assert other_payload["hasMore"] is False
+
+
+@pytest.mark.integration
 def test_cached_summoner_lookup_is_case_insensitive(app_client, seed_cached_summoner_data, stub_api_client):
     response = app_client.get("/summoner/CACHED/EUW")
 

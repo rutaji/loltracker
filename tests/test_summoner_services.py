@@ -10,6 +10,7 @@ from app.services.summonerServices import (
     load_summoner_page,
     refresh_summoner_matches_service,
 )
+from app.utils.queue_filters import matches_queue_filter
 
 
 class FakeApiClient:
@@ -36,7 +37,7 @@ def make_request(api_client=None):
 
 
 class MockDAO:
-    def get_matches(self, summoner_name, offset, count):
+    def get_matches(self, summoner_name, offset, count, queue_filter="all"):
         all_matches = [
             Match(
                 match_id=i,
@@ -51,7 +52,7 @@ class MockDAO:
         ]
         return all_matches[offset:offset + count]
 
-    def summoner_has_matches(self, summoner_name):
+    def summoner_has_matches(self, summoner_name, queue_filter="all"):
         return True
 
     def get_match_ids_for_summoner(self, summoner_name):
@@ -74,7 +75,7 @@ class MockSummonerDAO:
     def __init__(self):
         self.saved_summoner = None
 
-    def summoner_has_matches(self, summoner_name):
+    def summoner_has_matches(self, summoner_name, queue_filter="all"):
         return True
 
     def get_match_ids_for_summoner(self, summoner_name):
@@ -152,9 +153,30 @@ def test_get_matches_pagination():
     assert result.refreshed_from_remote is False
 
 
+def test_get_matches_service_passes_queue_filter_to_dao():
+    captured = {}
+
+    class FilterSpyDAO(MockDAO):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
+            captured["get_matches_filter"] = queue_filter
+            return super().get_matches(summoner_name, offset, count, queue_filter)
+
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
+            captured["has_matches_filter"] = queue_filter
+            return super().summoner_has_matches(summoner_name, queue_filter)
+
+    dao = FilterSpyDAO()
+
+    result = get_matches_service(make_request(), "test", "euw", 0, 2, dao, "aram")
+
+    assert len(result.match_page.matches) == 2
+    assert captured["get_matches_filter"] == "aram"
+    assert captured["has_matches_filter"] == "aram"
+
+
 def test_get_matches_has_more_is_false_when_page_is_exactly_full():
     class ExactPageDAO:
-        def get_matches(self, summoner_name, offset, count):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
             all_matches = [
                 Match(
                     match_id=i,
@@ -169,7 +191,7 @@ def test_get_matches_has_more_is_false_when_page_is_exactly_full():
             ]
             return all_matches[offset:offset + count]
 
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return True
 
         def get_match_ids_for_summoner(self, summoner_name):
@@ -199,10 +221,10 @@ def test_get_matches_service_fetches_remote_only_when_cache_empty():
             self.saved_matches = []
             self.saved_bans= []
 
-        def get_matches(self, summoner_name, offset, count):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
             return self.saved_matches[offset:offset + count]
 
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return False
 
         def get_match_ids_for_summoner(self, summoner_name):
@@ -272,10 +294,10 @@ def test_get_matches_service_skips_failed_remote_match_detail():
             self.saved_matches = []
             self.saved_bans = []
 
-        def get_matches(self, summoner_name, offset, count):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
             return self.saved_matches[offset:offset + count]
 
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return False
 
         def get_match_ids_for_summoner(self, summoner_name):
@@ -346,9 +368,94 @@ def test_get_matches_service_skips_failed_remote_match_detail():
     assert len(dao.saved_matches) == 1
 
 
+def test_get_matches_service_keeps_sync_cap_even_with_queue_filter():
+    class EmptyMatchDAO:
+        def __init__(self):
+            self.saved_matches = []
+            self.saved_bans = []
+
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
+            filtered_matches = [
+                match for match in self.saved_matches
+                if matches_queue_filter(match.queueId, queue_filter)
+            ]
+            return filtered_matches[offset:offset + count]
+
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
+            return any(matches_queue_filter(match.queueId, queue_filter) for match in self.saved_matches)
+
+        def get_match_ids_for_summoner(self, summoner_name):
+            return set()
+
+        def get_summoner(self, summoner_name):
+            return Summoner(
+                puuid="remote-puuid",
+                name="test",
+                tagline="euw",
+                wins=0,
+                gamesPlayed=0,
+                kills=0,
+                deaths=0,
+                assists=0,
+            )
+
+        def match_exist(self, match_id):
+            return False
+
+        def add_match(self, match):
+            self.saved_matches.append(match)
+
+        def add_ban(self, bans):
+            self.saved_bans.extend(bans)
+
+    api_client = FakeApiClient()
+    api_client.match_ids = ["EUW1_1", "EUW1_2", "EUW1_3"]
+    api_client.match_info_by_id = {
+        "EUW1_1": {
+            "metadata": {"matchId": "EUW1_1"},
+            "info": {
+                "gameStartTimestamp": 1710000000000,
+                "gameEndTimestamp": 1710001800000,
+                "gameVersion": "14.5",
+                "queueId": 420,
+                "participants": [],
+            },
+        },
+        "EUW1_2": {
+            "metadata": {"matchId": "EUW1_2"},
+            "info": {
+                "gameStartTimestamp": 1710002000000,
+                "gameEndTimestamp": 1710003800000,
+                "gameVersion": "14.5",
+                "queueId": 440,
+                "participants": [],
+            },
+        },
+        "EUW1_3": {
+            "metadata": {"matchId": "EUW1_3"},
+            "info": {
+                "gameStartTimestamp": 1710004000000,
+                "gameEndTimestamp": 1710005800000,
+                "gameVersion": "14.5",
+                "queueId": 450,
+                "participants": [],
+            },
+        },
+    }
+
+    dao = EmptyMatchDAO()
+    request = make_request(api_client)
+
+    result = get_matches_service(request, "test", "euw", 0, 1, dao, "aram")
+
+    assert result.refreshed_from_remote is True
+    assert result.match_page.matches == []
+    assert len(dao.saved_matches) == 2
+
+
 def test_load_summoner_page_returns_not_found_when_summoner_missing():
     class MissingSummonerDAO:
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return False
 
         def get_match_ids_for_summoner(self, summoner_name):
@@ -400,10 +507,10 @@ def test_load_summoner_page_refreshes_summoner_after_remote_matches():
                 assists=7,
             )
 
-        def get_matches(self, summoner_name, offset, count):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
             return self.saved_matches[offset:offset + count]
 
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return False
 
         def get_match_ids_for_summoner(self, summoner_name):
@@ -502,10 +609,10 @@ def test_get_matches_service_fetches_puuid_when_cached_summoner_has_empty_puuid(
         def __init__(self):
             self.puuid_used = None
 
-        def get_matches(self, summoner_name, offset, count):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
             return []
 
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return False
 
         def get_match_ids_for_summoner(self, summoner_name):
@@ -549,7 +656,7 @@ def test_get_matches_service_does_not_fetch_remote_when_cache_exists():
         def __init__(self):
             self.added_matches = []
 
-        def get_matches(self, summoner_name, offset, count):
+        def get_matches(self, summoner_name, offset, count, queue_filter="all"):
             return [
                 Match(
                     match_id="m1",
@@ -562,7 +669,7 @@ def test_get_matches_service_does_not_fetch_remote_when_cache_exists():
                 )
             ]
 
-        def summoner_has_matches(self, summoner_name):
+        def summoner_has_matches(self, summoner_name, queue_filter="all"):
             return True
 
         def get_match_ids_for_summoner(self, summoner_name):
