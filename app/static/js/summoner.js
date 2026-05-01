@@ -53,6 +53,19 @@ document.addEventListener("DOMContentLoaded", () => {
         return value.toFixed(2);
     }
 
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function buildParticipantUrl(participant) {
+        return `/summoner/${encodeURIComponent(participant.name || "")}/${encodeURIComponent(participant.tagline || "")}`;
+    }
+
     function updateLoadedMatchSummary() {
         if (!loadedGamesValue || !loadedWinrateValue || !loadedKdaValue) {
             return;
@@ -203,15 +216,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr><th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th></tr>`;
                 match.participants.forEach((participant) => {
                     const selfBadge = participant.puuid === puuid ? `<span class="player-badge">You</span>` : ``;
+                    const participantUrl = buildParticipantUrl(participant);
+                    const participantName = escapeHtml(participant.name);
                     html += `<tr class="${getParticipantRowClass(participant)}">
-                        <td>${participant.name} ${selfBadge}</td>
-                        <td>${participant.champion}</td>
-                        <td>${participant.kills}</td>
-                        <td>${participant.deaths}</td>
-                        <td>${participant.assists}</td>
-                        <td>${participant.gold}</td>
-                        <td>${participant.team}</td>
-                        <td>${participant.won}</td>
+                        <td><a class="participant-link" href="${participantUrl}">${participantName}</a> ${selfBadge}</td>
+                        <td>${escapeHtml(participant.champion)}</td>
+                        <td>${escapeHtml(participant.kills)}</td>
+                        <td>${escapeHtml(participant.deaths)}</td>
+                        <td>${escapeHtml(participant.assists)}</td>
+                        <td>${escapeHtml(participant.gold)}</td>
+                        <td>${escapeHtml(participant.team)}</td>
+                        <td>${escapeHtml(participant.won)}</td>
                     </tr>`;
                 });
                 html += `</table></div>`;

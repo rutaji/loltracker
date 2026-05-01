@@ -148,6 +148,76 @@ def test_add_match(db_session):
     assert db_session.query(Champion).filter(Champion.id == "Lux").one()
 
 
+def test_add_match_updates_existing_summoner_name_from_complete_participant_identity(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="OldName#EUW", games_played=0, games_won=0, kill=0, death=0, assist=0))
+    db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.commit()
+
+    match = Match(
+        match_id="match-name-update",
+        start=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
+        end=datetime(2026, 4, 7, 12, 30, tzinfo=UTC),
+        version="1.27.2",
+        queueId=420,
+        queueDescription="Ranked Solo",
+        participants=[
+            MatchParticipant(
+                puuid="player-1",
+                name="NewName",
+                tagline="EUW",
+                kills=1,
+                deaths=2,
+                assists=3,
+                gold=1000,
+                team=100,
+                champion="Ahri",
+                won=True,
+            ),
+        ],
+    )
+
+    dao.add_match(match)
+
+    assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one().summoner_name == "NewName#EUW"
+
+
+def test_add_match_does_not_overwrite_existing_summoner_name_with_incomplete_identity(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="KnownName#EUW", games_played=0, games_won=0, kill=0, death=0, assist=0))
+    db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.commit()
+
+    match = Match(
+        match_id="match-incomplete-name",
+        start=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
+        end=datetime(2026, 4, 7, 12, 30, tzinfo=UTC),
+        version="1.27.2",
+        queueId=420,
+        queueDescription="Ranked Solo",
+        participants=[
+            MatchParticipant(
+                puuid="player-1",
+                name="",
+                tagline="EUW",
+                kills=1,
+                deaths=2,
+                assists=3,
+                gold=1000,
+                team=100,
+                champion="Ahri",
+                won=True,
+            ),
+        ],
+    )
+
+    dao.add_match(match)
+
+    assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one().summoner_name == "KnownName#EUW"
+
+
 def test_get_matches_applies_pagination(db_session):
     dao = DAO(db_session)
     db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=3, games_won=2, kill=10, death=5, assist=8))
