@@ -42,6 +42,7 @@ class MatchParticipant(Base):
     death = Column(Integer)
     gold = Column(Integer)
     team = Column(Integer)
+    position = Column(String)
     won = Column(Boolean)
     champion = Column(String,ForeignKey("champion.id"))
 

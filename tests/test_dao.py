@@ -117,6 +117,7 @@ def test_add_match(db_session):
                 assists=2,
                 gold=555,
                 team=1,
+                position="TOP",
                 champion="Akali",
                 won=True,
             ),
@@ -129,6 +130,7 @@ def test_add_match(db_session):
                 assists=2,
                 gold=444,
                 team=2,
+                position="JUNGLE",
                 champion="Lux",
                 won=False,
             ),
@@ -139,6 +141,7 @@ def test_add_match(db_session):
 
     assert db_session.query(DaoMatch).filter(DaoMatch.id == "match-1").one()
     assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.match_id == "match-1").count() == 2
+    assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.summoner_id == "player-1").one().position == "TOP"
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one()
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-2").one()
     assert db_session.query(Champion).filter(Champion.id == "champ_akali").one()
@@ -243,10 +246,10 @@ def test_get_matches_returns_participants_in_stable_order(db_session):
     )
     db_session.add_all(
         [
-            DaoMatchParticipant(summoner_id="player-3", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, won=False, champion="Garen"),
-            DaoMatchParticipant(summoner_id="player-1", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, won=True, champion="Ahri"),
-            DaoMatchParticipant(summoner_id="player-4", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, won=False, champion="Jinx"),
-            DaoMatchParticipant(summoner_id="player-2", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, won=True, champion="Lux"),
+            DaoMatchParticipant(summoner_id="player-3", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, position="TOP", won=False, champion="Garen"),
+            DaoMatchParticipant(summoner_id="player-1", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, position="MIDDLE", won=True, champion="Ahri"),
+            DaoMatchParticipant(summoner_id="player-4", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, position="JUNGLE", won=False, champion="Jinx"),
+            DaoMatchParticipant(summoner_id="player-2", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, position="TOP", won=True, champion="Lux"),
         ]
     )
     db_session.commit()
@@ -254,11 +257,11 @@ def test_get_matches_returns_participants_in_stable_order(db_session):
     matches = dao.get_matches("Charlie#EUW", 0, 10)
 
     assert len(matches) == 1
-    assert [(participant.team, participant.name) for participant in matches[0].participants] == [
-        (100, "Alpha"),
-        (100, "Charlie"),
-        (200, "Bravo"),
-        (200, "Delta"),
+    assert [(participant.team, participant.position, participant.name) for participant in matches[0].participants] == [
+        (100, "TOP", "Alpha"),
+        (100, "MIDDLE", "Charlie"),
+        (200, "TOP", "Delta"),
+        (200, "JUNGLE", "Bravo"),
     ]
 
 
