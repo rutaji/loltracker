@@ -74,8 +74,15 @@ class MatchParser:
         for team in teams:
             id = team.get("teamId", 0)
             bans = team.get("bans", [])
-            for ban in bans:
-                result.append(BanParsed(match_id=match_id,team=id,champion_key=ban.get("championId", 0)))
+            for index, ban in enumerate(bans, start=1):
+                result.append(
+                    BanParsed(
+                        match_id=match_id,
+                        team=id,
+                        ban_order=ban.get("pickTurn") or index,
+                        champion_key=ban.get("championId", 0),
+                    )
+                )
         return result
 
 

@@ -380,16 +380,40 @@ class DAO:
             bans = [bans]
 
         dao_bans = []
+        seen_ban_keys = set()
         for ban in bans:
+            ban_key = (ban.match_id, ban.team, ban.ban_order)
+            if ban_key in seen_ban_keys:
+                logger.debug("add_ban: skipping duplicate ban=%s", ban_key)
+                continue
+            seen_ban_keys.add(ban_key)
+
+            existing_ban = (
+                self.db.query(Ban)
+                .filter(
+                    Ban.match_id == ban.match_id,
+                    Ban.team == ban.team,
+                    Ban.ban_order == ban.ban_order,
+                )
+                .first()
+            )
+            if existing_ban is not None:
+                logger.debug("add_ban: skipping existing ban=%s", ban_key)
+                continue
+
             dao_bans.append(
                 Ban(
                     match_id=ban.match_id,
                     team=ban.team,
+                    ban_order=ban.ban_order,
                     champion_key=ban.champion_key,
                 )
             )
 
         try:
+            if not dao_bans:
+                logger.info("add_ban: no new bans to add")
+                return True
             self.db.add_all(dao_bans)
             self.db.commit()
             logger.info("add_ban: added %d ban(s)", len(dao_bans))
