@@ -39,7 +39,7 @@ def make_match_page() -> MatchPage:
     return MatchPage(matches=matches, hasMore=True, nextOffset=settings.matches_per_page)
 
 def make_SummonerChampion() -> list[SummonerChampion]:
-    return [SummonerChampion(id="fake_id",champion_name="fake_name",games_played=3,wins=1)]
+    return [SummonerChampion(champion_id="fake_id",champion_name="fake_name",games_played=3,wins=1)]
 
 
 def make_page_data() -> SummonerPageServiceResult:
@@ -74,6 +74,14 @@ def test_summoner_page_not_found_redirects(monkeypatch):
         "load_summoner_page",
         lambda request, name, tagline, offset, count, dao: SummonerPageServiceResult(summoner=None, match_page=None),
     )
+    class FakeDAO:
+        def get_summoner_champions(self, summoner_id, count):
+            return make_SummonerChampion()
+
+    fake_dao = FakeDAO()
+    from app.main import app as _app
+    _app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
+    _app.dependency_overrides.pop(endpoints.get_dao, None)
 
     response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
     assert response.status_code == 303
@@ -82,6 +90,14 @@ def test_summoner_page_not_found_redirects(monkeypatch):
 
 def test_summoner_matches_ajax_response(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao: make_page_data())
+
+    class FakeDAO:
+        def get_summoner_champions(self, summoner_id, count):
+            return make_SummonerChampion()
+
+    fake_dao = FakeDAO()
+    from app.main import app as _app
+    _app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
 
     response = client.get("/summoner/test/euw?offset=0&ajax=true")
     assert response.status_code == 200
