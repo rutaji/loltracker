@@ -175,3 +175,110 @@ def test_get_consumes_rate_limiter_tokens(monkeypatch):
 
     assert result == {"ok": True}
     assert limiter.calls == [(1, True, 10)]
+
+def test_get_league_entries_challenger_tier(monkeypatch):
+    """Test get_league_entries with CHALLENGER tier returns entries."""
+    capture = {}
+    response = DummyResponse({"entries": [{"puuid": "p1"}, {"puuid": "p2"}]})
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "CHALLENGER")
+
+    assert result == [{"puuid": "p1"}, {"puuid": "p2"}]
+    assert "/challengerleagues/" in capture["url"]
+
+
+def test_get_league_entries_grandmaster_tier(monkeypatch):
+    """Test get_league_entries with GRANDMASTER tier returns entries."""
+    capture = {}
+    response = DummyResponse({"entries": [{"puuid": "p1"}]})
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "GRANDMASTER")
+
+    assert result == [{"puuid": "p1"}]
+    assert "/grandmasterleagues/" in capture["url"]
+
+
+def test_get_league_entries_master_tier(monkeypatch):
+    """Test get_league_entries with MASTER tier returns entries."""
+    capture = {}
+    response = DummyResponse({"entries": [{"puuid": "p1"}, {"puuid": "p2"}]})
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "MASTER")
+
+    assert result == [{"puuid": "p1"}, {"puuid": "p2"}]
+    assert "/masterleagues/" in capture["url"]
+
+
+def test_get_league_entries_special_tier_returns_list_directly(monkeypatch):
+    """Test that special tiers returning list directly (not dict) work."""
+    capture = {}
+    response = DummyResponse([{"puuid": "p1"}])
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "CHALLENGER")
+
+    # When response is a list directly, it should still return it
+    assert result == [{"puuid": "p1"}]
+
+
+def test_get_league_entries_no_division_returns_empty(monkeypatch):
+    """Test that requesting entries with no division for normal tier returns empty list."""
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "GOLD")
+
+    # Should return empty list when division is None for normal tier
+    assert result == []
+
+
+def test_get_league_entries_handles_exception_gracefully(monkeypatch):
+    """Test that exceptions during get_league_entries are caught and empty list returned."""
+    def fake_client_raises(*, timeout):
+        raise Exception("Network error")
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client_raises)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="euw1")
+    result = client.get_league_entries("RANKED_SOLO_5x5", "GOLD", "I")
+
+    assert result == []
+
+
+def test_init_with_short_api_key_sets_unknown_identifier(monkeypatch):
+    """Test that very short API keys use 'UNKNOWN' identifier."""
+    client = RiotApiClient(api_key="x", regional_routing="europe", platform_routing="euw1")
+    
+    assert client.key_identifier == "key_ends_with_UNKNOWN"
+
+
+def test_init_with_normal_api_key_sets_suffix_identifier(monkeypatch):
+    """Test that normal API keys use last 8 chars as identifier."""
+    client = RiotApiClient(api_key="1234567890abcdef", regional_routing="europe", platform_routing="euw1")
+    
+    assert client.key_identifier == "key_ends_with_90abcdef"
