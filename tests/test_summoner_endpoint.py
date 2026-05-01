@@ -58,12 +58,11 @@ def test_summoner_page_found(monkeypatch):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
-    from app.main import app as _app
-    _app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
+    app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
 
 
     response = client.get("/summoner/test/euw")
-    _app.dependency_overrides.pop(endpoints.get_dao, None)
+    app.dependency_overrides.pop(endpoints.get_dao, None)
 
     assert response.status_code == 200
     assert "test#euw" in response.text
@@ -88,7 +87,13 @@ def test_summoner_page_links_match_participants(monkeypatch):
             won=True,
         )
     ]
+    class FakeDAO:
+        def get_summoner_champions(self, summoner_id, count):
+            return make_SummonerChampion()
+
+    fake_dao = FakeDAO()
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: page_data)
+    app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
 
     response = client.get("/summoner/test/euw")
 
@@ -107,9 +112,8 @@ def test_summoner_page_not_found_redirects(monkeypatch):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
-    from app.main import app as _app
-    _app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
-    _app.dependency_overrides.pop(endpoints.get_dao, None)
+    app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
+    app.dependency_overrides.pop(endpoints.get_dao, None)
 
     response = client.get("/summoner/nonexistent/euw", follow_redirects=False)
     assert response.status_code == 303
