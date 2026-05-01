@@ -156,7 +156,14 @@
                                         <span class="player-badge">You</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ p.champion }}</td>
+                                    <td>
+                                        <a href="{{ request.url_for('get_champion', name=p.champion) }}" class="champion-link">
+                                            {% if p.championImagePath %}
+                                            <img src="{{ p.championImagePath }}" alt="{{ p.champion }}" class="champion-avatar" loading="lazy">
+                                            {% endif %}
+                                            <span>{{ p.champion }}</span>
+                                        </a>
+                                    </td>
                                     <td>{{ p.kills }}</td>
                                     <td>{{ p.deaths }}</td>
                                     <td>{{ p.assists }}</td>

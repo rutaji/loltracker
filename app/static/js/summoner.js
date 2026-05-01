@@ -218,9 +218,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     const selfBadge = participant.puuid === puuid ? `<span class="player-badge">You</span>` : ``;
                     const participantUrl = buildParticipantUrl(participant);
                     const participantName = escapeHtml(participant.name);
+                    const championImageHtml = participant.championImagePath
+                        ? `<img src="${participant.championImagePath}" alt="${participant.champion}" class="champion-avatar" loading="lazy">`
+                        : ``;
                     html += `<tr class="${getParticipantRowClass(participant)}">
                         <td><a class="participant-link" href="${participantUrl}">${participantName}</a> ${selfBadge}</td>
-                        <td>${escapeHtml(participant.champion)}</td>
+                        <td><a href="/champion/${encodeURIComponent(participant.champion)}" class="champion-link">${championImageHtml}<span>${escapeHtml(participant.champion)}</span></a></td>
                         <td>${escapeHtml(participant.kills)}</td>
                         <td>${escapeHtml(participant.deaths)}</td>
                         <td>${escapeHtml(participant.assists)}</td>

@@ -21,6 +21,7 @@ from app.utils.champion_kit import resolve_champion_kit
 from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.queue_filters import QUEUE_FILTER_OPTIONS, normalize_queue_filter
 from app.utils.versioning import normalize_version
+from app.telemetry.metrics import get_riot_ingestion_status
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -232,3 +233,8 @@ async def get_champion(
             "trend_series": jsonable_encoder(trend_series),
         },
     )
+
+
+@router.get("/admin/riot-ingestion/status")
+async def get_riot_ingestion_admin_status(request: Request):
+    return JSONResponse(content=get_riot_ingestion_status(request.app))
