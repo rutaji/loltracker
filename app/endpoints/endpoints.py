@@ -133,7 +133,7 @@ async def get_summoner(
         context={
             "summoner": summoner,
             "matchData": match_page,
-            "favoriteChampios":favorite_champion
+            "favoriteChampios":favorite_champion,
             "queue_filter": selected_queue_filter,
             "queue_filters": QUEUE_FILTER_OPTIONS,
         },
