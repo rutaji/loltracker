@@ -45,6 +45,37 @@
                 </article>
             </div>
         </section>
+        <section class="favorite-champions">
+            <div class="section-heading">
+                <div>
+                    <h2>Favorite Champions</h2>
+                </div>
+            </div>
+            <div class="table-shell">
+                <table class="champion-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Champion</th>
+                            <th scope="col">Games</th>
+                            <th scope="col">Wins</th>
+                            <th scope="col">Winrate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for favorite in favoriteChampios %}
+                        <tr>
+                            <td>{{ favorite.champion_name }}</td>
+                            <td>{{ favorite.games_played }}</td>
+                            <td>{{ favorite.wins }}</td>
+                            <td>
+                                {{ favorite.winrate }}%
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <section class="matches-section">
             <div class="section-heading">

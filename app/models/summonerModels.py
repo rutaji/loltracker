@@ -69,3 +69,13 @@ class MatchPage(BaseModel):
 class SummonerData(BaseModel):
     summoner: Summoner
     matchPage: MatchPage
+
+class SummonerChampion(BaseModel):
+    champion_name: str
+    champion_id: str
+    games_played: int
+    wins: int
+
+    @property
+    def winrate(self):
+        return (self.wins / self.games_played) * 100 if self.games_played else -1

@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
-from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban
+from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban, SummonerChampion
 from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.utils import split_name
 from app.utils.queue_filters import (
@@ -426,20 +426,35 @@ class DAO:
         return self.db.query(Summoner).filter(Summoner.id == summoner_id).first()
 
     def add_champion(self,champion:Champion):
-            try:
-                logger.info("add_champion: merging champion id=%s", getattr(champion, 'id', None))
-                self.db.merge(champion)
-                self.db.commit()
-                logger.info("add_champion: committed champion id=%s", getattr(champion, 'id', None))
-            except SQLAlchemyError:
-                logger.error("add_champion: failed for champion id=%s", getattr(champion, 'id', None))
-                self.db.rollback()
-                raise
+        logger.info("add_champion: merging champion id=%s", getattr(champion, 'id', None))
+        try:
+            self.db.merge(champion)
+            self.db.commit()
+        except SQLAlchemyError:
+            logger.error("add_champion: failed for champion id=%s", getattr(champion, 'id', None))
+            self.db.rollback()
+            raise
+        logger.info("add_champion: committed champion id=%s", getattr(champion, 'id', None))
 
     def get_champion_dao(self, champion_id) -> Champion:
         return self.db.query(Champion).filter(Champion.id == champion_id).first()
 
-
+    def get_summoner_champions(self,summoner_id,count) -> list[app.models.summonerModels.SummonerChampion]:
+        result = []
+        db_favorite_champions = (self.db.query(SummonerChampion)
+                                 .join(Champion)
+                                 #.filter(Champion.id == SummonerChampion.champion_id)
+                                 .filter(SummonerChampion.summoner_id == summoner_id)
+                                 .order_by(SummonerChampion.games_played.desc()).
+                                 limit(count).all())
+        for champion in db_favorite_champions:
+            result.append(app.models.summonerModels.SummonerChampion(
+                games_played=champion.games_played,
+                wins=champion.games_won,
+                champion_id=champion.champion_id,
+                champion_name=champion.SummonerChampion_Champion.champion_name,
+            ))
+        return result
 
 
     def match_exist(self,id) -> bool:
