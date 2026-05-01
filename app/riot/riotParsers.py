@@ -12,6 +12,15 @@ logger = logging.getLogger(__name__)
 
 class MatchParticipantParser:
     @staticmethod
+    def _parse_position(participant_data: dict[str, Any]) -> str:
+        position = (
+            participant_data.get("teamPosition")
+            or participant_data.get("individualPosition")
+            or ""
+        )
+        return "" if position == "INVALID" else position
+
+    @staticmethod
     def parse(participant_data: dict[str, Any]) -> MatchParticipant:
         # Log the identity of the participant being parsed for easier tracing
         logger.debug(
@@ -29,6 +38,7 @@ class MatchParticipantParser:
             assists=participant_data.get("assists", 0),
             gold=participant_data.get("goldEarned", 0),
             team=participant_data.get("teamId", 0),
+            position=MatchParticipantParser._parse_position(participant_data),
             champion=participant_data.get("championName", ""),
             won=participant_data.get("win", False),
         )

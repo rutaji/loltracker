@@ -23,6 +23,17 @@ from app.utils.versioning import version_sort_key
 logger = logging.getLogger(__name__)
 
 class DAO:
+    POSITION_ORDER = {
+        "TOP": 1,
+        "JUNGLE": 2,
+        "MIDDLE": 3,
+        "MID": 3,
+        "BOTTOM": 4,
+        "BOT": 4,
+        "UTILITY": 5,
+        "SUPPORT": 5,
+    }
+
     def __init__(self, db):
         self.db = db
 
@@ -57,10 +68,15 @@ class DAO:
         return ""
 
     @staticmethod
-    def _participant_sort_key(participant: MatchParticipant) -> tuple[int, str, str, str]:
+    def _has_complete_riot_id(name: str | None, tagline: str | None) -> bool:
+        return bool((name or "").strip() and (tagline or "").strip())
+
+    @staticmethod
+    def _participant_sort_key(participant: MatchParticipant) -> tuple[int, int, str, str, str, str]:
         summoner_name = ""
         tagline = ""
         champion_name = ""
+        position = (participant.position or "").upper()
 
         if participant.MatchParticipant_Summoner and participant.MatchParticipant_Summoner.summoner_name:
             name_parts = split_name(participant.MatchParticipant_Summoner.summoner_name)
@@ -72,6 +88,8 @@ class DAO:
 
         return (
             participant.team or 0,
+            DAO.POSITION_ORDER.get(position, 99),
+            position,
             summoner_name,
             tagline,
             champion_name,
@@ -219,8 +237,9 @@ class DAO:
                         assists=p.assist,
                         gold=p.gold,
                         team=p.team,
-                        champion=champion_name,
                         championImagePath=resolve_champion_image_path(champion_name),
+                        position=p.position or "",
+                        champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
                         won=p.won
                     )
                 )
@@ -319,6 +338,7 @@ class DAO:
                                 assist=participant.assists,
                                 gold=participant.gold,
                                 team=participant.team,
+                                position=(participant.position or "").upper(),
                                 won=participant.won,
                                 champion=champion_id,
                             ),
@@ -329,10 +349,21 @@ class DAO:
                 self.db.add(dao_match)
                 for participant, summoner_name in dao_participants:
                     self.db.add(participant)
-                    if participant.summoner_id not in queued_summoner_ids and not self.summoner_exist(participant.summoner_id):
+                    existing_summoner = self.get_summoner_dao(participant.summoner_id)
+                    if participant.summoner_id not in queued_summoner_ids and existing_summoner is None:
                         logger.debug("add_match: creating default summoner id=%s name=%s", participant.summoner_id, summoner_name)
                         self.db.merge(Summoner.create_default(id=participant.summoner_id, name=summoner_name))
                         queued_summoner_ids.add(participant.summoner_id)
+                    elif existing_summoner is not None:
+                        name, tagline = split_name(summoner_name)
+                        if self._has_complete_riot_id(name, tagline) and existing_summoner.summoner_name != summoner_name:
+                            logger.debug(
+                                "add_match: updating summoner name id=%s old=%s new=%s",
+                                participant.summoner_id,
+                                existing_summoner.summoner_name,
+                                summoner_name,
+                            )
+                            existing_summoner.summoner_name = summoner_name
                     if participant.champion not in queued_champion_ids and not self.champion_exist(participant.champion):
                         logger.debug("add_match: creating default champion id=%s", participant.champion)
                         self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
@@ -343,6 +374,8 @@ class DAO:
                 logger.error("add_match: failed to add match_id=%s", match_id)
                 self.db.rollback()
                 raise
+
+            
     def add_ban(self, bans: list[app.models.summonerModels.BanParsed] | app.models.summonerModels.BanParsed):
         """Add one or multiple ban records. Accepts a single BanParsed or a list of them."""
         # normalize to list

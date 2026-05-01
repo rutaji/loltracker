@@ -117,6 +117,7 @@ def test_add_match(db_session):
                 assists=2,
                 gold=555,
                 team=1,
+                position="TOP",
                 champion="Akali",
                 won=True,
             ),
@@ -129,6 +130,7 @@ def test_add_match(db_session):
                 assists=2,
                 gold=444,
                 team=2,
+                position="JUNGLE",
                 champion="Lux",
                 won=False,
             ),
@@ -139,10 +141,81 @@ def test_add_match(db_session):
 
     assert db_session.query(DaoMatch).filter(DaoMatch.id == "match-1").one()
     assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.match_id == "match-1").count() == 2
+    assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.summoner_id == "player-1").one().position == "TOP"
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one()
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-2").one()
     assert db_session.query(Champion).filter(Champion.id == "champ_akali").one()
     assert db_session.query(Champion).filter(Champion.id == "Lux").one()
+
+
+def test_add_match_updates_existing_summoner_name_from_complete_participant_identity(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="OldName#EUW", games_played=0, games_won=0, kill=0, death=0, assist=0))
+    db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.commit()
+
+    match = Match(
+        match_id="match-name-update",
+        start=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
+        end=datetime(2026, 4, 7, 12, 30, tzinfo=UTC),
+        version="1.27.2",
+        queueId=420,
+        queueDescription="Ranked Solo",
+        participants=[
+            MatchParticipant(
+                puuid="player-1",
+                name="NewName",
+                tagline="EUW",
+                kills=1,
+                deaths=2,
+                assists=3,
+                gold=1000,
+                team=100,
+                champion="Ahri",
+                won=True,
+            ),
+        ],
+    )
+
+    dao.add_match(match)
+
+    assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one().summoner_name == "NewName#EUW"
+
+
+def test_add_match_does_not_overwrite_existing_summoner_name_with_incomplete_identity(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="KnownName#EUW", games_played=0, games_won=0, kill=0, death=0, assist=0))
+    db_session.add(Champion.create_default(id="Ahri", name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.commit()
+
+    match = Match(
+        match_id="match-incomplete-name",
+        start=datetime(2026, 4, 7, 12, 0, tzinfo=UTC),
+        end=datetime(2026, 4, 7, 12, 30, tzinfo=UTC),
+        version="1.27.2",
+        queueId=420,
+        queueDescription="Ranked Solo",
+        participants=[
+            MatchParticipant(
+                puuid="player-1",
+                name="",
+                tagline="EUW",
+                kills=1,
+                deaths=2,
+                assists=3,
+                gold=1000,
+                team=100,
+                champion="Ahri",
+                won=True,
+            ),
+        ],
+    )
+
+    dao.add_match(match)
+
+    assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one().summoner_name == "KnownName#EUW"
 
 
 def test_get_matches_applies_pagination(db_session):
@@ -243,10 +316,10 @@ def test_get_matches_returns_participants_in_stable_order(db_session):
     )
     db_session.add_all(
         [
-            DaoMatchParticipant(summoner_id="player-3", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, won=False, champion="Garen"),
-            DaoMatchParticipant(summoner_id="player-1", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, won=True, champion="Ahri"),
-            DaoMatchParticipant(summoner_id="player-4", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, won=False, champion="Jinx"),
-            DaoMatchParticipant(summoner_id="player-2", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, won=True, champion="Lux"),
+            DaoMatchParticipant(summoner_id="player-3", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, position="TOP", won=False, champion="Garen"),
+            DaoMatchParticipant(summoner_id="player-1", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, position="MIDDLE", won=True, champion="Ahri"),
+            DaoMatchParticipant(summoner_id="player-4", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=200, position="JUNGLE", won=False, champion="Jinx"),
+            DaoMatchParticipant(summoner_id="player-2", match_id="match-1", kill=1, death=2, assist=3, gold=1000, team=100, position="TOP", won=True, champion="Lux"),
         ]
     )
     db_session.commit()
@@ -254,11 +327,11 @@ def test_get_matches_returns_participants_in_stable_order(db_session):
     matches = dao.get_matches("Charlie#EUW", 0, 10)
 
     assert len(matches) == 1
-    assert [(participant.team, participant.name) for participant in matches[0].participants] == [
-        (100, "Alpha"),
-        (100, "Charlie"),
-        (200, "Bravo"),
-        (200, "Delta"),
+    assert [(participant.team, participant.position, participant.name) for participant in matches[0].participants] == [
+        (100, "TOP", "Alpha"),
+        (100, "MIDDLE", "Charlie"),
+        (200, "TOP", "Delta"),
+        (200, "JUNGLE", "Bravo"),
     ]
 
 

@@ -11,6 +11,7 @@ class MatchParticipant(BaseModel):
     assists: int
     gold: int
     team: int
+    position: str = ""
     champion: str
     championImagePath: str | None = None
     won: bool
