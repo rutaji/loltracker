@@ -40,14 +40,6 @@
                     >
                 </div>
             </div>
-            <form class="patch-form" id="patch-form">
-                <label for="version-select">Select Patch</label>
-                <select id="version-select">
-                    {% for patch in available_versions %}
-                    <option value="{{ patch }}" {% if version == patch %}selected{% endif %}>{{ patch }}</option>
-                    {% endfor %}
-                </select>
-            </form>
         </section>
 
         {% set kit_spells = champion_kit.spells if champion_kit else [] %}
@@ -97,7 +89,14 @@
 
         <section class="stats-panel">
             <div class="section-heading">
-                <h2>Selected Version Statistics</h2>
+                <form class="patch-form" id="patch-form">
+                <label for="version-select">Select Patch</label>
+                <select id="version-select">
+                    {% for patch in available_versions %}
+                    <option value="{{ patch }}" {% if version == patch %}selected{% endif %}>{{ patch }}</option>
+                    {% endfor %}
+                </select>
+                </form>
                 <div class="inline-portrait-shell {% if not champion_image_path %}hidden{% endif %}">
                     <img
                         class="inline-portrait"
