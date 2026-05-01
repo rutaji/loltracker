@@ -118,7 +118,9 @@
                                 {% for p in match.participants %}
                                 <tr class="participant-row team-{{ p.team }}{% if p.puuid == summoner.puuid %} participant-row--self{% endif %}">
                                     <td>
-                                        {{ p.name }}
+                                        <a class="participant-link" href="/summoner/{{ p.name|urlencode }}/{{ p.tagline|urlencode }}">
+                                            {{ p.name }}
+                                        </a>
                                         {% if p.puuid == summoner.puuid %}
                                         <span class="player-badge">You</span>
                                         {% endif %}
