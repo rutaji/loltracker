@@ -101,6 +101,30 @@ def test_match_participant_parser_treats_invalid_position_as_unknown():
     assert participant.position == ""
 
 
+def test_match_parser_maps_bans_with_pick_turn():
+    bans = MatchParser.parse_bans(
+        {
+            "metadata": {"matchId": "EUW1_123"},
+            "info": {
+                "teams": [
+                    {
+                        "teamId": 100,
+                        "bans": [
+                            {"championId": 799, "pickTurn": 4},
+                            {"championId": 799, "pickTurn": 13},
+                        ],
+                    },
+                ],
+            },
+        }
+    )
+
+    assert [(ban.match_id, ban.team, ban.ban_order, ban.champion_key) for ban in bans] == [
+        ("EUW1_123", 100, 4, 799),
+        ("EUW1_123", 100, 13, 799),
+    ]
+
+
 def test_summoner_parser_maps_account_data():
     account_data = {
         "puuid": "player-puuid",

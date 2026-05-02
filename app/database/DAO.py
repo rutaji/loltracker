@@ -387,6 +387,7 @@ class DAO:
                 Ban(
                     match_id=ban.match_id,
                     team=ban.team,
+                    ban_order=ban.ban_order,
                     champion_key=ban.champion_key,
                 )
             )

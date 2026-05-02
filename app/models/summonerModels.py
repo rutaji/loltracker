@@ -33,6 +33,7 @@ class Ban(BaseModel):
 class BanParsed(BaseModel):
     match_id: str
     team: int
+    ban_order: int
     champion_key: int
 
 

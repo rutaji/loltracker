@@ -32,6 +32,7 @@ class Match(Base):
     Match_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Match")
     Match_Queue = relationship("Queue", back_populates="Queue_Match")
     Match_Ban = relationship("Ban", back_populates="Ban_Match")
+    Match_ChampionMatchBan = relationship("ChampionMatchBan", back_populates="ChampionMatchBan_Match")
 
 class MatchParticipant(Base):
     __tablename__ = "match_participant"
@@ -71,11 +72,12 @@ class Champion(Base):
     __tablename__ = "champion"
     id = Column(String, primary_key=True, index=True)
     champion_name = Column(String, index=True,nullable=True)
-    key=Column(Integer,index=True,nullable=True)
+    key=Column(Integer,index=True,unique=True,nullable=True)
 
     Champion_ChampionStats = relationship("ChampionStats", back_populates="ChampionStats_Champion")
     Champion_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Champion")
     Champion_SummonerChampion = relationship("SummonerChampion", back_populates="SummonerChampion_Champion")
+    Champion_ChampionMatchBan = relationship("ChampionMatchBan", back_populates="ChampionMatchBan_Champion")
 
     @classmethod
     def create_default(cls, id: str,name:str = None):
@@ -115,8 +117,16 @@ class Ban(Base):
     __tablename__ = "ban"
     match_id = Column(String, ForeignKey("match.id"), primary_key=True, index=True)
     team = Column(Integer,primary_key=True, index=True)
-    champion_key = Column(Integer, primary_key=True, index=True)
+    ban_order = Column(Integer, primary_key=True, index=True)
+    champion_key = Column(Integer, index=True)
 
     Ban_Match = relationship("Match", back_populates="Match_Ban")
 
+class ChampionMatchBan(Base):
+    __tablename__ = "champion_match_ban"
+    match_id = Column(String, ForeignKey("match.id"), primary_key=True, index=True)
+    champion_key = Column(Integer, ForeignKey("champion.key"), primary_key=True, index=True)
+
+    ChampionMatchBan_Match = relationship("Match", back_populates="Match_ChampionMatchBan")
+    ChampionMatchBan_Champion = relationship("Champion", back_populates="Champion_ChampionMatchBan")
 
