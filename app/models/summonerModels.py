@@ -2,6 +2,13 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
 
+class MatchParticipantItem(BaseModel):
+    id: int = 0
+    name: str = ""
+    description: str = ""
+    slot: str = ""
+    isRoleBound: bool = False
+
 class MatchParticipant(BaseModel):
     puuid: str
     name: str
@@ -14,6 +21,15 @@ class MatchParticipant(BaseModel):
     position: str = ""
     champion: str
     championImagePath: str | None = None
+    item0: int = 0
+    item1: int = 0
+    item2: int = 0
+    item3: int = 0
+    item4: int = 0
+    item5: int = 0
+    item6: int = 0
+    roleBoundItem: int = 0
+    items: List[MatchParticipantItem] = Field(default_factory=list)
     won: bool
 
 class Match(BaseModel):

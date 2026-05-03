@@ -47,6 +47,14 @@ class MatchParticipant(Base):
     position = Column(String)
     won = Column(Boolean)
     champion = Column(String,ForeignKey("champion.id"))
+    item0 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    item1 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    item2 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    item3 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    item4 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    item5 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    item6 = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
+    role_bound_item = Column(Integer, ForeignKey("item.item_id"), default=0, nullable=False)
 
     MatchParticipant_Summoner = relationship("Summoner", back_populates="Summoner_MatchParticipant")
     MatchParticipant_Match = relationship("Match", back_populates="Match_MatchParticipant")
@@ -96,6 +104,18 @@ class Queue(Base):
     Queue_MatchesAnalyzed= relationship("MatchesAnalyzed", back_populates="MatchesAnalyzed_Queue")
     Queue_Match = relationship("Match", back_populates="Match_Queue")
     Queue_SummonerQueue = relationship("SummonerQueue", back_populates="SummonerQueue_Queue")
+
+
+class Item(Base):
+    __tablename__ = "item"
+
+    item_id = Column(Integer, primary_key=True, index=True, autoincrement=False)
+    name = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+
+    @classmethod
+    def create_default(cls, item_id: int):
+        return Item(item_id=item_id, name=None, description=None)
 
 
 class SummonerQueue(Base):

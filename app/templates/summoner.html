@@ -169,7 +169,7 @@
                         <div class="table-shell">
                             <table>
                                 <tr>
-                                    <th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th>
+                                    <th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Items</th><th>Team</th><th>Won</th>
                                 </tr>
                                 {% for p in match.participants %}
                                 <tr class="participant-row team-{{ p.team }}{% if p.puuid == summoner.puuid %} participant-row--self{% endif %}">
@@ -193,6 +193,23 @@
                                     <td>{{ p.deaths }}</td>
                                     <td>{{ p.assists }}</td>
                                     <td>{{ p.gold }}</td>
+                                    <td>
+                                        <div class="item-strip">
+                                            {% for item in p.items %}
+                                            <span
+                                                class="item-slot{% if not item.id %} item-slot--empty{% endif %}{% if item.isRoleBound %} item-slot--role{% endif %}"
+                                                data-item-id="{{ item.id }}"
+                                                data-item-name="{{ item.name }}"
+                                                data-item-description="{{ item.description }}"
+                                                data-item-slot="{{ item.slot }}"
+                                            >
+                                                {% if item.id %}
+                                                <img src="{{ url_for('static', path='img/items/' ~ item.id ~ '.png') }}" alt="{{ item.name or item.slot }}" loading="lazy">
+                                                {% endif %}
+                                            </span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
                                     <td>{{ p.team }}</td>
                                     <td>{{ p.won }}</td>
                                 </tr>
