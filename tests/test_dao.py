@@ -16,6 +16,7 @@ from app.database.models import (
     MatchesAnalyzed,
     Queue,
     Summoner as DaoSummoner,
+    SummonerChampion as DaoSummonerChampion,
     SummonerQueue as DaoSummonerQueue,
 )
 from app.models.summonerModels import Match, MatchParticipant, Summoner, SummonerDivision
@@ -602,3 +603,88 @@ def test_get_champion_rates_use_matches_analyzed(db_session):
     stats = champion.championStats[0]
     assert stats.pickrate == 10
     assert stats.banrate == 2.5
+
+
+def test_get_summoner_champions_returns_queue_and_kda_totals(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=2, games_won=1, kill=8, death=2, assist=10))
+    db_session.add(Champion(id="Ahri", champion_name="Ahri"))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add(
+        DaoSummonerChampion(
+            summoner_id="player-1",
+            champion_id="Ahri",
+            queue_id=420,
+            games_played=2,
+            games_won=1,
+            kill=8,
+            death=2,
+            assist=10,
+        )
+    )
+    db_session.commit()
+
+    favorite_champions = dao.get_summoner_champions("player-1", 3)
+
+    assert len(favorite_champions) == 1
+    favorite = favorite_champions[0]
+    assert favorite.queueDescription == "Ranked Solo"
+    assert favorite.kills == 8
+    assert favorite.deaths == 2
+    assert favorite.assists == 10
+    assert favorite.kda == 9
+
+
+def test_get_summoner_champions_filters_by_queue_category(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=4, games_won=2, kill=20, death=6, assist=18))
+    db_session.add_all(
+        [
+            Champion(id="Ahri", champion_name="Ahri"),
+            Champion(id="Lux", champion_name="Lux"),
+            Champion(id="Jinx", champion_name="Jinx"),
+            Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None),
+            Queue(queue_id=440, map="Summoner's Rift", description="Ranked Flex", notes=None),
+            Queue(queue_id=1700, map="Rings of Wrath", description="Arena", notes=None),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Ahri",
+                queue_id=420,
+                games_played=5,
+                games_won=3,
+                kill=20,
+                death=6,
+                assist=18,
+            ),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Lux",
+                queue_id=440,
+                games_played=4,
+                games_won=2,
+                kill=12,
+                death=5,
+                assist=22,
+            ),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Jinx",
+                queue_id=1700,
+                games_played=3,
+                games_won=1,
+                kill=18,
+                death=7,
+                assist=8,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    solo_favorites = dao.get_summoner_champions("player-1", 3, "ranked_solo")
+    flex_favorites = dao.get_summoner_champions("player-1", 3, "ranked_flex")
+    other_favorites = dao.get_summoner_champions("player-1", 3, "other")
+
+    assert [favorite.champion_name for favorite in solo_favorites] == ["Ahri"]
+    assert [favorite.champion_name for favorite in flex_favorites] == ["Lux"]
+    assert [favorite.champion_name for favorite in other_favorites] == ["Jinx"]
+

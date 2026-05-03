@@ -122,7 +122,12 @@ async def get_summoner(
             ),
             status_code=303
         )
-    favorite_champion = load_favorite_champions(summoner.puuid,dao,settings.favorite_champion_count)
+    favorite_champion = load_favorite_champions(
+        summoner.puuid,
+        dao,
+        settings.favorite_champion_count,
+        selected_queue_filter,
+    )
     match_page = page_data.match_page
 
     if ajax:

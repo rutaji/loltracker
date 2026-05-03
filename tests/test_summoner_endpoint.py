@@ -65,7 +65,7 @@ def test_summoner_page_found(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
     # Provide a fake DAO so load_favorite_champions can call dao.get_summoner_champions
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -101,7 +101,7 @@ def test_summoner_page_links_match_participants(monkeypatch):
         )
     ]
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -142,7 +142,7 @@ def test_summoner_page_renders_item_icons_in_match_details(monkeypatch):
     ]
 
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -162,7 +162,7 @@ def test_summoner_page_not_found_redirects(monkeypatch):
         lambda request, name, tagline, offset, count, dao, queue_filter: SummonerPageServiceResult(summoner=None, match_page=None),
     )
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -178,7 +178,7 @@ def test_summoner_matches_ajax_response(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
 
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -204,10 +204,20 @@ def test_summoner_queue_filter_is_forwarded(monkeypatch):
 
     monkeypatch.setattr(endpoints, "load_summoner_page", fake_load_summoner_page)
 
+    class FakeDAO:
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+            captured["favorite_queue_filter"] = queue_filter
+            return make_SummonerChampion()
+
+    app.dependency_overrides[endpoints.get_dao] = lambda: FakeDAO()
+
     response = client.get("/summoner/test/euw?queue_filter=aram")
+    app.dependency_overrides.pop(endpoints.get_dao, None)
 
     assert response.status_code == 200
     assert captured["queue_filter"] == "aram"
+    assert captured["favorite_queue_filter"] == "aram"
+    assert 'id="favorite-queue-filter"' in response.text
 
 
 def test_not_found_page_displays_searched_summoner():

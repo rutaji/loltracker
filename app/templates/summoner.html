@@ -75,26 +75,39 @@
                 <div>
                     <h2>Favorite Champions</h2>
                 </div>
+                <div class="match-actions">
+                    <div class="filter-control">
+                        <select id="favorite-queue-filter" name="queue_filter" class="filter-select" aria-label="Filter favorite champions by queue" data-queue-filter-select>
+                            {% for value, label in queue_filters %}
+                            <option value="{{ value }}" {% if queue_filter == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="table-shell">
                 <table class="champion-table">
                     <thead>
                         <tr>
                             <th scope="col">Champion</th>
+                            <th scope="col">Queue</th>
                             <th scope="col">Games</th>
                             <th scope="col">Wins</th>
                             <th scope="col">Winrate</th>
+                            <th scope="col">KDA</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for favorite in favoriteChampios %}
                         <tr>
                             <td>{{ favorite.champion_name }}</td>
+                            <td>{{ favorite.queueDescription }}</td>
                             <td>{{ favorite.games_played }}</td>
                             <td>{{ favorite.wins }}</td>
                             <td>
                                 {{ favorite.winrate }}%
                             </td>
+                            <td>{{ "%.2f"|format(favorite.kda) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -110,7 +123,7 @@
                 </div>
                 <div class="match-actions">
                     <div class="filter-control">
-                        <select id="queue-filter" name="queue_filter" class="filter-select" aria-label="Filter matches by queue">
+                        <select id="queue-filter" name="queue_filter" class="filter-select" aria-label="Filter matches by queue" data-queue-filter-select>
                             {% for value, label in queue_filters %}
                             <option value="{{ value }}" {% if queue_filter == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}

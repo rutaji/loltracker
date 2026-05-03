@@ -289,8 +289,9 @@ def get_matches_service(
             refreshed_from_remote=refreshed_from_remote,
         )
 
-def load_favorite_champions(summoner_id,dao,count):
-    favorite_champions = dao.get_summoner_champions(summoner_id,count)
+def load_favorite_champions(summoner_id,dao,count, queue_filter: str = QUEUE_FILTER_ALL):
+    normalized_queue_filter = normalize_queue_filter(queue_filter)
+    favorite_champions = dao.get_summoner_champions(summoner_id,count, normalized_queue_filter)
     return favorite_champions
 
 

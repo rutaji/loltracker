@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const matchList = document.getElementById("match-list");
     const refreshButton = document.getElementById("refresh-matches");
     const refreshStatus = document.getElementById("refresh-status");
-    const queueFilterSelect = document.getElementById("queue-filter");
+    const queueFilterSelects = document.querySelectorAll("[data-queue-filter-select]");
     const loadedGamesValue = document.getElementById("loaded-games");
     const loadedWinrateValue = document.getElementById("loaded-winrate");
     const loadedKdaValue = document.getElementById("loaded-kda");
@@ -156,11 +156,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updateLoadedMatchSummary();
 
-    if (queueFilterSelect) {
+    queueFilterSelects.forEach((queueFilterSelect) => {
         queueFilterSelect.addEventListener("change", () => {
             window.location.assign(buildSummonerUrl(0, false, queueFilterSelect.value));
         });
-    }
+    });
 
     const loadMoreButton = document.getElementById("load-more");
 
@@ -276,4 +276,5 @@ document.addEventListener("DOMContentLoaded", () => {
             updateLoadedMatchSummary();
         });
     }
+
 });
