@@ -170,3 +170,23 @@ def test_summoner_division_parser_maps_ranked_entries():
         (440, "EMERALD", "I"),
         (420, "DIAMOND", "IV"),
     ]
+
+
+def test_summoner_division_parser_adds_unranked_placeholders_for_missing_queues():
+    entries = [
+        {
+            "queueType": "RANKED_SOLO_5x5",
+            "tier": "DIAMOND",
+            "rank": "IV",
+            "leaguePoints": 10,
+            "wins": 21,
+            "losses": 20,
+        },
+    ]
+
+    divisions = SummonerDivisionParser.parse_many(entries)
+
+    assert [(division.queueId, division.tier, division.rank) for division in divisions] == [
+        (420, "DIAMOND", "IV"),
+        (440, "UNRANKED", ""),
+    ]

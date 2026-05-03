@@ -104,6 +104,7 @@ class MockSummonerDAO:
                 kills=10,
                 deaths=5,
                 assists=5,
+                divisions=list(self.saved_divisions),
             )
         return None
 
@@ -592,6 +593,16 @@ def test_get_summoner_service_found():
     assert dao.saved_summoner is None
 
 
+def test_get_summoner_service_does_not_remote_sync_divisions_on_cache_hit():
+    dao = MockSummonerDAO()
+    request = make_request()
+
+    result = get_summoner_service(request, "test", "euw", dao)
+
+    assert result is not None
+    assert dao.saved_divisions == []
+
+
 def test_get_summoner_service_not_found_fetches_remote_and_saves():
     dao = MockSummonerDAO()
     api_client = FakeApiClient({"puuid": "remote-puuid", "gameName": "nope", "tagLine": "euw"})
@@ -605,7 +616,10 @@ def test_get_summoner_service_not_found_fetches_remote_and_saves():
     assert result.name == "nope"
     assert dao.saved_summoner is not None
     assert dao.saved_summoner.puuid == "remote-puuid"
-    assert len(dao.saved_divisions) == 1
+    assert [(division.queueId, division.tier) for division in dao.saved_divisions] == [
+        (420, "DIAMOND"),
+        (440, "UNRANKED"),
+    ]
 
 
 def test_get_summoner_service_returns_none_on_exception():
@@ -849,7 +863,10 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
     assert result.summoner.name == "Renamed"
     assert dao.saved_summoners[0].name == "Renamed"
     assert dao.lookup_names[-1] == "Renamed#EUW"
-    assert len(dao.saved_divisions) == 1
+    assert [(division.queueId, division.tier) for division in dao.saved_divisions] == [
+        (440, "EMERALD"),
+        (420, "UNRANKED"),
+    ]
 
 
 def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_matches(monkeypatch):

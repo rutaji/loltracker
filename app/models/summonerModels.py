@@ -98,7 +98,13 @@ class SummonerDivision(BaseModel):
         return (self.wins / total_games) * 100 if total_games else -1
 
     @property
+    def isUnranked(self):
+        return (self.tier or "").strip().upper() == "UNRANKED"
+
+    @property
     def displayTierRank(self):
         tier_label = (self.tier or "").replace("_", " ").title()
+        if (self.tier or "").strip().upper() in {"MASTER", "GRANDMASTER", "CHALLENGER"}:
+            return tier_label
         rank_label = (self.rank or "").strip()
         return f"{tier_label} {rank_label}".strip()

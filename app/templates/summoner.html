@@ -61,8 +61,10 @@
                             <strong>{{ division.displayTierRank }}</strong>
                         </div>
                     </div>
+                    {% if not division.isUnranked %}
                     <p class="division-meta">{{ division.leaguePoints }} LP</p>
                     <p class="division-meta">{{ division.wins }}W {{ division.losses }}L | {{ "%.2f"|format(division.winrate) }}%</p>
+                    {% endif %}
                 </article>
                 {% endfor %}
             </div>

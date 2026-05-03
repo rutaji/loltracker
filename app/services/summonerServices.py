@@ -6,7 +6,11 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
-from app.riot.riotParsers import MatchParser, SummonerParser, SummonerDivisionParser
+from app.riot.riotParsers import (
+    MatchParser,
+    SummonerParser,
+    SummonerDivisionParser,
+)
 from app.api.config import settings
 from app.utils.queue_filters import QUEUE_FILTER_ALL, normalize_queue_filter
 

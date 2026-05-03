@@ -21,6 +21,10 @@ from app.utils.queue_filters import (
 from app.utils.versioning import version_sort_key
 
 logger = logging.getLogger(__name__)
+RANKED_QUEUE_DESCRIPTIONS = {
+    420: "Ranked Solo",
+    440: "Ranked Flex",
+}
 
 class DAO:
     POSITION_ORDER = {
@@ -70,6 +74,45 @@ class DAO:
         if queue_id is not None:
             return "Unknown Queue"
         return ""
+
+    def _build_summoner_divisions(self, summoner: Summoner) -> list[app.models.summonerModels.SummonerDivision]:
+        ordered_divisions = sorted(
+            summoner.Summoner_SummonerQueue,
+            key=lambda division: (self.SUMMONER_QUEUE_ORDER.get(division.queue_id, 99), division.queue_id),
+        )
+        division_by_queue_id = {
+            division.queue_id: app.models.summonerModels.SummonerDivision(
+                queueId=division.queue_id,
+                queueDescription=self._get_queue_description(division.SummonerQueue_Queue, division.queue_id),
+                tier=division.tier or "",
+                rank=division.rank or "",
+                leaguePoints=division.league_points or 0,
+                wins=division.wins or 0,
+                losses=division.losses or 0,
+            )
+            for division in ordered_divisions
+        }
+
+        divisions = []
+        for queue_id in self.SUMMONER_QUEUE_ORDER:
+            division = division_by_queue_id.pop(queue_id, None)
+            if division is None:
+                divisions.append(
+                    app.models.summonerModels.SummonerDivision(
+                        queueId=queue_id,
+                        queueDescription=RANKED_QUEUE_DESCRIPTIONS.get(queue_id, ""),
+                        tier="UNRANKED",
+                        rank="",
+                        leaguePoints=0,
+                        wins=0,
+                        losses=0,
+                    )
+                )
+            else:
+                divisions.append(division)
+
+        divisions.extend(division_by_queue_id.values())
+        return divisions
 
     @staticmethod
     def _has_complete_riot_id(name: str | None, tagline: str | None) -> bool:
@@ -183,23 +226,6 @@ class DAO:
             return None
 
         name = split_name(summoner.summoner_name)
-        divisions = []
-        ordered_divisions = sorted(
-            summoner.Summoner_SummonerQueue,
-            key=lambda division: (self.SUMMONER_QUEUE_ORDER.get(division.queue_id, 99), division.queue_id),
-        )
-        for division in ordered_divisions:
-            divisions.append(
-                app.models.summonerModels.SummonerDivision(
-                    queueId=division.queue_id,
-                    queueDescription=self._get_queue_description(division.SummonerQueue_Queue, division.queue_id),
-                    tier=division.tier or "",
-                    rank=division.rank or "",
-                    leaguePoints=division.league_points or 0,
-                    wins=division.wins or 0,
-                    losses=division.losses or 0,
-                )
-            )
         result = app.models.summonerModels.Summoner(
             puuid=summoner.id,
             name=name[0],
@@ -209,7 +235,7 @@ class DAO:
             kills=summoner.kill or 0,
             deaths=summoner.death or 0,
             assists=summoner.assist or 0,
-            divisions=divisions,
+            divisions=self._build_summoner_divisions(summoner),
         )
         logger.debug("get_summoner: returning summoner puuid=%s", result.puuid)
         return result

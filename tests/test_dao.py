@@ -109,6 +109,62 @@ def test_replace_summoner_divisions_persists_and_returns_queue_descriptions(db_s
     assert db_session.query(DaoSummonerQueue).filter(DaoSummonerQueue.summoner_id == "player-1").count() == 2
 
 
+def test_get_summoner_adds_unranked_defaults_for_missing_ranked_queues(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="ranked#euw", games_played=5, games_won=3, kill=10, death=5, assist=8))
+    db_session.add_all(
+        [
+            Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None),
+            Queue(queue_id=440, map="Summoner's Rift", description="Ranked Flex", notes=None),
+        ]
+    )
+    db_session.add(
+        DaoSummonerQueue(
+            summoner_id="player-1",
+            queue_id=420,
+            tier="DIAMOND",
+            rank="IV",
+            league_points=10,
+            wins=21,
+            losses=20,
+        )
+    )
+    db_session.commit()
+
+    returned_summoner = dao.get_summoner("ranked#euw")
+
+    assert returned_summoner is not None
+    assert [(division.queueDescription, division.displayTierRank) for division in returned_summoner.divisions] == [
+        ("Ranked Solo", "Diamond IV"),
+        ("Ranked Flex", "Unranked"),
+    ]
+
+
+def test_summoner_division_display_omits_rank_for_apex_tiers():
+    master_division = SummonerDivision(
+        queueId=420,
+        queueDescription="Ranked Solo",
+        tier="MASTER",
+        rank="I",
+        leaguePoints=250,
+        wins=30,
+        losses=20,
+    )
+
+    challenger_division = SummonerDivision(
+        queueId=420,
+        queueDescription="Ranked Solo",
+        tier="CHALLENGER",
+        rank="I",
+        leaguePoints=900,
+        wins=50,
+        losses=10,
+    )
+
+    assert master_division.displayTierRank == "Master"
+    assert challenger_division.displayTierRank == "Challenger"
+
+
 def test_add_champion(db_session):
     dao = DAO(db_session)
 

@@ -14,6 +14,7 @@ RANKED_QUEUE_TYPE_TO_ID = {
     "RANKED_SOLO_5x5": 420,
     "RANKED_FLEX_SR": 440,
 }
+DEFAULT_RANKED_QUEUE_IDS = (420, 440)
 
 
 class MatchParticipantParser:
@@ -123,6 +124,7 @@ class SummonerDivisionParser:
     @staticmethod
     def parse_many(entries: list[dict[str, Any]]) -> list[SummonerDivision]:
         divisions: list[SummonerDivision] = []
+        seen_queue_ids: set[int] = set()
 
         for entry in entries or []:
             queue_type = entry.get("queueType", "")
@@ -131,6 +133,7 @@ class SummonerDivisionParser:
                 logger.debug("SummonerDivisionParser.parse_many: skipping unsupported queue_type=%s", queue_type)
                 continue
 
+            seen_queue_ids.add(queue_id)
             divisions.append(
                 SummonerDivision(
                     queueId=queue_id,
@@ -140,6 +143,22 @@ class SummonerDivisionParser:
                     leaguePoints=entry.get("leaguePoints", 0),
                     wins=entry.get("wins", 0),
                     losses=entry.get("losses", 0),
+                )
+            )
+
+        for queue_id in DEFAULT_RANKED_QUEUE_IDS:
+            if queue_id in seen_queue_ids:
+                continue
+
+            divisions.append(
+                SummonerDivision(
+                    queueId=queue_id,
+                    queueDescription="",
+                    tier="UNRANKED",
+                    rank="",
+                    leaguePoints=0,
+                    wins=0,
+                    losses=0,
                 )
             )
 
