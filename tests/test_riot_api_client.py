@@ -152,6 +152,23 @@ def test_get_summoner_by_encrypted_id_uses_platform_routing(monkeypatch):
     assert capture["url"] == f"https://euw1.api.riotgames.com/lol/summoner/v4/summoners/{quote('abc/123', safe='')}"
 
 
+def test_get_league_entries_by_puuid_uses_platform_routing(monkeypatch):
+    capture = {}
+    response = DummyResponse([{"queueType": "RANKED_SOLO_5x5"}])
+
+    def fake_client(*, timeout):
+        capture["timeout"] = timeout
+        return DummyClient(response, capture)
+
+    monkeypatch.setattr("app.riot.riotApiClient.httpx.Client", fake_client)
+
+    client = RiotApiClient(api_key="test-key", regional_routing="europe", platform_routing="eun1")
+    result = client.get_league_entries_by_puuid("abc/123")
+
+    assert result == [{"queueType": "RANKED_SOLO_5x5"}]
+    assert capture["url"] == f"https://eun1.api.riotgames.com/lol/league/v4/entries/by-puuid/{quote('abc/123', safe='')}"
+
+
 def test_get_consumes_rate_limiter_tokens(monkeypatch):
     capture = {}
     response = DummyResponse({"ok": True})

@@ -46,6 +46,7 @@ class Summoner(BaseModel):
     kills: int
     deaths: int
     assists: int
+    divisions: List["SummonerDivision"] = Field(default_factory=list)
 
     @property
     def losses(self):
@@ -80,3 +81,24 @@ class SummonerChampion(BaseModel):
     @property
     def winrate(self):
         return (self.wins / self.games_played) * 100 if self.games_played else -1
+
+
+class SummonerDivision(BaseModel):
+    queueId: int = Field(default=0, exclude=True)
+    queueDescription: str
+    tier: str
+    rank: str
+    leaguePoints: int
+    wins: int
+    losses: int
+
+    @property
+    def winrate(self):
+        total_games = self.wins + self.losses
+        return (self.wins / total_games) * 100 if total_games else -1
+
+    @property
+    def displayTierRank(self):
+        tier_label = (self.tier or "").replace("_", " ").title()
+        rank_label = (self.rank or "").strip()
+        return f"{tier_label} {rank_label}".strip()

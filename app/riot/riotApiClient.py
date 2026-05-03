@@ -169,6 +169,13 @@ class RiotApiClient:
         logger.debug("get_match_info_by_match_id: match_id=%s", match_id)
         return self._get(f"/lol/match/v5/matches/{quote(match_id, safe='')}")
 
+    def get_league_entries_by_puuid(self, puuid: str) -> list[dict[str, Any]]:
+        logger.debug("get_league_entries_by_puuid: puuid=%s", puuid)
+        return self._get(
+            f"/lol/league/v4/entries/by-puuid/{quote(puuid, safe='')}",
+            use_platform_routing=True,
+        ) or []
+
     def get_league_entries(self, queue: str, tier: str, division: str | None = None) -> list[dict[str, Any]]:
         """Fetch league entries.
 

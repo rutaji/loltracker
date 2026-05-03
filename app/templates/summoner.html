@@ -44,6 +44,18 @@
                     <strong>{{ "%.2f"|format(summoner.kda) }}</strong>
                 </article>
             </div>
+            {% if summoner.divisions %}
+            <div class="division-grid">
+                {% for division in summoner.divisions %}
+                <article class="division-card">
+                    <p class="division-queue">{{ division.queueDescription }}</p>
+                    <strong>{{ division.displayTierRank }}</strong>
+                    <p class="division-meta">{{ division.leaguePoints }} LP</p>
+                    <p class="division-meta">{{ division.wins }}W {{ division.losses }}L · {{ "%.2f"|format(division.winrate) }}%</p>
+                </article>
+                {% endfor %}
+            </div>
+            {% endif %}
         </section>
         <section class="favorite-champions">
             <div class="section-heading">
