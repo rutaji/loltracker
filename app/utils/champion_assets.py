@@ -6,7 +6,7 @@ import re
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CHAMPION_IMAGE_DIR = PROJECT_ROOT / "tools" / "champion_imgs"
+CHAMPION_IMAGE_DIR = PROJECT_ROOT / "app" / "static" / "img" / "champions"
 logger = logging.getLogger(__name__)
 
 
@@ -41,4 +41,4 @@ def resolve_champion_image_path(champion_id: str) -> str | None:
         logger.warning("No champion image resolved for '%s'", champion_id)
         return None
 
-    return f"/champion-images/{filename}"
+    return f"/static/img/champions/{filename}"
