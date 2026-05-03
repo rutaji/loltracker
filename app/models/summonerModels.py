@@ -108,6 +108,12 @@ class SummonerChampion(BaseModel):
         return (self.kills + self.assists) / (self.deaths or 1)
 
 
+class SummonerChampionPage(BaseModel):
+    champions: List[SummonerChampion]
+    hasMore: bool
+    nextOffset: int
+
+
 class SummonerDivision(BaseModel):
     queueId: int = Field(default=0, exclude=True)
     queueDescription: str

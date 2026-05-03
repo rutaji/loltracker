@@ -9,7 +9,12 @@ from app.api.config import settings
 
 from app.database.DAO import DAO
 
-from app.services.summonerServices import load_summoner_page, refresh_summoner_matches_service, load_favorite_champions
+from app.services.summonerServices import (
+    get_summoner_service,
+    load_summoner_page,
+    refresh_summoner_matches_service,
+    load_favorite_champion_page,
+)
 from app.services.championServices import (
     aggregate_stats_for_version,
     build_trend_series,
@@ -122,10 +127,11 @@ async def get_summoner(
             ),
             status_code=303
         )
-    favorite_champion = load_favorite_champions(
+    favorite_champion_page = load_favorite_champion_page(
         summoner.puuid,
         dao,
-        settings.favorite_champion_count,
+        0,
+        settings.favorite_champion_page_size,
         selected_queue_filter,
     )
     match_page = page_data.match_page
@@ -139,11 +145,37 @@ async def get_summoner(
         context={
             "summoner": summoner,
             "matchData": match_page,
-            "favoriteChampios":favorite_champion,
+            "favoriteChampionData": favorite_champion_page,
+            "favoriteChampios":favorite_champion_page.champions,
             "queue_filter": selected_queue_filter,
             "queue_filters": QUEUE_FILTER_OPTIONS,
         },
     )
+
+
+@router.get("/summoner/{name}/{tagline}/favorite-champions")
+async def get_summoner_favorite_champions(
+    request: Request,
+    name: str,
+    tagline: str,
+    offset: int = 0,
+    queue_filter: str = "all",
+    dao: DAO = Depends(get_dao),
+):
+    selected_queue_filter = normalize_queue_filter(queue_filter)
+    summoner = get_summoner_service(request, name, tagline, dao)
+
+    if summoner is None:
+        raise HTTPException(status_code=404, detail="Summoner not found")
+
+    favorite_champion_page = load_favorite_champion_page(
+        summoner.puuid,
+        dao,
+        offset,
+        settings.favorite_champion_page_size,
+        selected_queue_filter,
+    )
+    return JSONResponse(content=jsonable_encoder(favorite_champion_page))
 
 
 @router.post("/summoner/{name}/{tagline}/refresh")

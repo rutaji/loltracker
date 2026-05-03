@@ -4,7 +4,7 @@ from typing import NamedTuple, Optional
 import httpx
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
-from app.models.summonerModels import Summoner, MatchPage
+from app.models.summonerModels import Summoner, MatchPage, SummonerChampionPage
 from app.database.DAO import DAO
 from app.riot.riotParsers import (
     MatchParser,
@@ -289,10 +289,31 @@ def get_matches_service(
             refreshed_from_remote=refreshed_from_remote,
         )
 
-def load_favorite_champions(summoner_id,dao,count, queue_filter: str = QUEUE_FILTER_ALL):
+def load_favorite_champion_page(
+    summoner_id,
+    dao,
+    offset: int,
+    count: int,
+    queue_filter: str = QUEUE_FILTER_ALL,
+) -> SummonerChampionPage:
     normalized_queue_filter = normalize_queue_filter(queue_filter)
-    favorite_champions = dao.get_summoner_champions(summoner_id,count, normalized_queue_filter)
-    return favorite_champions
+    query_count = count + 1
+    favorite_champions = dao.get_summoner_champions(
+        summoner_id,
+        query_count,
+        normalized_queue_filter,
+        offset,
+    )
+    has_more = len(favorite_champions) > count
+    return SummonerChampionPage(
+        champions=favorite_champions[:count],
+        hasMore=has_more,
+        nextOffset=offset + count,
+    )
+
+
+def load_favorite_champions(summoner_id,dao,count, queue_filter: str = QUEUE_FILTER_ALL):
+    return load_favorite_champion_page(summoner_id, dao, 0, count, queue_filter).champions
 
 
 def load_summoner_page(

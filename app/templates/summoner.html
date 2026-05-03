@@ -15,6 +15,7 @@
         data-tagline="{{ summoner.tagline }}"
         data-puuid="{{ summoner.puuid }}"
         data-next-offset="{{ matchData.nextOffset }}"
+        data-favorite-next-offset="{{ favoriteChampionData.nextOffset }}"
         data-queue-filter="{{ queue_filter }}"
     >
         <section class="top-bar">
@@ -97,7 +98,7 @@
                             <th scope="col">KDA</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="favorite-champion-list">
                         {% for favorite in favoriteChampios %}
                         <tr>
                             <td>{{ favorite.champion_name }}</td>
@@ -113,6 +114,9 @@
                     </tbody>
                 </table>
             </div>
+            {% if favoriteChampionData.hasMore %}
+            <button id="load-more-favorites" class="load-more-button" type="button">Load More</button>
+            {% endif %}
         </section>
 
         <section class="matches-section">

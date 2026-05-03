@@ -5,11 +5,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     let offset = Number(page.dataset.nextOffset);
+    let favoriteOffset = Number(page.dataset.favoriteNextOffset);
     const name = page.dataset.name;
     const tagline = page.dataset.tagline;
     const puuid = page.dataset.puuid;
     const queueFilter = page.dataset.queueFilter || "all";
     const matchList = document.getElementById("match-list");
+    const favoriteChampionList = document.getElementById("favorite-champion-list");
     const refreshButton = document.getElementById("refresh-matches");
     const refreshStatus = document.getElementById("refresh-status");
     const queueFilterSelects = document.querySelectorAll("[data-queue-filter-select]");
@@ -36,6 +38,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         return `/summoner/${encodeURIComponent(name)}/${encodeURIComponent(tagline)}?${query}`;
+    }
+
+    function buildFavoriteChampionsUrl(baseOffset = 0, selectedQueueFilter = queueFilter) {
+        const params = new URLSearchParams();
+        if (baseOffset > 0) {
+            params.set("offset", String(baseOffset));
+        }
+        if (selectedQueueFilter && selectedQueueFilter !== "all") {
+            params.set("queue_filter", selectedQueueFilter);
+        }
+
+        const query = params.toString();
+        const baseUrl = `/summoner/${encodeURIComponent(name)}/${encodeURIComponent(tagline)}/favorite-champions`;
+        return query ? `${baseUrl}?${query}` : baseUrl;
     }
 
     function setRefreshStatus(message) {
@@ -89,6 +105,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 : ``;
             return `<span class="${classes}" data-item-id="${itemId}" data-item-name="${itemName}" data-item-description="${itemDescription}" data-item-slot="${itemSlot}">${imageHtml}</span>`;
         }).join("")}</div>`;
+    }
+
+    function buildFavoriteChampionRowHtml(favorite) {
+        const gamesPlayed = readNumber(favorite.games_played);
+        const wins = readNumber(favorite.wins);
+        const kills = readNumber(favorite.kills);
+        const deaths = readNumber(favorite.deaths);
+        const assists = readNumber(favorite.assists);
+        const winrate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : -1;
+        const kda = (kills + assists) / Math.max(1, deaths);
+
+        return `<tr>
+            <td>${escapeHtml(favorite.champion_name)}</td>
+            <td>${escapeHtml(favorite.queueDescription)}</td>
+            <td>${gamesPlayed}</td>
+            <td>${wins}</td>
+            <td>${formatDecimal(winrate)}%</td>
+            <td>${formatDecimal(kda)}</td>
+        </tr>`;
     }
 
     function updateLoadedMatchSummary() {
@@ -163,6 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const loadMoreButton = document.getElementById("load-more");
+    const loadMoreFavoritesButton = document.getElementById("load-more-favorites");
 
     if (refreshButton) {
         refreshButton.addEventListener("click", async () => {
@@ -274,6 +310,26 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             updateLoadedMatchSummary();
+        });
+    }
+
+    if (loadMoreFavoritesButton) {
+        loadMoreFavoritesButton.addEventListener("click", async () => {
+            loadMoreFavoritesButton.disabled = true;
+            const response = await fetch(buildFavoriteChampionsUrl(favoriteOffset, queueFilter));
+            const data = await response.json();
+
+            data.champions.forEach((favorite) => {
+                favoriteChampionList.insertAdjacentHTML("beforeend", buildFavoriteChampionRowHtml(favorite));
+            });
+
+            favoriteOffset = data.nextOffset;
+
+            if (!data.hasMore) {
+                loadMoreFavoritesButton.style.display = "none";
+            } else {
+                loadMoreFavoritesButton.disabled = false;
+            }
         });
     }
 

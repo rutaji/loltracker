@@ -631,6 +631,7 @@ class DAO:
         summoner_id,
         count,
         queue_filter: str = QUEUE_FILTER_ALL,
+        offset: int = 0,
     ) -> list[app.models.summonerModels.SummonerChampion]:
         result = []
         favorite_query = (
@@ -646,7 +647,12 @@ class DAO:
         )
         db_favorite_champions = (
             favorite_query
-            .order_by(SummonerChampion.games_played.desc())
+            .order_by(
+                SummonerChampion.games_played.desc(),
+                Champion.champion_name.asc(),
+                SummonerChampion.queue_id.asc(),
+            )
+            .offset(offset)
             .limit(count)
             .all()
         )

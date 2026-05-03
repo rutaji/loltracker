@@ -65,7 +65,7 @@ def test_summoner_page_found(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
     # Provide a fake DAO so load_favorite_champions can call dao.get_summoner_champions
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -101,7 +101,7 @@ def test_summoner_page_links_match_participants(monkeypatch):
         )
     ]
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -142,7 +142,7 @@ def test_summoner_page_renders_item_icons_in_match_details(monkeypatch):
     ]
 
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -162,7 +162,7 @@ def test_summoner_page_not_found_redirects(monkeypatch):
         lambda request, name, tagline, offset, count, dao, queue_filter: SummonerPageServiceResult(summoner=None, match_page=None),
     )
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -178,7 +178,7 @@ def test_summoner_matches_ajax_response(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: make_page_data())
 
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
             return make_SummonerChampion()
 
     fake_dao = FakeDAO()
@@ -205,7 +205,7 @@ def test_summoner_queue_filter_is_forwarded(monkeypatch):
     monkeypatch.setattr(endpoints, "load_summoner_page", fake_load_summoner_page)
 
     class FakeDAO:
-        def get_summoner_champions(self, summoner_id, count, queue_filter="all"):
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
             captured["favorite_queue_filter"] = queue_filter
             return make_SummonerChampion()
 
@@ -218,6 +218,52 @@ def test_summoner_queue_filter_is_forwarded(monkeypatch):
     assert captured["queue_filter"] == "aram"
     assert captured["favorite_queue_filter"] == "aram"
     assert 'id="favorite-queue-filter"' in response.text
+
+
+def test_summoner_favorite_champions_ajax_response(monkeypatch):
+    captured = {}
+
+    class FakeDAO:
+        def get_summoner(self, summoner_name):
+            return make_summoner()
+
+        def get_summoner_champions(self, summoner_id, count, queue_filter="all", offset=0):
+            captured["summoner_id"] = summoner_id
+            captured["count"] = count
+            captured["queue_filter"] = queue_filter
+            captured["offset"] = offset
+            return [
+                SummonerChampion(
+                    champion_id=f"champion-{index}",
+                    champion_name=f"Champion {index}",
+                    queueDescription="Ranked Solo",
+                    games_played=10 - index,
+                    wins=5,
+                    kills=20,
+                    deaths=5,
+                    assists=10,
+                )
+                for index in range(count)
+            ]
+
+    app.dependency_overrides[endpoints.get_dao] = lambda: FakeDAO()
+
+    response = client.get("/summoner/test/euw/favorite-champions?offset=3&queue_filter=ranked_solo")
+    app.dependency_overrides.pop(endpoints.get_dao, None)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["champions"]) == settings.favorite_champion_count
+    assert data["hasMore"] is True
+    assert data["nextOffset"] == 6
+    assert data["champions"][0]["queueDescription"] == "Ranked Solo"
+    assert "queueId" not in data["champions"][0]
+    assert captured == {
+        "summoner_id": "player-puuid",
+        "count": settings.favorite_champion_count + 1,
+        "queue_filter": "ranked_solo",
+        "offset": 3,
+    }
 
 
 def test_not_found_page_displays_searched_summoner():

@@ -688,3 +688,100 @@ def test_get_summoner_champions_filters_by_queue_category(db_session):
     assert [favorite.champion_name for favorite in flex_favorites] == ["Lux"]
     assert [favorite.champion_name for favorite in other_favorites] == ["Jinx"]
 
+
+def test_get_summoner_champions_applies_offset(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=4, games_won=2, kill=20, death=6, assist=18))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add_all(
+        [
+            Champion(id="Ahri", champion_name="Ahri"),
+            Champion(id="Lux", champion_name="Lux"),
+            Champion(id="Jinx", champion_name="Jinx"),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Ahri",
+                queue_id=420,
+                games_played=5,
+                games_won=3,
+                kill=20,
+                death=6,
+                assist=18,
+            ),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Lux",
+                queue_id=420,
+                games_played=4,
+                games_won=2,
+                kill=12,
+                death=5,
+                assist=22,
+            ),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Jinx",
+                queue_id=420,
+                games_played=3,
+                games_won=1,
+                kill=18,
+                death=7,
+                assist=8,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    second_page = dao.get_summoner_champions("player-1", 2, "all", offset=1)
+
+    assert [favorite.champion_name for favorite in second_page] == ["Lux", "Jinx"]
+
+
+def test_get_summoner_champions_orders_tied_games_deterministically(db_session):
+    dao = DAO(db_session)
+    db_session.add(DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=4, games_won=2, kill=20, death=6, assist=18))
+    db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add_all(
+        [
+            Champion(id="Lux", champion_name="Lux"),
+            Champion(id="Ahri", champion_name="Ahri"),
+            Champion(id="Jinx", champion_name="Jinx"),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Lux",
+                queue_id=420,
+                games_played=3,
+                games_won=1,
+                kill=8,
+                death=4,
+                assist=16,
+            ),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Ahri",
+                queue_id=420,
+                games_played=3,
+                games_won=2,
+                kill=12,
+                death=5,
+                assist=10,
+            ),
+            DaoSummonerChampion(
+                summoner_id="player-1",
+                champion_id="Jinx",
+                queue_id=420,
+                games_played=3,
+                games_won=1,
+                kill=15,
+                death=6,
+                assist=6,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    first_page = dao.get_summoner_champions("player-1", 2, "all", offset=0)
+    second_page = dao.get_summoner_champions("player-1", 2, "all", offset=2)
+
+    assert [favorite.champion_name for favorite in first_page] == ["Ahri", "Jinx"]
+    assert [favorite.champion_name for favorite in second_page] == ["Lux"]
