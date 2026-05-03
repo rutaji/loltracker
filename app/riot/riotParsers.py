@@ -47,6 +47,14 @@ class MatchParticipantParser:
             team=participant_data.get("teamId", 0),
             position=MatchParticipantParser._parse_position(participant_data),
             champion=participant_data.get("championName", ""),
+            item0=participant_data.get("item0", 0),
+            item1=participant_data.get("item1", 0),
+            item2=participant_data.get("item2", 0),
+            item3=participant_data.get("item3", 0),
+            item4=participant_data.get("item4", 0),
+            item5=participant_data.get("item5", 0),
+            item6=participant_data.get("item6", 0),
+            roleBoundItem=participant_data.get("roleBoundItem", 0),
             won=participant_data.get("win", False),
         )
 

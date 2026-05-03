@@ -66,6 +66,31 @@ document.addEventListener("DOMContentLoaded", () => {
         return `/summoner/${encodeURIComponent(participant.name || "")}/${encodeURIComponent(participant.tagline || "")}`;
     }
 
+    function buildItemImagePath(itemId) {
+        const normalizedId = Number(itemId) || 0;
+        return normalizedId > 0 ? `/static/img/items/${normalizedId}.png` : "";
+    }
+
+    function buildParticipantItemsHtml(participant) {
+        const items = Array.isArray(participant.items) ? participant.items : [];
+        return `<div class="item-strip">${items.map((item) => {
+            const itemId = Number(item?.id) || 0;
+            const itemImagePath = buildItemImagePath(itemId);
+            const classes = [
+                "item-slot",
+                itemImagePath ? "" : "item-slot--empty",
+                item?.isRoleBound ? "item-slot--role" : ""
+            ].filter(Boolean).join(" ");
+            const itemName = escapeHtml(item?.name || "");
+            const itemDescription = escapeHtml(item?.description || "");
+            const itemSlot = escapeHtml(item?.slot || "");
+            const imageHtml = itemImagePath
+                ? `<img src="${escapeHtml(itemImagePath)}" alt="${itemName || itemSlot}" loading="lazy">`
+                : ``;
+            return `<span class="${classes}" data-item-id="${itemId}" data-item-name="${itemName}" data-item-description="${itemDescription}" data-item-slot="${itemSlot}">${imageHtml}</span>`;
+        }).join("")}</div>`;
+    }
+
     function updateLoadedMatchSummary() {
         if (!loadedGamesValue || !loadedWinrateValue || !loadedKdaValue) {
             return;
@@ -213,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let html = `<div class="match-meta"><p><strong>Start:</strong> ${match.start}</p><p><strong>End:</strong> ${match.end}</p></div>`;
                 html += `<div class="table-shell"><table>
-                    <tr><th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Team</th><th>Won</th></tr>`;
+                    <tr><th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Items</th><th>Team</th><th>Won</th></tr>`;
                 match.participants.forEach((participant) => {
                     const selfBadge = participant.puuid === puuid ? `<span class="player-badge">You</span>` : ``;
                     const participantUrl = buildParticipantUrl(participant);
@@ -228,6 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>${escapeHtml(participant.deaths)}</td>
                         <td>${escapeHtml(participant.assists)}</td>
                         <td>${escapeHtml(participant.gold)}</td>
+                        <td>${buildParticipantItemsHtml(participant)}</td>
                         <td>${escapeHtml(participant.team)}</td>
                         <td>${escapeHtml(participant.won)}</td>
                     </tr>`;

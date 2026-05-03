@@ -427,6 +427,43 @@ th {
     background: rgba(0, 0, 0, 0.18);
 }
 
+.item-strip {
+    display: grid;
+    grid-template-columns: repeat(8, 28px);
+    gap: 6px;
+    min-width: max-content;
+}
+
+.item-slot {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid rgba(118, 212, 255, 0.22);
+    background: rgba(3, 10, 18, 0.48);
+    overflow: hidden;
+}
+
+.item-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.item-slot--empty {
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.item-slot--role {
+    border-color: rgba(255, 177, 84, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(255, 177, 84, 0.14);
+}
+
 input,
 select {
     padding: 12px 14px;

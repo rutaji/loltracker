@@ -13,6 +13,14 @@ def test_match_participant_parser_maps_riot_fields():
         "teamId": 100,
         "teamPosition": "MIDDLE",
         "championName": "Ahri",
+        "item0": 1055,
+        "item1": 3006,
+        "item2": 3031,
+        "item3": 3094,
+        "item4": 3036,
+        "item5": 2055,
+        "item6": 3363,
+        "roleBoundItem": 0,
         "win": True,
     }
 
@@ -28,6 +36,10 @@ def test_match_participant_parser_maps_riot_fields():
     assert participant.team == 100
     assert participant.position == "MIDDLE"
     assert participant.champion == "Ahri"
+    assert participant.item0 == 1055
+    assert participant.item6 == 3363
+    assert participant.roleBoundItem == 0
+    assert participant.items == []
     assert participant.won is True
 
 

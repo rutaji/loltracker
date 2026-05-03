@@ -10,6 +10,7 @@ from app.database.models import (
     Ban as DaoBan,
     Champion,
     ChampionStats,
+    Item,
     Match as DaoMatch,
     MatchParticipant as DaoMatchParticipant,
     MatchesAnalyzed,
@@ -27,6 +28,8 @@ def db_session():
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = Session()
+    session.add(Item(item_id=0, name=None, description=None))
+    session.commit()
     try:
         yield session
     finally:
@@ -186,6 +189,8 @@ def test_add_match(db_session):
     dao = DAO(db_session)
     db_session.add(Champion.create_default(id="champ_akali", name="Akali"))
     db_session.add(Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None))
+    db_session.add(Item(item_id=1055, name="Doran's Blade", description="Starter item"))
+    db_session.add(Item(item_id=3340, name="Stealth Ward", description="Trinket"))
     db_session.commit()
 
     match = Match(
@@ -207,6 +212,8 @@ def test_add_match(db_session):
                 team=1,
                 position="TOP",
                 champion="Akali",
+                item0=1055,
+                item6=3340,
                 won=True,
             ),
             MatchParticipant(
@@ -220,6 +227,7 @@ def test_add_match(db_session):
                 team=2,
                 position="JUNGLE",
                 champion="Lux",
+                roleBoundItem=1209,
                 won=False,
             ),
         ],
@@ -229,11 +237,50 @@ def test_add_match(db_session):
 
     assert db_session.query(DaoMatch).filter(DaoMatch.id == "match-1").one()
     assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.match_id == "match-1").count() == 2
-    assert db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.summoner_id == "player-1").one().position == "TOP"
+    persisted_participant = db_session.query(DaoMatchParticipant).filter(DaoMatchParticipant.summoner_id == "player-1").one()
+    assert persisted_participant.position == "TOP"
+    assert persisted_participant.item0 == 1055
+    assert persisted_participant.item6 == 3340
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-1").one()
     assert db_session.query(DaoSummoner).filter(DaoSummoner.id == "player-2").one()
     assert db_session.query(Champion).filter(Champion.id == "champ_akali").one()
     assert db_session.query(Champion).filter(Champion.id == "Lux").one()
+    assert db_session.query(Item).filter(Item.item_id == 1209).one()
+
+
+def test_get_matches_returns_item_ids(db_session):
+    dao = DAO(db_session)
+    db_session.add_all(
+        [
+            DaoSummoner(id="player-1", summoner_name="Alpha#EUW", games_played=1, games_won=1, kill=5, death=2, assist=7),
+            Champion.create_default(id="Ahri", name="Ahri"),
+            Queue(queue_id=420, map="Summoner's Rift", description="Ranked Solo", notes=None),
+            Item(item_id=1055, name="Doran's Blade", description="Starter item"),
+            Item(item_id=3340, name="Stealth Ward", description="Trinket"),
+            DaoMatch(id="match-1", created=100, ended=130, queue_id=420, patch="14.5"),
+            DaoMatchParticipant(
+                summoner_id="player-1",
+                match_id="match-1",
+                kill=1,
+                death=2,
+                assist=3,
+                gold=1000,
+                team=100,
+                won=True,
+                champion="Ahri",
+                item0=1055,
+                item6=3340,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    matches = dao.get_matches("Alpha#EUW", 0, 10)
+
+    assert matches[0].participants[0].item0 == 1055
+    assert matches[0].participants[0].item6 == 3340
+    assert [item.id for item in matches[0].participants[0].items] == [1055, 0, 0, 0, 0, 0, 3340, 0]
+    assert matches[0].participants[0].items[0].name == "Doran's Blade"
 
 
 def test_add_match_updates_existing_summoner_name_from_complete_participant_identity(db_session):

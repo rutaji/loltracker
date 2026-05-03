@@ -1,5 +1,7 @@
 import pytest
 
+from app.database.models import Item
+
 from app.api.config import settings
 
 
@@ -65,13 +67,30 @@ def test_cached_summoner_lookup_is_case_insensitive(app_client, seed_cached_summ
 
 
 @pytest.mark.integration
-def test_cache_miss_fetches_remote_once_and_persists(app_client, stub_api_client):
+def test_cache_miss_fetches_remote_once_and_persists(app_client, stub_api_client, db_session):
+    for match_info in stub_api_client._match_infos.values():
+        participant = match_info["info"]["participants"][0]
+        participant["item0"] = 1055
+        participant["item1"] = 3006
+        participant["item6"] = 3363
+        participant["roleBoundItem"] = 0
+    db_session.add_all(
+        [
+            Item(item_id=1055, name="Doran's Blade", description="Starter item"),
+            Item(item_id=3006, name="Berserker's Greaves", description="Boots"),
+            Item(item_id=3363, name="Farsight Alteration", description="Trinket"),
+        ]
+    )
+    db_session.commit()
+
     first_response = app_client.get("/summoner/remoteplayer/euw?offset=0&ajax=true")
 
     assert first_response.status_code == 200
     first_payload = first_response.json()
     assert len(first_payload["matches"]) == 4
     assert first_payload["hasMore"] is False
+    assert first_payload["matches"][0]["participants"][0]["items"][0]["id"] == 1055
+    assert first_payload["matches"][0]["participants"][0]["items"][0]["name"] == "Doran's Blade"
 
     first_calls = (
         stub_api_client.get_summoner_calls,

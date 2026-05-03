@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
-from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban, SummonerChampion, SummonerQueue
+from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban, SummonerChampion, SummonerQueue, Item
 from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.utils import split_name
 from app.utils.queue_filters import (
@@ -143,6 +143,40 @@ class DAO:
         )
 
     @staticmethod
+    def _participant_item_slots(participant: MatchParticipant) -> list[tuple[str, int, bool]]:
+        return [
+            ("item0", participant.item0 or 0, False),
+            ("item1", participant.item1 or 0, False),
+            ("item2", participant.item2 or 0, False),
+            ("item3", participant.item3 or 0, False),
+            ("item4", participant.item4 or 0, False),
+            ("item5", participant.item5 or 0, False),
+            ("item6", participant.item6 or 0, False),
+            ("roleBoundItem", participant.role_bound_item or 0, True),
+        ]
+
+    def _build_participant_items(
+        self,
+        participant: MatchParticipant,
+        item_lookup: dict[int, Item],
+    ) -> list[app.models.summonerModels.MatchParticipantItem]:
+        items: list[app.models.summonerModels.MatchParticipantItem] = []
+
+        for slot, item_id, is_role_bound in self._participant_item_slots(participant):
+            item_row = item_lookup.get(item_id)
+            items.append(
+                app.models.summonerModels.MatchParticipantItem(
+                    id=item_id,
+                    name=(item_row.name if item_row and item_row.name else "") or "",
+                    description=(item_row.description if item_row and item_row.description else "") or "",
+                    slot=slot,
+                    isRoleBound=is_role_bound,
+                )
+            )
+
+        return items
+
+    @staticmethod
     def _apply_queue_filter_to_match_query(query, queue_filter: str):
         normalized = normalize_queue_filter(queue_filter)
 
@@ -267,6 +301,19 @@ class DAO:
             .all()
         )
         logger.debug("get_matches: retrieved %d matches for summoner=%s", len(matches), summoner_name)
+
+        item_ids = {
+            item_id
+            for match in matches
+            for participant in match.Match_MatchParticipant
+            for _, item_id, _ in self._participant_item_slots(participant)
+            if item_id
+        }
+        item_lookup = {
+            item.item_id: item
+            for item in self.db.query(Item).filter(Item.item_id.in_(item_ids)).all()
+        } if item_ids else {}
+
         result = []
         for match in matches:
             participants_list = []
@@ -287,6 +334,15 @@ class DAO:
                         championImagePath=resolve_champion_image_path(p.champion),
                         position=p.position or "",
                         champion=(p.MatchParticipant_Champion.champion_name if p.MatchParticipant_Champion else "") or "",
+                        item0=p.item0 or 0,
+                        item1=p.item1 or 0,
+                        item2=p.item2 or 0,
+                        item3=p.item3 or 0,
+                        item4=p.item4 or 0,
+                        item5=p.item5 or 0,
+                        item6=p.item6 or 0,
+                        roleBoundItem=p.role_bound_item or 0,
+                        items=self._build_participant_items(p, item_lookup),
                         won=p.won
                     )
                 )
@@ -363,6 +419,7 @@ class DAO:
                 dao_participants = []
                 queued_summoner_ids = set()
                 queued_champion_ids = set()
+                queued_item_ids = set()
 
                 for participant in match.participants:
                     summoner_name = f"{participant.name}#{participant.tagline}"
@@ -388,6 +445,14 @@ class DAO:
                                 position=(participant.position or "").upper(),
                                 won=participant.won,
                                 champion=champion_id,
+                                item0=participant.item0,
+                                item1=participant.item1,
+                                item2=participant.item2,
+                                item3=participant.item3,
+                                item4=participant.item4,
+                                item5=participant.item5,
+                                item6=participant.item6,
+                                role_bound_item=participant.roleBoundItem,
                             ),
                             summoner_name,
                         )
@@ -415,6 +480,21 @@ class DAO:
                         logger.debug("add_match: creating default champion id=%s", participant.champion)
                         self.db.merge(Champion.create_default(id=participant.champion, name=participant.champion))
                         queued_champion_ids.add(participant.champion)
+                    for item_id in (
+                        participant.item0,
+                        participant.item1,
+                        participant.item2,
+                        participant.item3,
+                        participant.item4,
+                        participant.item5,
+                        participant.item6,
+                        participant.role_bound_item,
+                    ):
+                        if item_id in queued_item_ids or self.item_exist(item_id):
+                            continue
+                        logger.debug("add_match: creating default item id=%s", item_id)
+                        self.db.merge(Item.create_default(item_id=item_id))
+                        queued_item_ids.add(item_id)
                 self.db.commit()
                 logger.info("add_match: successfully added match_id=%s", match_id)
             except SQLAlchemyError:
@@ -528,6 +608,20 @@ class DAO:
     def get_champion_dao(self, champion_id) -> Champion:
         return self.db.query(Champion).filter(Champion.id == champion_id).first()
 
+    def add_item(self, item: Item):
+        logger.info("add_item: merging item id=%s", getattr(item, "item_id", None))
+        try:
+            self.db.merge(item)
+            self.db.commit()
+        except SQLAlchemyError:
+            logger.error("add_item: failed for item id=%s", getattr(item, "item_id", None))
+            self.db.rollback()
+            raise
+        logger.info("add_item: committed item id=%s", getattr(item, "item_id", None))
+
+    def get_item_dao(self, item_id: int) -> Item | None:
+        return self.db.query(Item).filter(Item.item_id == item_id).first()
+
     def get_summoner_champions(self,summoner_id,count) -> list[app.models.summonerModels.SummonerChampion]:
         result = []
         db_favorite_champions = (self.db.query(SummonerChampion)
@@ -564,6 +658,13 @@ class DAO:
     def queue_exist(self, queue_id: int) -> bool:
         exists = self.db.query(Queue).filter(Queue.queue_id == queue_id).first() is not None
         logger.debug("queue_exist: queue_id=%s exists=%s", queue_id, exists)
+        return exists
+
+    def item_exist(self, item_id: int) -> bool:
+        if item_id == 0:
+            return True
+        exists = self.db.query(Item).filter(Item.item_id == item_id).first() is not None
+        logger.debug("item_exist: item_id=%s exists=%s", item_id, exists)
         return exists
 
 

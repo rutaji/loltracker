@@ -17,6 +17,7 @@ from app.database.models import (
     Base,
     Champion,
     ChampionStats,
+    Item,
     Match,
     MatchParticipant,
     MatchesAnalyzed,
@@ -111,6 +112,9 @@ def db_engine(test_database_url: str) -> Iterator[Any]:
 def db_session(db_engine: Any) -> Iterator[Session]:
     test_session_local = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
     session = test_session_local()
+    if session.query(Item).filter(Item.item_id == 0).first() is None:
+        session.add(Item(item_id=0, name=None, description=None))
+        session.commit()
 
     yield session
 

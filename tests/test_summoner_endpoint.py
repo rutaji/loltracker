@@ -96,6 +96,7 @@ def test_summoner_page_links_match_participants(monkeypatch):
             team=100,
             position="TOP",
             champion="Ahri",
+            items=[],
             won=True,
         )
     ]
@@ -111,6 +112,47 @@ def test_summoner_page_links_match_participants(monkeypatch):
 
     assert response.status_code == 200
     assert 'href="/summoner/Other%20Player/EUW"' in response.text
+
+
+def test_summoner_page_renders_item_icons_in_match_details(monkeypatch):
+    page_data = make_page_data()
+    page_data.match_page.matches[0].participants = [
+        MatchParticipant(
+            puuid="participant-puuid",
+            name="Other Player",
+            tagline="EUW",
+            kills=1,
+            deaths=2,
+            assists=3,
+            gold=1000,
+            team=100,
+            position="TOP",
+            champion="Ahri",
+            items=[
+                {
+                    "id": 1055,
+                    "name": "Doran's Blade",
+                    "description": "Starter item",
+                    "slot": "item0",
+                    "isRoleBound": False,
+                }
+            ],
+            won=True,
+        )
+    ]
+
+    class FakeDAO:
+        def get_summoner_champions(self, summoner_id, count):
+            return make_SummonerChampion()
+
+    fake_dao = FakeDAO()
+    monkeypatch.setattr(endpoints, "load_summoner_page", lambda request, name, tagline, offset, count, dao, queue_filter: page_data)
+    app.dependency_overrides[endpoints.get_dao] = lambda: fake_dao
+
+    response = client.get("/summoner/test/euw")
+
+    assert response.status_code == 200
+    assert '/static/img/items/1055.png' in response.text
 
 
 def test_summoner_page_not_found_redirects(monkeypatch):
