@@ -57,8 +57,6 @@ services:
   ingestor:
     build: .
     container_name: riot_ingestor
-    profiles:
-      - manual
     depends_on:
       db:
         condition: service_healthy
