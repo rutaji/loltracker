@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 import app.models.championModels
 import app.models.summonerModels
 from app.database.database import SessionLocal
-from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban, SummonerChampion
+from app.database.models import Match, Summoner, MatchParticipant, Champion, ChampionStats, MatchesAnalyzed, Queue, Ban, SummonerChampion, SummonerQueue
 from app.utils.champion_assets import resolve_champion_image_path
 from app.utils.utils import split_name
 from app.utils.queue_filters import (
@@ -21,6 +21,10 @@ from app.utils.queue_filters import (
 from app.utils.versioning import version_sort_key
 
 logger = logging.getLogger(__name__)
+RANKED_QUEUE_DESCRIPTIONS = {
+    420: "Ranked Solo",
+    440: "Ranked Flex",
+}
 
 class DAO:
     POSITION_ORDER = {
@@ -32,6 +36,10 @@ class DAO:
         "BOT": 4,
         "UTILITY": 5,
         "SUPPORT": 5,
+    }
+    SUMMONER_QUEUE_ORDER = {
+        420: 1,
+        440: 2,
     }
 
     def __init__(self, db):
@@ -66,6 +74,45 @@ class DAO:
         if queue_id is not None:
             return "Unknown Queue"
         return ""
+
+    def _build_summoner_divisions(self, summoner: Summoner) -> list[app.models.summonerModels.SummonerDivision]:
+        ordered_divisions = sorted(
+            summoner.Summoner_SummonerQueue,
+            key=lambda division: (self.SUMMONER_QUEUE_ORDER.get(division.queue_id, 99), division.queue_id),
+        )
+        division_by_queue_id = {
+            division.queue_id: app.models.summonerModels.SummonerDivision(
+                queueId=division.queue_id,
+                queueDescription=self._get_queue_description(division.SummonerQueue_Queue, division.queue_id),
+                tier=division.tier or "",
+                rank=division.rank or "",
+                leaguePoints=division.league_points or 0,
+                wins=division.wins or 0,
+                losses=division.losses or 0,
+            )
+            for division in ordered_divisions
+        }
+
+        divisions = []
+        for queue_id in self.SUMMONER_QUEUE_ORDER:
+            division = division_by_queue_id.pop(queue_id, None)
+            if division is None:
+                divisions.append(
+                    app.models.summonerModels.SummonerDivision(
+                        queueId=queue_id,
+                        queueDescription=RANKED_QUEUE_DESCRIPTIONS.get(queue_id, ""),
+                        tier="UNRANKED",
+                        rank="",
+                        leaguePoints=0,
+                        wins=0,
+                        losses=0,
+                    )
+                )
+            else:
+                divisions.append(division)
+
+        divisions.extend(division_by_queue_id.values())
+        return divisions
 
     @staticmethod
     def _has_complete_riot_id(name: str | None, tagline: str | None) -> bool:
@@ -188,6 +235,7 @@ class DAO:
             kills=summoner.kill or 0,
             deaths=summoner.death or 0,
             assists=summoner.assist or 0,
+            divisions=self._build_summoner_divisions(summoner),
         )
         logger.debug("get_summoner: returning summoner puuid=%s", result.puuid)
         return result
@@ -422,6 +470,46 @@ class DAO:
             self.db.rollback()
             raise
         logger.info("add_summoner: committed summoner puuid=%s", summoner.puuid)
+
+    def replace_summoner_divisions(
+        self,
+        summoner_id: str,
+        divisions: list[app.models.summonerModels.SummonerDivision],
+    ):
+        logger.info("replace_summoner_divisions: summoner_id=%s count=%s", summoner_id, len(divisions))
+        try:
+            self.db.query(SummonerQueue).filter(SummonerQueue.summoner_id == summoner_id).delete()
+
+            for division in divisions:
+                if division.queueId and not self.queue_exist(division.queueId):
+                    logger.debug("replace_summoner_divisions: creating placeholder queue row queue_id=%s", division.queueId)
+                    self.db.merge(Queue(queue_id=division.queueId, map=None, description=None, notes=None))
+
+                self.db.add(
+                    SummonerQueue(
+                        summoner_id=summoner_id,
+                        queue_id=division.queueId,
+                        tier=division.tier,
+                        rank=division.rank,
+                        league_points=division.leaguePoints,
+                        wins=division.wins,
+                        losses=division.losses,
+                    )
+                )
+
+            self.db.commit()
+        except SQLAlchemyError:
+            logger.exception("replace_summoner_divisions: failed for summoner_id=%s", summoner_id)
+            self.db.rollback()
+            raise
+
+    def get_summoner_divisions_dao(self, summoner_id: str) -> list[SummonerQueue]:
+        return (
+            self.db.query(SummonerQueue)
+            .filter(SummonerQueue.summoner_id == summoner_id)
+            .options(joinedload(SummonerQueue.SummonerQueue_Queue))
+            .all()
+        )
 
     def get_summoner_dao(self, summoner_id) -> Summoner:
         return self.db.query(Summoner).filter(Summoner.id == summoner_id).first()

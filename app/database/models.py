@@ -16,6 +16,7 @@ class Summoner(Base):
 
     Summoner_MatchParticipant = relationship("MatchParticipant", back_populates="MatchParticipant_Summoner")
     Summoner_SummonerChampion = relationship("SummonerChampion", back_populates="SummonerChampion_Summoner")
+    Summoner_SummonerQueue = relationship("SummonerQueue", back_populates="SummonerQueue_Summoner", cascade="all, delete-orphan")
 
     @classmethod
     def create_default(cls,id:str,name:str=None):
@@ -94,6 +95,22 @@ class Queue(Base):
 
     Queue_MatchesAnalyzed= relationship("MatchesAnalyzed", back_populates="MatchesAnalyzed_Queue")
     Queue_Match = relationship("Match", back_populates="Match_Queue")
+    Queue_SummonerQueue = relationship("SummonerQueue", back_populates="SummonerQueue_Queue")
+
+
+class SummonerQueue(Base):
+    __tablename__ = "summoner_queue"
+
+    summoner_id = Column(String, ForeignKey("summoner.id"), primary_key=True, index=True)
+    queue_id = Column(Integer, ForeignKey("queues.queue_id"), primary_key=True, index=True)
+    tier = Column(String, nullable=True)
+    rank = Column(String, nullable=True)
+    league_points = Column(Integer, nullable=True)
+    wins = Column(Integer, nullable=True)
+    losses = Column(Integer, nullable=True)
+
+    SummonerQueue_Summoner = relationship("Summoner", back_populates="Summoner_SummonerQueue")
+    SummonerQueue_Queue = relationship("Queue", back_populates="Queue_SummonerQueue")
 
 class SummonerChampion(Base):
     __tablename__ = "summoner_champion"

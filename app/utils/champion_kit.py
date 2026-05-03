@@ -10,8 +10,8 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHAMPION_INFO_DIR = PROJECT_ROOT / "tools" / "champion_info"
-CHAMPION_PASSIVE_DIR = PROJECT_ROOT / "tools" / "passive"
-CHAMPION_SPELL_DIR = PROJECT_ROOT / "tools" / "spell"
+CHAMPION_PASSIVE_DIR = PROJECT_ROOT / "app" / "static" / "img" / "passives"
+CHAMPION_SPELL_DIR = PROJECT_ROOT / "app" / "static" / "img" / "spells"
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def resolve_champion_kit(champion_id: str) -> dict[str, Any] | None:
         "description": _clean_description(passive_info.get("description")),
         "icon": _resolve_asset_path(
             _PASSIVE_IMAGE_INDEX,
-            "/champion-passives",
+            "/static/img/passives",
             passive_image.get("full"),
         ),
     }
@@ -120,7 +120,7 @@ def resolve_champion_kit(champion_id: str) -> dict[str, Any] | None:
                 "description": _clean_description(spell.get("description")),
                 "icon": _resolve_asset_path(
                     _SPELL_IMAGE_INDEX,
-                    "/champion-spells",
+                    "/static/img/spells",
                     spell_image.get("full"),
                 ),
             }

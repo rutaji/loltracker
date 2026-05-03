@@ -44,6 +44,31 @@
                     <strong>{{ "%.2f"|format(summoner.kda) }}</strong>
                 </article>
             </div>
+            {% if summoner.divisions %}
+            <div class="division-grid">
+                {% for division in summoner.divisions %}
+                {% set division_image_name = ((division.tier or 'Unranked').replace('_', ' ').title().replace(' ', '')) %}
+                <article class="division-card">
+                    <div class="division-header">
+                        <img
+                            src="{{ url_for('static', path='img/divisions/' ~ division_image_name ~ '.png') }}"
+                            alt="{{ division.displayTierRank }}"
+                            class="division-emblem"
+                            loading="lazy"
+                        >
+                        <div class="division-copy">
+                            <p class="division-queue">{{ division.queueDescription }}</p>
+                            <strong>{{ division.displayTierRank }}</strong>
+                        </div>
+                    </div>
+                    {% if not division.isUnranked %}
+                    <p class="division-meta">{{ division.leaguePoints }} LP</p>
+                    <p class="division-meta">{{ division.wins }}W {{ division.losses }}L | {{ "%.2f"|format(division.winrate) }}%</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% endif %}
         </section>
         <section class="favorite-champions">
             <div class="section-heading">

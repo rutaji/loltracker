@@ -19,6 +19,7 @@ class FakeApiClient:
         self.account_data = account_data or {"puuid": "remote-puuid", "gameName": "remote", "tagLine": "euw"}
         self.match_ids = []
         self.match_info_by_id = {}
+        self.division_entries = []
 
     def get_summoner_by_riot_id(self, name, tagline):
         return self.account_data
@@ -32,12 +33,18 @@ class FakeApiClient:
     def get_match_info_by_match_id(self, match_id):
         return self.match_info_by_id[match_id]
 
+    def get_league_entries_by_puuid(self, puuid):
+        return self.division_entries
+
 
 def make_request(api_client=None):
     return SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(api_client=api_client or FakeApiClient())))
 
 
 class MockDAO:
+    def __init__(self):
+        self.saved_divisions = []
+
     def get_matches(self, summoner_name, offset, count, queue_filter="all"):
         all_matches = [
             Match(
@@ -71,10 +78,14 @@ class MockDAO:
             assists=5,
         )
 
+    def replace_summoner_divisions(self, summoner_id, divisions):
+        self.saved_divisions = divisions
+
 
 class MockSummonerDAO:
     def __init__(self):
         self.saved_summoner = None
+        self.saved_divisions = []
 
     def summoner_has_matches(self, summoner_name, queue_filter="all"):
         return True
@@ -93,11 +104,15 @@ class MockSummonerDAO:
                 kills=10,
                 deaths=5,
                 assists=5,
+                divisions=list(self.saved_divisions),
             )
         return None
 
     def add_summoner(self, summoner):
         self.saved_summoner = summoner
+
+    def replace_summoner_divisions(self, summoner_id, divisions):
+        self.saved_divisions = divisions
 
 
 def test_winrate_normal():
@@ -578,9 +593,21 @@ def test_get_summoner_service_found():
     assert dao.saved_summoner is None
 
 
+def test_get_summoner_service_does_not_remote_sync_divisions_on_cache_hit():
+    dao = MockSummonerDAO()
+    request = make_request()
+
+    result = get_summoner_service(request, "test", "euw", dao)
+
+    assert result is not None
+    assert dao.saved_divisions == []
+
+
 def test_get_summoner_service_not_found_fetches_remote_and_saves():
     dao = MockSummonerDAO()
-    request = make_request(FakeApiClient({"puuid": "remote-puuid", "gameName": "nope", "tagLine": "euw"}))
+    api_client = FakeApiClient({"puuid": "remote-puuid", "gameName": "nope", "tagLine": "euw"})
+    api_client.division_entries = [{"queueType": "RANKED_SOLO_5x5", "tier": "DIAMOND", "rank": "IV", "leaguePoints": 10, "wins": 21, "losses": 20}]
+    request = make_request(api_client)
 
     result = get_summoner_service(request, "nope", "euw", dao)
 
@@ -589,6 +616,10 @@ def test_get_summoner_service_not_found_fetches_remote_and_saves():
     assert result.name == "nope"
     assert dao.saved_summoner is not None
     assert dao.saved_summoner.puuid == "remote-puuid"
+    assert [(division.queueId, division.tier) for division in dao.saved_divisions] == [
+        (420, "DIAMOND"),
+        (440, "UNRANKED"),
+    ]
 
 
 def test_get_summoner_service_returns_none_on_exception():
@@ -773,6 +804,7 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
             self.saved_summoners = []
             self.lookup_names = []
             self.added_bans=[]
+            self.saved_divisions = []
 
         def get_summoner(self, summoner_name):
             self.lookup_names.append(summoner_name)
@@ -804,6 +836,9 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
         def add_summoner(self, summoner):
             self.saved_summoners.append(summoner)
 
+        def replace_summoner_divisions(self, summoner_id, divisions):
+            self.saved_divisions = divisions
+
         def add_match(self, match):
             raise AssertionError("match insertion is not part of this test")
         def add_ban(self, bans):
@@ -816,6 +851,9 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
         def get_match_ids_by_puuid(self, puuid, start=0, count=20):
             return []
 
+        def get_league_entries_by_puuid(self, puuid):
+            return [{"queueType": "RANKED_FLEX_SR", "tier": "EMERALD", "rank": "I", "leaguePoints": 96, "wins": 22, "losses": 33}]
+
     dao = RefreshDAO()
     request = make_request(RefreshApiClient())
 
@@ -825,6 +863,10 @@ def test_refresh_summoner_matches_service_updates_renamed_summoner():
     assert result.summoner.name == "Renamed"
     assert dao.saved_summoners[0].name == "Renamed"
     assert dao.lookup_names[-1] == "Renamed#EUW"
+    assert [(division.queueId, division.tier) for division in dao.saved_divisions] == [
+        (440, "EMERALD"),
+        (420, "UNRANKED"),
+    ]
 
 
 def test_refresh_summoner_matches_service_pages_past_first_batch_for_older_matches(monkeypatch):

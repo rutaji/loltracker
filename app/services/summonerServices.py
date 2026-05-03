@@ -6,7 +6,11 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 from app.models.summonerModels import Summoner, MatchPage
 from app.database.DAO import DAO
-from app.riot.riotParsers import MatchParser, SummonerParser
+from app.riot.riotParsers import (
+    MatchParser,
+    SummonerParser,
+    SummonerDivisionParser,
+)
 from app.api.config import settings
 from app.utils.queue_filters import QUEUE_FILTER_ALL, normalize_queue_filter
 
@@ -32,6 +36,23 @@ class SummonerRefreshServiceResult(NamedTuple):
     summoner: Optional[Summoner]
     inserted_count: int
     failed_count: int
+
+
+def sync_summoner_divisions(
+    request: Request,
+    summoner: Summoner,
+    dao: DAO,
+) -> None:
+    get_divisions = getattr(request.app.state.api_client, "get_league_entries_by_puuid", None)
+    if not callable(get_divisions) or not summoner.puuid:
+        return
+
+    try:
+        division_entries = get_divisions(summoner.puuid)
+        divisions = SummonerDivisionParser.parse_many(division_entries)
+        dao.replace_summoner_divisions(summoner.puuid, divisions)
+    except Exception as exc:
+        LOGGER.warning("Failed to sync divisions for %s#%s: %s", summoner.name, summoner.tagline, exc)
 
 
 def _resolve_summoner_account_data(request: Request, identifier: str) -> tuple[dict[str, object], str]:
@@ -78,7 +99,8 @@ def get_summoner_service(request: Request, name: str, tagline: str, dao: DAO) ->
             account_data = request.app.state.api_client.get_summoner_by_riot_id(name, tagline)
             summoner = SummonerParser.parse(account_data)
             dao.add_summoner(summoner)
-            return summoner
+            sync_summoner_divisions(request, summoner, dao)
+            return dao.get_summoner(f"{name}#{tagline}") or summoner
         except Exception as exc:
             span.record_exception(exc)
             span.set_status(Status(StatusCode.ERROR))
@@ -172,40 +194,7 @@ def sync_remote_matches(
 
                 try:
                     match_data = request.app.state.api_client.get_match_info_by_match_id(match_id)
-                    match = MatchParser.parse(match_data)
-                    
-                    # Fetch and persist full summoner data for all match participants
-                    # before adding match/participant rows to ensure complete stats.
-                    for participant in match.participants:
-                        participant_puuid = participant.puuid
-                        if not participant_puuid or participant_puuid == puuid:
-                            continue  # Skip empty PUUIDs and the main summoner (already fetched)
-                        
-                        # Check if summoner already exists in DB
-                        try:
-                            existing = dao.get_summoner_dao(participant_puuid)
-                            if existing:
-                                continue  # Summoner already in DB, skip fetch
-                        except Exception:
-                            pass  # Error checking, proceed with fetch
-                        
-                        try:
-                            participant_account = request.app.state.api_client.get_summoner_by_puuid(participant_puuid)
-                            participant_summoner = SummonerParser.parse(participant_account)
-                            dao.add_summoner(participant_summoner)
-                            LOGGER.debug(
-                                "Fetched and added participant summoner puuid=%s name=%s",
-                                participant_puuid,
-                                participant_summoner.name,
-                            )
-                        except Exception as exc:
-                            # Log but don't fail the match insert if participant fetch fails
-                            LOGGER.warning(
-                                "Failed to fetch participant summoner puuid=%s: %s",
-                                participant_puuid,
-                                exc,
-                            )
-                    
+                    match = MatchParser.parse(match_data)            
                     inserted_match = dao.add_match(match)
                     bans = MatchParser.parse_bans(match_data)
                     dao.add_ban(bans)
@@ -361,8 +350,11 @@ def refresh_summoner_matches_service(
                 kills=summoner.kills,
                 deaths=summoner.deaths,
                 assists=summoner.assists,
+                divisions=summoner.divisions,
             )
             dao.add_summoner(summoner)
+
+    sync_summoner_divisions(request, summoner, dao)
 
     sync_result = sync_remote_matches(
         request,

@@ -4,7 +4,7 @@ from app.api.config import settings
 from app.endpoints import endpoints
 from app.main import app
 
-from app.models.summonerModels import Match, MatchPage, Summoner, SummonerChampion, MatchParticipant
+from app.models.summonerModels import Match, MatchPage, Summoner, SummonerChampion, MatchParticipant, SummonerDivision
 from app.services.summonerServices import SummonerPageServiceResult, SummonerRefreshServiceResult
 
 
@@ -21,6 +21,17 @@ def make_summoner() -> Summoner:
         kills=10,
         deaths=5,
         assists=5,
+        divisions=[
+            SummonerDivision(
+                queueId=420,
+                queueDescription="Ranked Solo",
+                tier="DIAMOND",
+                rank="IV",
+                leaguePoints=10,
+                wins=21,
+                losses=20,
+            )
+        ],
     )
 
 
@@ -68,6 +79,7 @@ def test_summoner_page_found(monkeypatch):
     assert "test#euw" in response.text
     assert "Recent Matches" in response.text
     assert "Games Shown" in response.text
+    assert "Ranked Solo" in response.text
 
 
 def test_summoner_page_links_match_participants(monkeypatch):

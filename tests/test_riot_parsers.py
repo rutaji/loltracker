@@ -1,4 +1,4 @@
-from app.riot.riotParsers import MatchParser, MatchParticipantParser, SummonerParser
+from app.riot.riotParsers import MatchParser, MatchParticipantParser, SummonerParser, SummonerDivisionParser
 
 
 def test_match_participant_parser_maps_riot_fields():
@@ -142,3 +142,51 @@ def test_summoner_parser_maps_account_data():
     assert summoner.kills == 0
     assert summoner.deaths == 0
     assert summoner.assists == 0
+
+
+def test_summoner_division_parser_maps_ranked_entries():
+    entries = [
+        {
+            "queueType": "RANKED_FLEX_SR",
+            "tier": "EMERALD",
+            "rank": "I",
+            "leaguePoints": 96,
+            "wins": 22,
+            "losses": 33,
+        },
+        {
+            "queueType": "RANKED_SOLO_5x5",
+            "tier": "DIAMOND",
+            "rank": "IV",
+            "leaguePoints": 10,
+            "wins": 21,
+            "losses": 20,
+        },
+    ]
+
+    divisions = SummonerDivisionParser.parse_many(entries)
+
+    assert [(division.queueId, division.tier, division.rank) for division in divisions] == [
+        (440, "EMERALD", "I"),
+        (420, "DIAMOND", "IV"),
+    ]
+
+
+def test_summoner_division_parser_adds_unranked_placeholders_for_missing_queues():
+    entries = [
+        {
+            "queueType": "RANKED_SOLO_5x5",
+            "tier": "DIAMOND",
+            "rank": "IV",
+            "leaguePoints": 10,
+            "wins": 21,
+            "losses": 20,
+        },
+    ]
+
+    divisions = SummonerDivisionParser.parse_many(entries)
+
+    assert [(division.queueId, division.tier, division.rank) for division in divisions] == [
+        (420, "DIAMOND", "IV"),
+        (440, "UNRANKED", ""),
+    ]

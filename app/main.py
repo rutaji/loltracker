@@ -16,7 +16,6 @@ from app.router import router
 from fastapi.staticfiles import StaticFiles
 from app.riot.riotApiClient import RiotApiClient
 from app.services.rate_limiter import TokenBucket
-from app.services.riot_ingestor import start_ingestor, stop_ingestor
 from app.instrumentation import setup_telemetry
 
 
@@ -42,7 +41,7 @@ def create_app() -> FastAPI:
         if not api_key:
             raise RuntimeError("RIOT_API_KEY is missing from the .env file.")
         
-        # Configure rate limiter and ingestor
+        # Configure rate limiter for Riot API usage
         reserved_calls = int(os.getenv("RIOT_RESERVED_CALLS", "10"))
         riot_capacity = int(os.getenv("RIOT_RATE_LIMIT_TOTAL", "100"))
         riot_refill_interval = int(os.getenv("RIOT_RATE_LIMIT_WINDOW_SECONDS", "120"))
@@ -62,21 +61,10 @@ def create_app() -> FastAPI:
             platform_routing=platform_routing,
             rate_limiter=app.state.rate_limiter,
         )
-        
-        ingest_enabled = os.getenv("RIOT_INGEST_ENABLED", "true").lower() in ("1", "true", "yes")
-        if ingest_enabled:
-            interval_seconds = int(os.getenv("RIOT_INGEST_INTERVAL_SECONDS", "30"))
-            start_ingestor(app, interval_seconds=interval_seconds)
-        
+
         try:
             yield
         finally:
-            # Stop ingestor if running
-            try:
-                stop_ingestor(app)
-            except Exception:
-                LOGGER.exception("Error stopping ingestor")
-            
             if telemetry_shutdown_func[0] is not None:
                 telemetry_shutdown_func[0]()
 
@@ -152,37 +140,4 @@ async def http_exception_handler(_request: Request, exc: HTTPException):
 
 app.include_router(router)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-champion_image_directory = project_root / "tools" / "champion_imgs"
-if champion_image_directory.exists():
-    app.mount(
-        "/champion-images",
-        StaticFiles(directory=str(champion_image_directory)),
-        name="champion-images",
-    )
-    LOGGER.info("Mounted champion images at /champion-images from %s", champion_image_directory)
-else:
-    LOGGER.warning("Champion image directory does not exist: %s", champion_image_directory)
-
-passive_image_directory = project_root / "tools" / "passive"
-if passive_image_directory.exists():
-    app.mount(
-        "/champion-passives",
-        StaticFiles(directory=str(passive_image_directory)),
-        name="champion-passives",
-    )
-    LOGGER.info("Mounted champion passive images at /champion-passives from %s", passive_image_directory)
-else:
-    LOGGER.warning("Champion passive image directory does not exist: %s", passive_image_directory)
-
-spell_image_directory = project_root / "tools" / "spell"
-if spell_image_directory.exists():
-    app.mount(
-        "/champion-spells",
-        StaticFiles(directory=str(spell_image_directory)),
-        name="champion-spells",
-    )
-    LOGGER.info("Mounted champion spell images at /champion-spells from %s", spell_image_directory)
-else:
-    LOGGER.warning("Champion spell image directory does not exist: %s", spell_image_directory)
 
