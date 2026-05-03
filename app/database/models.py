@@ -104,6 +104,7 @@ class Queue(Base):
     Queue_MatchesAnalyzed= relationship("MatchesAnalyzed", back_populates="MatchesAnalyzed_Queue")
     Queue_Match = relationship("Match", back_populates="Match_Queue")
     Queue_SummonerQueue = relationship("SummonerQueue", back_populates="SummonerQueue_Queue")
+    Queue_SummonerChampion = relationship("SummonerChampion", back_populates="SummonerChampion_Queue")
 
 
 class Item(Base):
@@ -136,11 +137,16 @@ class SummonerChampion(Base):
     __tablename__ = "summoner_champion"
     summoner_id = Column(String,ForeignKey("summoner.id"), primary_key=True, index=True)
     champion_id = Column(String,ForeignKey("champion.id"), primary_key=True, index=True)
+    queue_id = Column(Integer, ForeignKey("queues.queue_id"), primary_key=True, index=True)
     games_played = Column(Integer)
     games_won = Column(Integer)
+    kill = Column(Integer)
+    death = Column(Integer)
+    assist = Column(Integer)
 
     SummonerChampion_Champion = relationship("Champion", back_populates="Champion_SummonerChampion")
     SummonerChampion_Summoner = relationship("Summoner", back_populates="Summoner_SummonerChampion")
+    SummonerChampion_Queue = relationship("Queue", back_populates="Queue_SummonerChampion")
 
 class MatchesAnalyzed(Base):
     __tablename__ = "matches_analyzed"

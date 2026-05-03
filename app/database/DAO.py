@@ -178,6 +178,10 @@ class DAO:
 
     @staticmethod
     def _apply_queue_filter_to_match_query(query, queue_filter: str):
+        return DAO._apply_queue_filter_to_column(query, Match.queue_id, queue_filter)
+
+    @staticmethod
+    def _apply_queue_filter_to_column(query, queue_id_column, queue_filter: str):
         normalized = normalize_queue_filter(queue_filter)
 
         if normalized == QUEUE_FILTER_ALL:
@@ -186,8 +190,8 @@ class DAO:
         if normalized == QUEUE_FILTER_OTHER:
             return query.filter(
                 or_(
-                    Match.queue_id.is_(None),
-                    Match.queue_id.notin_(PRIMARY_QUEUE_IDS),
+                    queue_id_column.is_(None),
+                    queue_id_column.notin_(PRIMARY_QUEUE_IDS),
                 )
             )
 
@@ -195,7 +199,7 @@ class DAO:
         if queue_id is None:
             return query
 
-        return query.filter(Match.queue_id == queue_id)
+        return query.filter(queue_id_column == queue_id)
 
     def get_champion_versions(self, champion_name: str) -> list[str]:
         versions = (
@@ -622,20 +626,47 @@ class DAO:
     def get_item_dao(self, item_id: int) -> Item | None:
         return self.db.query(Item).filter(Item.item_id == item_id).first()
 
-    def get_summoner_champions(self,summoner_id,count) -> list[app.models.summonerModels.SummonerChampion]:
+    def get_summoner_champions(
+        self,
+        summoner_id,
+        count,
+        queue_filter: str = QUEUE_FILTER_ALL,
+        offset: int = 0,
+    ) -> list[app.models.summonerModels.SummonerChampion]:
         result = []
-        db_favorite_champions = (self.db.query(SummonerChampion)
-                                 .join(Champion)
-                                 #.filter(Champion.id == SummonerChampion.champion_id)
-                                 .filter(SummonerChampion.summoner_id == summoner_id)
-                                 .order_by(SummonerChampion.games_played.desc()).
-                                 limit(count).all())
+        favorite_query = (
+            self.db.query(SummonerChampion)
+            .join(Champion)
+            #.filter(Champion.id == SummonerChampion.champion_id)
+            .filter(SummonerChampion.summoner_id == summoner_id)
+        )
+        favorite_query = self._apply_queue_filter_to_column(
+            favorite_query,
+            SummonerChampion.queue_id,
+            queue_filter,
+        )
+        db_favorite_champions = (
+            favorite_query
+            .order_by(
+                SummonerChampion.games_played.desc(),
+                Champion.champion_name.asc(),
+                SummonerChampion.queue_id.asc(),
+            )
+            .offset(offset)
+            .limit(count)
+            .all()
+        )
         for champion in db_favorite_champions:
             result.append(app.models.summonerModels.SummonerChampion(
                 games_played=champion.games_played,
                 wins=champion.games_won,
                 champion_id=champion.champion_id,
+                queueId=champion.queue_id,
+                queueDescription=self._get_queue_description(champion.SummonerChampion_Queue, champion.queue_id),
                 champion_name=champion.SummonerChampion_Champion.champion_name,
+                kills=champion.kill or 0,
+                deaths=champion.death or 0,
+                assists=champion.assist or 0,
             ))
         return result
 
