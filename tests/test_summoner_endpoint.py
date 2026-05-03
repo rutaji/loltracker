@@ -195,11 +195,11 @@ def test_summoner_matches_ajax_response(monkeypatch):
     assert "queueId" not in data["matches"][0]
 
 
-def test_summoner_queue_filter_is_forwarded(monkeypatch):
+def test_summoner_queue_filters_are_forwarded_independently(monkeypatch):
     captured = {}
 
     def fake_load_summoner_page(request, name, tagline, offset, count, dao, queue_filter):
-        captured["queue_filter"] = queue_filter
+        captured["match_queue_filter"] = queue_filter
         return make_page_data()
 
     monkeypatch.setattr(endpoints, "load_summoner_page", fake_load_summoner_page)
@@ -211,13 +211,16 @@ def test_summoner_queue_filter_is_forwarded(monkeypatch):
 
     app.dependency_overrides[endpoints.get_dao] = lambda: FakeDAO()
 
-    response = client.get("/summoner/test/euw?queue_filter=aram")
+    response = client.get("/summoner/test/euw?match_queue_filter=aram&favorite_queue_filter=ranked_flex")
     app.dependency_overrides.pop(endpoints.get_dao, None)
 
     assert response.status_code == 200
-    assert captured["queue_filter"] == "aram"
-    assert captured["favorite_queue_filter"] == "aram"
+    assert captured["match_queue_filter"] == "aram"
+    assert captured["favorite_queue_filter"] == "ranked_flex"
     assert 'id="favorite-queue-filter"' in response.text
+    assert 'id="match-queue-filter"' in response.text
+    assert response.text.count('<option value="all"') == 1
+    assert response.text.count('<option value="other"') == 1
 
 
 def test_summoner_favorite_champions_ajax_response(monkeypatch):
@@ -248,21 +251,21 @@ def test_summoner_favorite_champions_ajax_response(monkeypatch):
 
     app.dependency_overrides[endpoints.get_dao] = lambda: FakeDAO()
 
-    response = client.get("/summoner/test/euw/favorite-champions?offset=3&queue_filter=ranked_solo")
+    response = client.get("/summoner/test/euw/favorite-champions?offset=5&favorite_queue_filter=ranked_solo")
     app.dependency_overrides.pop(endpoints.get_dao, None)
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data["champions"]) == settings.favorite_champion_count
+    assert len(data["champions"]) == settings.favorite_champion_page_size
     assert data["hasMore"] is True
-    assert data["nextOffset"] == 6
+    assert data["nextOffset"] == 10
     assert data["champions"][0]["queueDescription"] == "Ranked Solo"
     assert "queueId" not in data["champions"][0]
     assert captured == {
         "summoner_id": "player-puuid",
-        "count": settings.favorite_champion_count + 1,
+        "count": settings.favorite_champion_page_size + 1,
         "queue_filter": "ranked_solo",
-        "offset": 3,
+        "offset": 5,
     }
 
 

@@ -24,7 +24,7 @@ from app.services.championServices import (
 )
 from app.utils.champion_kit import resolve_champion_kit
 from app.utils.champion_assets import resolve_champion_image_path
-from app.utils.queue_filters import QUEUE_FILTER_OPTIONS, normalize_queue_filter
+from app.utils.queue_filters import QUEUE_FILTER_OPTIONS, FAVORITE_QUEUE_FILTER_OPTIONS, normalize_queue_filter, normalize_favorite_queue_filter
 from app.utils.versioning import normalize_version
 from app.telemetry.metrics import get_riot_ingestion_status
 
@@ -100,7 +100,9 @@ async def get_summoner(
     tagline: str,
     offset: int = 0,
     ajax: bool = False,
-    queue_filter: str = "all",
+    match_queue_filter: str | None = None,
+    favorite_queue_filter: str | None = None,
+    queue_filter: str | None = None,
     dao: DAO = Depends(get_dao),
 ):
     logger.info(
@@ -114,9 +116,10 @@ async def get_summoner(
     )
 
     count = settings.matches_per_page
-    selected_queue_filter = normalize_queue_filter(queue_filter)
+    selected_match_queue_filter = normalize_queue_filter(match_queue_filter or queue_filter)
+    selected_favorite_queue_filter = normalize_favorite_queue_filter(favorite_queue_filter or queue_filter)
 
-    page_data = load_summoner_page(request, name, tagline, offset, count, dao, selected_queue_filter)
+    page_data = load_summoner_page(request, name, tagline, offset, count, dao, selected_match_queue_filter)
     summoner = page_data.summoner
 
     if summoner is None:
@@ -132,7 +135,7 @@ async def get_summoner(
         dao,
         0,
         settings.favorite_champion_page_size,
-        selected_queue_filter,
+        selected_favorite_queue_filter,
     )
     match_page = page_data.match_page
 
@@ -147,8 +150,10 @@ async def get_summoner(
             "matchData": match_page,
             "favoriteChampionData": favorite_champion_page,
             "favoriteChampios":favorite_champion_page.champions,
-            "queue_filter": selected_queue_filter,
-            "queue_filters": QUEUE_FILTER_OPTIONS,
+            "match_queue_filter": selected_match_queue_filter,
+            "favorite_queue_filter": selected_favorite_queue_filter,
+            "match_queue_filters": QUEUE_FILTER_OPTIONS,
+            "favorite_queue_filters": FAVORITE_QUEUE_FILTER_OPTIONS,
         },
     )
 
@@ -159,10 +164,11 @@ async def get_summoner_favorite_champions(
     name: str,
     tagline: str,
     offset: int = 0,
-    queue_filter: str = "all",
+    favorite_queue_filter: str | None = None,
+    queue_filter: str | None = None,
     dao: DAO = Depends(get_dao),
 ):
-    selected_queue_filter = normalize_queue_filter(queue_filter)
+    selected_favorite_queue_filter = normalize_favorite_queue_filter(favorite_queue_filter or queue_filter)
     summoner = get_summoner_service(request, name, tagline, dao)
 
     if summoner is None:
@@ -173,7 +179,7 @@ async def get_summoner_favorite_champions(
         dao,
         offset,
         settings.favorite_champion_page_size,
-        selected_queue_filter,
+        selected_favorite_queue_filter,
     )
     return JSONResponse(content=jsonable_encoder(favorite_champion_page))
 

@@ -16,7 +16,8 @@
         data-puuid="{{ summoner.puuid }}"
         data-next-offset="{{ matchData.nextOffset }}"
         data-favorite-next-offset="{{ favoriteChampionData.nextOffset }}"
-        data-queue-filter="{{ queue_filter }}"
+        data-match-queue-filter="{{ match_queue_filter }}"
+        data-favorite-queue-filter="{{ favorite_queue_filter }}"
     >
         <section class="top-bar">
             <a href="/" class="home-link">Back to Search</a>
@@ -78,9 +79,9 @@
                 </div>
                 <div class="match-actions">
                     <div class="filter-control">
-                        <select id="favorite-queue-filter" name="queue_filter" class="filter-select" aria-label="Filter favorite champions by queue" data-queue-filter-select>
-                            {% for value, label in queue_filters %}
-                            <option value="{{ value }}" {% if queue_filter == value %}selected{% endif %}>{{ label }}</option>
+                        <select id="favorite-queue-filter" name="favorite_queue_filter" class="filter-select" aria-label="Filter favorite champions by queue">
+                            {% for value, label in favorite_queue_filters %}
+                            <option value="{{ value }}" {% if favorite_queue_filter == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -127,9 +128,9 @@
                 </div>
                 <div class="match-actions">
                     <div class="filter-control">
-                        <select id="queue-filter" name="queue_filter" class="filter-select" aria-label="Filter matches by queue" data-queue-filter-select>
-                            {% for value, label in queue_filters %}
-                            <option value="{{ value }}" {% if queue_filter == value %}selected{% endif %}>{{ label }}</option>
+                        <select id="match-queue-filter" name="match_queue_filter" class="filter-select" aria-label="Filter matches by queue">
+                            {% for value, label in match_queue_filters %}
+                            <option value="{{ value }}" {% if match_queue_filter == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
