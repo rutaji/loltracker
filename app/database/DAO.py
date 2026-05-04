@@ -664,6 +664,7 @@ class DAO:
                 queueId=champion.queue_id,
                 queueDescription=self._get_queue_description(champion.SummonerChampion_Queue, champion.queue_id),
                 champion_name=champion.SummonerChampion_Champion.champion_name,
+                championImagePath=resolve_champion_image_path(champion.champion_id),
                 kills=champion.kill or 0,
                 deaths=champion.death or 0,
                 assists=champion.assist or 0,

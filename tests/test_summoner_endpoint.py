@@ -80,6 +80,7 @@ def test_summoner_page_found(monkeypatch):
     assert "Recent Matches" in response.text
     assert "Games Shown" in response.text
     assert "Ranked Solo" in response.text
+    assert 'href="http://testserver/champion/fake_name"' in response.text
 
 
 def test_summoner_page_links_match_participants(monkeypatch):
@@ -239,6 +240,7 @@ def test_summoner_favorite_champions_ajax_response(monkeypatch):
                 SummonerChampion(
                     champion_id=f"champion-{index}",
                     champion_name=f"Champion {index}",
+                    championImagePath=f"/static/img/champions/champion-{index}.png",
                     queueDescription="Ranked Solo",
                     games_played=10 - index,
                     wins=5,
@@ -260,6 +262,7 @@ def test_summoner_favorite_champions_ajax_response(monkeypatch):
     assert data["hasMore"] is True
     assert data["nextOffset"] == 10
     assert data["champions"][0]["queueDescription"] == "Ranked Solo"
+    assert data["champions"][0]["championImagePath"] == "/static/img/champions/champion-0.png"
     assert "queueId" not in data["champions"][0]
     assert captured == {
         "summoner_id": "player-puuid",

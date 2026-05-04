@@ -20,13 +20,15 @@
         data-favorite-queue-filter="{{ favorite_queue_filter }}"
     >
         <section class="top-bar">
-            <a href="/" class="home-link">Back to Search</a>
             <form method="post" action="{{ request.url_for('search') }}" id="summoner_form" class="compact-search">
                 <h2>Summoner Search</h2>
                 <div class="search-fields">
-                    <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
-                    <input type="text" name="summoner_tagline" minlength="3" maxlength="5" placeholder="EUW" required>
-                    <button type="submit">Search</button>
+                    <input type="text" name="summoner_name" placeholder="Enter name..." required>
+                    <input type="text" name="summoner_tagline" minlength="3" maxlength="5" placeholder="Enter tagline..." required>
+                    <div class="search-actions">
+                        <button type="submit">Search</button>
+                        <a href="/" class="home-link">Back</a>
+                    </div>
                 </div>
             </form>
         </section>
@@ -38,12 +40,8 @@
             </div>
             <div class="summary-grid">
                 <article class="stat-card">
-                    <span>Winrate</span>
-                    <strong>{{ "%.2f"|format(summoner.winrate) }}%</strong>
-                </article>
-                <article class="stat-card">
-                    <span>KDA</span>
-                    <strong>{{ "%.2f"|format(summoner.kda) }}</strong>
+                    <span>Games in Database</span>
+                    <strong>{{ summoner.gamesPlayed }}</strong>
                 </article>
             </div>
             {% if summoner.divisions %}
@@ -72,6 +70,7 @@
             </div>
             {% endif %}
         </section>
+        <div class="summoner-content">
         <section class="favorite-champions">
             <div class="section-heading">
                 <div>
@@ -89,27 +88,40 @@
             </div>
             <div class="table-shell">
                 <table class="champion-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Champion</th>
-                            <th scope="col">Queue</th>
-                            <th scope="col">Games</th>
-                            <th scope="col">Wins</th>
-                            <th scope="col">Winrate</th>
-                            <th scope="col">KDA</th>
-                        </tr>
-                    </thead>
                     <tbody id="favorite-champion-list">
                         {% for favorite in favoriteChampios %}
-                        <tr>
-                            <td>{{ favorite.champion_name }}</td>
-                            <td>{{ favorite.queueDescription }}</td>
-                            <td>{{ favorite.games_played }}</td>
-                            <td>{{ favorite.wins }}</td>
-                            <td>
-                                {{ favorite.winrate }}%
+                        {% set games_played = favorite.games_played or 0 %}
+                        {% set average_kills = (favorite.kills / games_played) if games_played else 0 %}
+                        {% set average_deaths = (favorite.deaths / games_played) if games_played else 0 %}
+                        {% set average_assists = (favorite.assists / games_played) if games_played else 0 %}
+                        {% set winrate = favorite.winrate if games_played else 0 %}
+                        <tr class="favorite-champion-row">
+                            <td class="favorite-champion-cell favorite-champion-cell--identity">
+                                <a href="{{ request.url_for('get_champion', name=favorite.champion_name) }}" class="champion-link favorite-champion-name">
+                                    {% if favorite.championImagePath %}
+                                    <img src="{{ favorite.championImagePath }}" alt="{{ favorite.champion_name }}" class="champion-avatar" loading="lazy">
+                                    {% endif %}
+                                    <span>{{ favorite.champion_name }}</span>
+                                </a>
                             </td>
-                            <td>{{ "%.2f"|format(favorite.kda) }}</td>
+                            <td class="favorite-champion-cell favorite-champion-cell--kda">
+                                <div class="favorite-champion-stat">
+                                    <div class="favorite-champion-primary">
+                                        {{ "{:.2f}".format(favorite.kda).rstrip("0").rstrip(".") }} <span>KDA</span>
+                                    </div>
+                                    <div class="favorite-champion-substat">
+                                        {{ "{:.1f}".format(average_kills).rstrip("0").rstrip(".") }} / {{ "{:.1f}".format(average_deaths).rstrip("0").rstrip(".") }} / {{ "{:.1f}".format(average_assists).rstrip("0").rstrip(".") }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="favorite-champion-cell favorite-champion-cell--results">
+                                <div class="favorite-champion-stat">
+                                    <div class="favorite-champion-primary">
+                                        {{ "{:.1f}".format(winrate).rstrip("0").rstrip(".") }}%
+                                    </div>
+                                    <div class="favorite-champion-substat">{{ favorite.games_played }} games</div>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -127,6 +139,8 @@
                     <p>Expand each row to inspect participants and match details.</p>
                 </div>
                 <div class="match-actions">
+                    <button id="refresh-matches" class="refresh-button" type="button">Refresh Data</button>
+                    <p id="refresh-status" class="refresh-status" aria-live="polite"></p>
                     <div class="filter-control">
                         <select id="match-queue-filter" name="match_queue_filter" class="filter-select" aria-label="Filter matches by queue">
                             {% for value, label in match_queue_filters %}
@@ -134,8 +148,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <button id="refresh-matches" class="refresh-button" type="button">Refresh Data</button>
-                    <p id="refresh-status" class="refresh-status" aria-live="polite"></p>
                 </div>
             </div>
 
@@ -157,7 +169,7 @@
             <div id="match-list" class="match-list">
                 {% for match in matchData.matches %}
                 {% set match_state = namespace(result='unknown') %}
-                {% set player_stats = namespace(kills=0, deaths=0, assists=0, won=false) %}
+                {% set player_stats = namespace(kills=0, deaths=0, assists=0, won=false, champion='', championImagePath='', items=[]) %}
                 {% for p in match.participants %}
                     {% if p.puuid == summoner.puuid %}
                         {% set match_state.result = 'win' if p.won else 'loss' %}
@@ -165,8 +177,12 @@
                         {% set player_stats.deaths = p.deaths %}
                         {% set player_stats.assists = p.assists %}
                         {% set player_stats.won = p.won %}
+                        {% set player_stats.champion = p.champion %}
+                        {% set player_stats.championImagePath = p.championImagePath %}
+                        {% set player_stats.items = p.items %}
                     {% endif %}
                 {% endfor %}
+                {% set player_kda = (player_stats.kills + player_stats.assists) / (player_stats.deaths or 1) %}
                 <article
                     class="match match--{{ match_state.result }}"
                     data-player-kills="{{ player_stats.kills }}"
@@ -175,9 +191,34 @@
                     data-player-won="{{ 'true' if player_stats.won else 'false' }}"
                 >
                     <button type="button" class="match-summary match-summary--{{ match_state.result }}" data-match-id="{{ match.match_id }}">
-                        <span>Match {{ match.match_id }}</span>
-                        <span>{{ match.queueDescription }}</span>
-                        <span>{{ match_state.result|capitalize }} | Patch {{ match.version }}</span>
+                        <span class="match-summary-player">
+                            {% if player_stats.championImagePath %}
+                            <img src="{{ player_stats.championImagePath }}" alt="{{ player_stats.champion }}" class="champion-avatar" loading="lazy">
+                            {% endif %}
+                            <span class="participant-kda">
+                                <span class="participant-kda-line">{{ player_stats.kills }} / {{ player_stats.deaths }} / {{ player_stats.assists }}</span>
+                                <span class="participant-kda-value">{{ "{:.2f}".format(player_kda).rstrip("0").rstrip(".") }} KDA</span>
+                            </span>
+                        </span>
+                        <span class="item-strip match-summary-items">
+                            {% for item in player_stats.items %}
+                            <span
+                                class="item-slot{% if not item.id %} item-slot--empty{% endif %}{% if item.isRoleBound %} item-slot--role{% endif %}"
+                                data-item-id="{{ item.id }}"
+                                data-item-name="{{ item.name }}"
+                                data-item-description="{{ item.description }}"
+                                data-item-slot="{{ item.slot }}"
+                            >
+                                {% if item.id %}
+                                <img src="{{ url_for('static', path='img/items/' ~ item.id ~ '.png') }}" alt="{{ item.name or item.slot }}" loading="lazy">
+                                {% endif %}
+                            </span>
+                            {% endfor %}
+                        </span>
+                        <span class="match-summary-meta">
+                            <span class="match-summary-queue">{{ match.queueDescription }}</span>
+                            <span class="match-summary-result">{{ match_state.result|capitalize }} | Patch {{ match.version }}</span>
+                        </span>
                     </button>
                     <div id="match-{{ match.match_id }}" class="match-details" style="display:none">
                         <div class="match-meta">
@@ -187,29 +228,28 @@
                         <div class="table-shell">
                             <table>
                                 <tr>
-                                    <th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Items</th><th>Team</th><th>Won</th>
+                                    <th>Summoner</th><th>KDA</th><th>Gold</th><th>Items</th>
                                 </tr>
                                 {% for p in match.participants %}
+                                {% set participant_kda = (p.kills + p.assists) / (p.deaths or 1) %}
                                 <tr class="participant-row team-{{ p.team }}{% if p.puuid == summoner.puuid %} participant-row--self{% endif %}">
                                     <td>
-                                        <a class="participant-link" href="/summoner/{{ p.name|urlencode }}/{{ p.tagline|urlencode }}">
-                                            {{ p.name }}
+                                        <a class="participant-link participant-link--with-avatar" href="/summoner/{{ p.name|urlencode }}/{{ p.tagline|urlencode }}">
+                                            {% if p.championImagePath %}
+                                            <img src="{{ p.championImagePath }}" alt="{{ p.champion }}" class="champion-avatar" loading="lazy">
+                                            {% endif %}
+                                            <span>{{ p.name }}</span>
                                         </a>
                                         {% if p.puuid == summoner.puuid %}
                                         <span class="player-badge">You</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ request.url_for('get_champion', name=p.champion) }}" class="champion-link">
-                                            {% if p.championImagePath %}
-                                            <img src="{{ p.championImagePath }}" alt="{{ p.champion }}" class="champion-avatar" loading="lazy">
-                                            {% endif %}
-                                            <span>{{ p.champion }}</span>
-                                        </a>
+                                        <div class="participant-kda">
+                                            <div class="participant-kda-line">{{ p.kills }} / {{ p.deaths }} / {{ p.assists }}</div>
+                                            <div class="participant-kda-value">{{ "{:.2f}".format(participant_kda).rstrip("0").rstrip(".") }} KDA</div>
+                                        </div>
                                     </td>
-                                    <td>{{ p.kills }}</td>
-                                    <td>{{ p.deaths }}</td>
-                                    <td>{{ p.assists }}</td>
                                     <td>{{ p.gold }}</td>
                                     <td>
                                         <div class="item-strip">
@@ -228,8 +268,6 @@
                                             {% endfor %}
                                         </div>
                                     </td>
-                                    <td>{{ p.team }}</td>
-                                    <td>{{ p.won }}</td>
                                 </tr>
                                 {% endfor %}
                             </table>
@@ -243,6 +281,7 @@
             <button id="load-more" class="load-more-button" type="button">Load More</button>
             {% endif %}
         </section>
+        </div>
     </main>
 
 </body>
