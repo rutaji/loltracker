@@ -18,7 +18,15 @@ erDiagram
         int gold
         int team
         bool won
-        
+        string position 
+        int item0 FK
+        int item1 FK
+        int item2 FK
+        int item3 FK
+        int item4 FK
+        int item5 FK
+        int item6 FK
+        int role_bound_item FK
     }
 
     Champion{
@@ -39,6 +47,11 @@ erDiagram
         int assists
     }
 
+    Champion_Match_Ban{
+        string match_id PK, FK
+        int champion_key PK, FK
+    }
+
     Summoner{
         string id PK
         string name
@@ -49,10 +62,14 @@ erDiagram
         int assists
     }
 
-    Matches_Analyzed{
-        string patch PK
+    Summoner_Queue{
+        string summoner_id PK, FK
         int queue_id PK, FK
-        int count
+        string tier
+        string rank
+        int league_points
+        int wins
+        int losses
     }
 
     Summoner_Champion{
@@ -62,17 +79,30 @@ erDiagram
         int    games_won
     }
 
-    Queues {
+    Matches_Analyzed{
+        string patch PK
+        int queue_id PK, FK
+        int count
+    }
+
+    Queue {
         int id PK
         string map
         text description
         text notes
     }
 
-    Bans {
+    Ban {
         string match_id PK, FK
         int team PK
-        int champion_key PK
+        int ban_order PK
+        int champion_key
+    }
+
+    Item {
+        int item_id PK
+        string name
+        string description
     }
 
     Champion ||--o{ Summoner_Champion : ""
@@ -81,7 +111,12 @@ erDiagram
     Match ||--o{ Match_Participant : ""
     Champion ||--o{ Match_Participant : ""
     Champion ||--o{ Champion_Stats : ""
-    Queues ||--o{ Match : ""
-    Queues ||--o{ Champion_Stats : ""
-    Queues ||--o{ Matches_Analyzed : ""
-    Match ||--o{ Bans : ""
+    Queue ||--o{ Match : ""
+    Queue ||--o{ Champion_Stats : ""
+    Queue ||--o{ Matches_Analyzed : ""
+    Match ||--o{ Ban : ""
+    Match ||--o{ Champion_Match_Ban : ""
+    Champion ||--o{ Champion_Match_Ban : ""
+    Item ||--o{ Match_Participant : "8 total relations for item0 to item6 and role_bound_item (7 omitted for clarity)"
+    Summoner ||--o{ Summoner_Queue : ""
+    Queue ||--o{ Summoner_Queue : ""
