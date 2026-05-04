@@ -79,6 +79,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return value.toFixed(2);
     }
 
+    function formatCompactDecimal(value, maximumFractionDigits = 2) {
+        const number = readNumber(value);
+        return number.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits
+        });
+    }
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -123,16 +131,32 @@ document.addEventListener("DOMContentLoaded", () => {
         const kills = readNumber(favorite.kills);
         const deaths = readNumber(favorite.deaths);
         const assists = readNumber(favorite.assists);
-        const winrate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : -1;
+        const winrate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0;
         const kda = (kills + assists) / Math.max(1, deaths);
+        const averageKills = gamesPlayed > 0 ? kills / gamesPlayed : 0;
+        const averageDeaths = gamesPlayed > 0 ? deaths / gamesPlayed : 0;
+        const averageAssists = gamesPlayed > 0 ? assists / gamesPlayed : 0;
+        const championImageHtml = favorite.championImagePath
+            ? `<img src="${escapeHtml(favorite.championImagePath)}" alt="${escapeHtml(favorite.champion_name)}" class="champion-avatar" loading="lazy">`
+            : ``;
+        const championUrl = `/champion/${encodeURIComponent(favorite.champion_name || "")}`;
 
-        return `<tr>
-            <td>${escapeHtml(favorite.champion_name)}</td>
-            <td>${escapeHtml(favorite.queueDescription)}</td>
-            <td>${gamesPlayed}</td>
-            <td>${wins}</td>
-            <td>${formatDecimal(winrate)}%</td>
-            <td>${formatDecimal(kda)}</td>
+        return `<tr class="favorite-champion-row">
+            <td class="favorite-champion-cell favorite-champion-cell--identity">
+                <a href="${championUrl}" class="champion-link favorite-champion-name">${championImageHtml}<span>${escapeHtml(favorite.champion_name)}</span></a>
+            </td>
+            <td class="favorite-champion-cell favorite-champion-cell--kda">
+                <div class="favorite-champion-stat">
+                    <div class="favorite-champion-primary">${formatCompactDecimal(kda, 2)} <span>KDA</span></div>
+                    <div class="favorite-champion-substat">${formatCompactDecimal(averageKills, 1)}/${formatCompactDecimal(averageDeaths, 1)}/${formatCompactDecimal(averageAssists, 1)}</div>
+                </div>
+            </td>
+            <td class="favorite-champion-cell favorite-champion-cell--results">
+                <div class="favorite-champion-stat">
+                    <div class="favorite-champion-primary">${formatCompactDecimal(winrate, 2)}%</div>
+                    <div class="favorite-champion-substat">${gamesPlayed} games</div>
+                </div>
+            </td>
         </tr>`;
     }
 

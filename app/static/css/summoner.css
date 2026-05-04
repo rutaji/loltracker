@@ -44,6 +44,7 @@ select {
 
 .top-bar,
 .summoner-hero,
+.favorite-champions,
 .matches-section,
 .compact-search {
     background: var(--panel-soft);
@@ -194,6 +195,31 @@ select {
     padding: 28px;
 }
 
+.summoner-content {
+    display: grid;
+    grid-template-columns: minmax(330px, 390px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.favorite-champions {
+    padding: 22px;
+}
+
+.favorite-champions .section-heading {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.favorite-champions .match-actions {
+    justify-content: stretch;
+}
+
+.favorite-champions .filter-control {
+    width: 100%;
+    min-width: 0;
+}
+
 .section-heading {
     display: flex;
     align-items: flex-start;
@@ -342,6 +368,12 @@ select {
     overflow-x: auto;
 }
 
+.favorite-champions .table-shell {
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: rgba(6, 15, 27, 0.78);
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -359,6 +391,87 @@ th {
     font-size: 0.88rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+}
+
+.favorite-champions .champion-table {
+    table-layout: fixed;
+}
+
+.favorite-champions .champion-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.favorite-champions .champion-table tbody tr {
+    background: linear-gradient(90deg, rgba(118, 212, 255, 0.06), rgba(255, 177, 84, 0.035));
+}
+
+.favorite-champions .champion-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(118, 212, 255, 0.1), rgba(255, 177, 84, 0.06));
+}
+
+.favorite-champions .champion-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.favorite-champion-cell--identity {
+    width: 44%;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.favorite-champion-cell--kda {
+    width: 32%;
+}
+
+.favorite-champion-cell--results {
+    width: 24%;
+    text-align: right;
+}
+
+.favorite-champion-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.favorite-champion-name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.favorite-champion-name .champion-avatar {
+    width: 34px;
+    height: 34px;
+}
+
+.favorite-champion-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.favorite-champion-primary {
+    color: var(--accent);
+    font-size: 1.02rem;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.favorite-champion-primary span,
+.favorite-champion-substat {
+    color: var(--muted);
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.favorite-champion-substat {
+    line-height: 1.15;
 }
 
 .participant-row.team-100 {
@@ -587,6 +700,10 @@ select {
     }
 
     .loaded-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .summoner-content {
         grid-template-columns: 1fr;
     }
 }

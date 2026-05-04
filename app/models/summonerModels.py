@@ -91,6 +91,7 @@ class SummonerData(BaseModel):
 class SummonerChampion(BaseModel):
     champion_name: str
     champion_id: str
+    championImagePath: str | None = None
     queueId: int = Field(default=0, exclude=True)
     queueDescription: str = ""
     games_played: int
