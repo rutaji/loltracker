@@ -169,7 +169,7 @@
             <div id="match-list" class="match-list">
                 {% for match in matchData.matches %}
                 {% set match_state = namespace(result='unknown') %}
-                {% set player_stats = namespace(kills=0, deaths=0, assists=0, won=false, champion='', championImagePath='') %}
+                {% set player_stats = namespace(kills=0, deaths=0, assists=0, won=false, champion='', championImagePath='', items=[]) %}
                 {% for p in match.participants %}
                     {% if p.puuid == summoner.puuid %}
                         {% set match_state.result = 'win' if p.won else 'loss' %}
@@ -179,6 +179,7 @@
                         {% set player_stats.won = p.won %}
                         {% set player_stats.champion = p.champion %}
                         {% set player_stats.championImagePath = p.championImagePath %}
+                        {% set player_stats.items = p.items %}
                     {% endif %}
                 {% endfor %}
                 {% set player_kda = (player_stats.kills + player_stats.assists) / (player_stats.deaths or 1) %}
@@ -198,6 +199,21 @@
                                 <span class="participant-kda-line">{{ player_stats.kills }} / {{ player_stats.deaths }} / {{ player_stats.assists }}</span>
                                 <span class="participant-kda-value">{{ "{:.2f}".format(player_kda).rstrip("0").rstrip(".") }} KDA</span>
                             </span>
+                        </span>
+                        <span class="item-strip match-summary-items">
+                            {% for item in player_stats.items %}
+                            <span
+                                class="item-slot{% if not item.id %} item-slot--empty{% endif %}{% if item.isRoleBound %} item-slot--role{% endif %}"
+                                data-item-id="{{ item.id }}"
+                                data-item-name="{{ item.name }}"
+                                data-item-description="{{ item.description }}"
+                                data-item-slot="{{ item.slot }}"
+                            >
+                                {% if item.id %}
+                                <img src="{{ url_for('static', path='img/items/' ~ item.id ~ '.png') }}" alt="{{ item.name or item.slot }}" loading="lazy">
+                                {% endif %}
+                            </span>
+                            {% endfor %}
                         </span>
                         <span class="match-summary-meta">
                             <span class="match-summary-queue">{{ match.queueDescription }}</span>

@@ -341,8 +341,8 @@ select {
 .match-summary {
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(120px, 1fr) minmax(140px, auto);
-    gap: 12px;
+    grid-template-columns: minmax(130px, 1fr) auto minmax(140px, auto);
+    gap: 18px;
     align-items: center;
     padding: 18px 20px;
     border: 0;
@@ -395,6 +395,17 @@ select {
 
 .match-summary-player .participant-kda-value {
     font-size: 0.82rem;
+}
+
+.match-summary-items {
+    grid-template-columns: repeat(8, 24px);
+    gap: 5px;
+    justify-self: start;
+}
+
+.match-summary-items .item-slot {
+    width: 24px;
+    height: 24px;
 }
 
 .match-summary-result {

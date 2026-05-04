@@ -305,6 +305,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const viewedChampionImageHtml = viewedParticipant?.championImagePath
                     ? `<img src="${escapeHtml(viewedParticipant.championImagePath)}" alt="${escapeHtml(viewedParticipant.champion)}" class="champion-avatar" loading="lazy">`
                     : ``;
+                const viewedItemsHtml = viewedParticipant
+                    ? buildParticipantItemsHtml(viewedParticipant).replace('class="item-strip"', 'class="item-strip match-summary-items"')
+                    : ``;
                 matchDiv.dataset.playerKills = String(viewedParticipant?.kills ?? 0);
                 matchDiv.dataset.playerDeaths = String(viewedParticipant?.deaths ?? 0);
                 matchDiv.dataset.playerAssists = String(viewedParticipant?.assists ?? 0);
@@ -322,6 +325,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span class="participant-kda-value">${formatCompactDecimal(viewedKda, 2)} KDA</span>
                         </span>
                     </span>
+                    ${viewedItemsHtml}
                     <span class="match-summary-meta">
                         <span class="match-summary-queue">${escapeHtml(match.queueDescription)}</span>
                         <span class="match-summary-result">${matchResult.charAt(0).toUpperCase() + matchResult.slice(1)} | Patch ${escapeHtml(match.version)}</span>
