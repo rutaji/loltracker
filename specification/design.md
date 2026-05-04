@@ -138,24 +138,22 @@ The backend application provides server-side generated HTML pages. The client (i
 
 ## Infrastructure & Deployment
 
->TODO: update once we start deployment
+The app runs on Azure using 2 containers. The first container holds the database and is of type Azure Database for PostgreSQL. The second container runs 3 side containers: the main app, OpenTelemetry collector and data ingestor. App metrics can be viewed using Azure Insights.
 
-Current plan is to host the application using Azure. This will require setting up the Azure Cloud environment as well as creating a CI/CD pipeline.
+Automatic deployment is not possible as of right now. As a result, the app is manually built and deployed by @rutaji.
 
-High-level plan:
+High-level deployment flow:
 
 ```mermaid
 flowchart LR
     FB[Feature Branch]
     PR[Pull Request]
-    MAIN[Main Branch]
     DEV[Develop Branch]
     PROD[PROD environment]
 
     FB -- Unit Test & Code Style --> PR
-    PR -- Code Review --> DEV
-    DEV -- Integration Tests --> MAIN
-    MAIN -- Build & Test --> PROD
+    PR -- Code Review & Integration Tests --> DEV
+    DEV -- Build & Deploy --> PROD
 ```
 
 ## Reliability & Observability
@@ -204,18 +202,6 @@ Resource attributes are configured to identify environment and service instance:
 * `deployment.environment`
 
 Telemetry sampling is configurable via `PSI_OTEL_TRACES_SAMPLER_ARG`.
-
-### SLI / SLO targets
-
-The monitoring design tracks reliability with explicit indicators and targets:
-
-| SLI | Target SLO | Window |
-|---|---|---|
-| API availability | >= 99.0% successful requests | 30 days |
-| P95 request latency (safe page endpoints) | < 400 ms | 30 days |
-| 5xx error ratio | < 1.0% | 30 days |
-
-These targets are development-stage defaults and can be tightened for production.
 
 ### Dashboard and alerting model
 
@@ -295,6 +281,5 @@ pytest -ra
 
 | Stage | Checks |
 |---|---|
-| PR (every branch) | `pytest` with unit-only coverage gate (`-m "not integration"`) |
-| Merge to `main` / `develop` | All PR checks + code review |
-| Deploy to `main` | _(Azure — milestone 3)_ |
+| PR (every branch) | `pytest` with unit-only coverage gate (`-m "not integration"`) and 80% code coverage requirement |
+| Merge to `main` / `develop` | All PR checks + code review and integration tests |

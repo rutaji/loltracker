@@ -70,8 +70,9 @@ To generate new alembic version: alembic revision --autogenerate -m "commit-name
 
 To upgrade to newest alembic version: alembic upgrade head
 
-
 To add test data into database: docker-compose exec api python -m  scripts.seed_data
+
+For more detailed information, see [`SQL-specification.md`](SQL-specification.md)
 
 
 ## 🎯 Project milestones
@@ -88,9 +89,8 @@ To add test data into database: docker-compose exec api python -m  scripts.seed_
 
 ## 📊 NFR Status
 
-TODO: Complete the following items to fulfill the NFRs of PSI:
-* [ ] Production: Link to the app in Production and Dev environments
-* [ ] Monitoring: Link to Azure App Insights (monitoring dashboard)
-* ✅ Tests: Code coverage badge and latest unit & integration test results on `main` branch
-* [ ] CI/CD: Link to GitHub actions forming fully autonomous delivery of (working) code from `main` to `prod` environment in a selected cloud (Azure is recommended).
-* [ ] SLO: Aiming at 99% availability - provide a link to SLI dashboard
+The NFRs of this project:
+* ✅ Production: [Link](https://fastapi-app.calmrock-7cb3a497.polandcentral.azurecontainerapps.io/) to the app in Production environment
+* ✅ Monitoring: [Link](https://portal.azure.com/#@tulib.onmicrosoft.com/resource/subscriptions/3e7579de-1963-4142-832d-f1fb66426b85/resourceGroups/loltrackerResourceGroup/providers/Microsoft.Insights/components/loltracker-insights/overview) to Azure App Insights (monitoring dashboard)
+* ✅ Tests: Code coverage badge and latest unit & integration test results on `develop` branch
+* ✅ CI/CD: [Link](https://github.com/rutaji/loltracker/actions) to GitHub actions forming fully autonomous testing of code from `feat` branches to `develop`.
