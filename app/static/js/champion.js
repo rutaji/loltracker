@@ -184,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!rows || rows.length === 0) {
             const row = document.createElement("tr");
-            row.innerHTML = '<td colspan="7">No statistics available for this version.</td>';
+            row.innerHTML = '<td colspan="6">No statistics available for this version.</td>';
             tableBody.appendChild(row);
             return;
         }
@@ -192,11 +192,10 @@ document.addEventListener("DOMContentLoaded", () => {
         rows.forEach((stat) => {
             const row = document.createElement("tr");
             row.innerHTML = `
-                <td>${stat.version}</td>
                 <td>${stat.queueDescription}</td>
                 <td>${stat.totalMatchesPlayed ?? stat.gamesPlayed}</td>
-                <td>${formatNumber(stat.winrate, "%")}</td>
                 <td>${formatNumber(stat.kda)}</td>
+                <td>${formatNumber(stat.winrate, "%")}</td>
                 <td>${formatNumber(stat.pickrate, "%")}</td>
                 <td>${formatNumber(stat.banrate, "%")}</td>
             `;
@@ -336,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
     versionSelect.addEventListener("change", () => {
         loadVersion(versionSelect.value).catch((error) => {
             console.error("Failed to switch champion version.", error);
-            tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
         });
     });
 
@@ -345,6 +344,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loadVersion(initialVersion || versionSelect.value).catch((error) => {
         console.error("Failed to load champion version.", error);
-        tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
     });
 });

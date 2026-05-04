@@ -7,6 +7,9 @@ from app.utils.versioning import normalize_version, version_sort_key
 import logging
 logger = logging.getLogger(__name__)
 
+CHAMPION_PAGE_QUEUE_IDS = {420, 440, 450}
+CHAMPION_PAGE_QUEUE_DESCRIPTIONS = {"Ranked Solo", "Ranked Flex", "ARAM"}
+
 
 def _empty_aggregate_bucket() -> dict[str, int]:
     return {
@@ -30,12 +33,23 @@ def _accumulate_stat(entry: dict[str, int], stat: ChampionStats) -> None:
     entry["matchesAnalyzed"] += stat.matchesAnalyzed
 
 
+def _is_champion_page_queue(stat: ChampionStats) -> bool:
+    if stat.queueId:
+        return stat.queueId in CHAMPION_PAGE_QUEUE_IDS
+
+    return stat.queueDescription in CHAMPION_PAGE_QUEUE_DESCRIPTIONS
+
+
+def _filter_champion_page_queues(stats: list[ChampionStats]) -> list[ChampionStats]:
+    return [stat for stat in stats if _is_champion_page_queue(stat)]
+
+
 def _aggregate_by_queue_and_version(stats: list[ChampionStats]) -> dict[str, dict[str, dict[str, int]]]:
     grouped: dict[str, dict[str, dict[str, int]]] = defaultdict(
         lambda: defaultdict(_empty_aggregate_bucket)
     )
 
-    for stat in stats:
+    for stat in _filter_champion_page_queues(stats):
         normalized = normalize_version(stat.version)
         _accumulate_stat(grouped[stat.queueDescription][normalized], stat)
 
@@ -44,7 +58,7 @@ def _aggregate_by_queue_and_version(stats: list[ChampionStats]) -> dict[str, dic
 
 def get_available_versions(stats: list[ChampionStats]) -> list[str]:
     return sorted(
-        {normalize_version(stat.version) for stat in stats},
+        {normalize_version(stat.version) for stat in _filter_champion_page_queues(stats)},
         key=version_sort_key,
         reverse=True,
     )
