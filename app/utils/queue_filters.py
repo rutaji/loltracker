@@ -8,6 +8,7 @@ QUEUE_FILTER_RANKED_SOLO: Final = "ranked_solo"
 QUEUE_FILTER_RANKED_FLEX: Final = "ranked_flex"
 QUEUE_FILTER_ARAM: Final = "aram"
 QUEUE_FILTER_OTHER: Final = "other"
+DEFAULT_FAVORITE_QUEUE_FILTER: Final = QUEUE_FILTER_RANKED_SOLO
 
 QUEUE_FILTER_OPTIONS: Final[list[tuple[str, str]]] = [
     (QUEUE_FILTER_ALL, "All"),
@@ -15,6 +16,12 @@ QUEUE_FILTER_OPTIONS: Final[list[tuple[str, str]]] = [
     (QUEUE_FILTER_RANKED_FLEX, "Ranked Flex"),
     (QUEUE_FILTER_ARAM, "ARAM"),
     (QUEUE_FILTER_OTHER, "Other"),
+]
+
+FAVORITE_QUEUE_FILTER_OPTIONS: Final[list[tuple[str, str]]] = [
+    (QUEUE_FILTER_RANKED_SOLO, "Ranked Solo"),
+    (QUEUE_FILTER_RANKED_FLEX, "Ranked Flex"),
+    (QUEUE_FILTER_ARAM, "ARAM"),
 ]
 
 FILTER_TO_QUEUE_ID: Final[dict[str, int]] = {
@@ -25,6 +32,7 @@ FILTER_TO_QUEUE_ID: Final[dict[str, int]] = {
 
 PRIMARY_QUEUE_IDS: Final[tuple[int, ...]] = tuple(FILTER_TO_QUEUE_ID.values())
 VALID_QUEUE_FILTERS: Final[set[str]] = {value for value, _label in QUEUE_FILTER_OPTIONS}
+FAVORITE_QUEUE_FILTERS: Final[set[str]] = {value for value, _label in FAVORITE_QUEUE_FILTER_OPTIONS}
 
 
 def normalize_queue_filter(queue_filter: str | None) -> str:
@@ -35,6 +43,16 @@ def normalize_queue_filter(queue_filter: str | None) -> str:
     if normalized in VALID_QUEUE_FILTERS:
         return normalized
     return QUEUE_FILTER_ALL
+
+
+def normalize_favorite_queue_filter(queue_filter: str | None) -> str:
+    if not queue_filter:
+        return DEFAULT_FAVORITE_QUEUE_FILTER
+
+    normalized = queue_filter.strip().lower()
+    if normalized in FAVORITE_QUEUE_FILTERS:
+        return normalized
+    return DEFAULT_FAVORITE_QUEUE_FILTER
 
 
 def matches_queue_filter(queue_id: int | None, queue_filter: str | None) -> bool:

@@ -5,20 +5,29 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     let offset = Number(page.dataset.nextOffset);
+    let favoriteOffset = Number(page.dataset.favoriteNextOffset);
     const name = page.dataset.name;
     const tagline = page.dataset.tagline;
     const puuid = page.dataset.puuid;
-    const queueFilter = page.dataset.queueFilter || "all";
+    const matchQueueFilter = page.dataset.matchQueueFilter || "all";
+    const favoriteQueueFilter = page.dataset.favoriteQueueFilter || "ranked_solo";
     const matchList = document.getElementById("match-list");
+    const favoriteChampionList = document.getElementById("favorite-champion-list");
     const refreshButton = document.getElementById("refresh-matches");
     const refreshStatus = document.getElementById("refresh-status");
-    const queueFilterSelect = document.getElementById("queue-filter");
+    const matchQueueFilterSelect = document.getElementById("match-queue-filter");
+    const favoriteQueueFilterSelect = document.getElementById("favorite-queue-filter");
     const loadedGamesValue = document.getElementById("loaded-games");
     const loadedWinrateValue = document.getElementById("loaded-winrate");
     const loadedKdaValue = document.getElementById("loaded-kda");
     const refreshMessageStorageKey = `summoner-refresh:${name}#${tagline}`;
 
-    function buildSummonerUrl(baseOffset = 0, ajax = false, selectedQueueFilter = queueFilter) {
+    function buildSummonerUrl(
+        baseOffset = 0,
+        ajax = false,
+        selectedMatchQueueFilter = matchQueueFilter,
+        selectedFavoriteQueueFilter = favoriteQueueFilter
+    ) {
         const params = new URLSearchParams();
         if (baseOffset > 0) {
             params.set("offset", String(baseOffset));
@@ -26,8 +35,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (ajax) {
             params.set("ajax", "true");
         }
-        if (selectedQueueFilter && selectedQueueFilter !== "all") {
-            params.set("queue_filter", selectedQueueFilter);
+        if (selectedMatchQueueFilter) {
+            params.set("match_queue_filter", selectedMatchQueueFilter);
+        }
+        if (selectedFavoriteQueueFilter) {
+            params.set("favorite_queue_filter", selectedFavoriteQueueFilter);
         }
 
         const query = params.toString();
@@ -36,6 +48,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         return `/summoner/${encodeURIComponent(name)}/${encodeURIComponent(tagline)}?${query}`;
+    }
+
+    function buildFavoriteChampionsUrl(baseOffset = 0, selectedFavoriteQueueFilter = favoriteQueueFilter) {
+        const params = new URLSearchParams();
+        if (baseOffset > 0) {
+            params.set("offset", String(baseOffset));
+        }
+        if (selectedFavoriteQueueFilter) {
+            params.set("favorite_queue_filter", selectedFavoriteQueueFilter);
+        }
+
+        const query = params.toString();
+        const baseUrl = `/summoner/${encodeURIComponent(name)}/${encodeURIComponent(tagline)}/favorite-champions`;
+        return query ? `${baseUrl}?${query}` : baseUrl;
     }
 
     function setRefreshStatus(message) {
@@ -89,6 +115,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 : ``;
             return `<span class="${classes}" data-item-id="${itemId}" data-item-name="${itemName}" data-item-description="${itemDescription}" data-item-slot="${itemSlot}">${imageHtml}</span>`;
         }).join("")}</div>`;
+    }
+
+    function buildFavoriteChampionRowHtml(favorite) {
+        const gamesPlayed = readNumber(favorite.games_played);
+        const wins = readNumber(favorite.wins);
+        const kills = readNumber(favorite.kills);
+        const deaths = readNumber(favorite.deaths);
+        const assists = readNumber(favorite.assists);
+        const winrate = gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : -1;
+        const kda = (kills + assists) / Math.max(1, deaths);
+
+        return `<tr>
+            <td>${escapeHtml(favorite.champion_name)}</td>
+            <td>${escapeHtml(favorite.queueDescription)}</td>
+            <td>${gamesPlayed}</td>
+            <td>${wins}</td>
+            <td>${formatDecimal(winrate)}%</td>
+            <td>${formatDecimal(kda)}</td>
+        </tr>`;
     }
 
     function updateLoadedMatchSummary() {
@@ -156,13 +201,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updateLoadedMatchSummary();
 
-    if (queueFilterSelect) {
-        queueFilterSelect.addEventListener("change", () => {
-            window.location.assign(buildSummonerUrl(0, false, queueFilterSelect.value));
+    if (matchQueueFilterSelect) {
+        matchQueueFilterSelect.addEventListener("change", () => {
+            window.location.assign(buildSummonerUrl(0, false, matchQueueFilterSelect.value, favoriteQueueFilter));
+        });
+    }
+
+    if (favoriteQueueFilterSelect) {
+        favoriteQueueFilterSelect.addEventListener("change", () => {
+            window.location.assign(buildSummonerUrl(0, false, matchQueueFilter, favoriteQueueFilterSelect.value));
         });
     }
 
     const loadMoreButton = document.getElementById("load-more");
+    const loadMoreFavoritesButton = document.getElementById("load-more-favorites");
 
     if (refreshButton) {
         refreshButton.addEventListener("click", async () => {
@@ -188,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const refreshedRefreshMessageStorageKey = `summoner-refresh:${refreshedName}#${refreshedTagline}`;
                 if (data.insertedCount > 0 || summonerRouteChanged) {
                     sessionStorage.setItem(refreshedRefreshMessageStorageKey, refreshMessage);
-                    const refreshedUrl = new URL(buildSummonerUrl(0, false, queueFilter), window.location.origin);
+                    const refreshedUrl = new URL(buildSummonerUrl(0, false, matchQueueFilter, favoriteQueueFilter), window.location.origin);
                     refreshedUrl.pathname = `/summoner/${encodeURIComponent(refreshedName)}/${encodeURIComponent(refreshedTagline)}`;
                     window.location.assign(refreshedUrl.pathname + refreshedUrl.search);
                     return;
@@ -207,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (loadMoreButton) {
         loadMoreButton.addEventListener("click", async () => {
-            const response = await fetch(buildSummonerUrl(offset, true, queueFilter));
+            const response = await fetch(buildSummonerUrl(offset, true, matchQueueFilter, favoriteQueueFilter));
             const data = await response.json();
 
             data.matches.forEach((match) => {
@@ -276,4 +328,25 @@ document.addEventListener("DOMContentLoaded", () => {
             updateLoadedMatchSummary();
         });
     }
+
+    if (loadMoreFavoritesButton) {
+        loadMoreFavoritesButton.addEventListener("click", async () => {
+            loadMoreFavoritesButton.disabled = true;
+            const response = await fetch(buildFavoriteChampionsUrl(favoriteOffset, favoriteQueueFilter));
+            const data = await response.json();
+
+            data.champions.forEach((favorite) => {
+                favoriteChampionList.insertAdjacentHTML("beforeend", buildFavoriteChampionRowHtml(favorite));
+            });
+
+            favoriteOffset = data.nextOffset;
+
+            if (!data.hasMore) {
+                loadMoreFavoritesButton.style.display = "none";
+            } else {
+                loadMoreFavoritesButton.disabled = false;
+            }
+        });
+    }
+
 });

@@ -91,12 +91,27 @@ class SummonerData(BaseModel):
 class SummonerChampion(BaseModel):
     champion_name: str
     champion_id: str
+    queueId: int = Field(default=0, exclude=True)
+    queueDescription: str = ""
     games_played: int
     wins: int
+    kills: int = 0
+    deaths: int = 0
+    assists: int = 0
 
     @property
     def winrate(self):
         return (self.wins / self.games_played) * 100 if self.games_played else -1
+
+    @property
+    def kda(self):
+        return (self.kills + self.assists) / (self.deaths or 1)
+
+
+class SummonerChampionPage(BaseModel):
+    champions: List[SummonerChampion]
+    hasMore: bool
+    nextOffset: int
 
 
 class SummonerDivision(BaseModel):

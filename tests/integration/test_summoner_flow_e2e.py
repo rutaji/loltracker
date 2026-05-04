@@ -40,8 +40,8 @@ def test_cached_summoner_flow_html_and_ajax(app_client, seed_cached_summoner_dat
 
 @pytest.mark.integration
 def test_cached_summoner_flow_filters_by_queue(app_client, seed_cached_summoner_data):
-    aram_response = app_client.get("/summoner/cached/euw?offset=0&ajax=true&queue_filter=aram")
-    other_response = app_client.get("/summoner/cached/euw?offset=0&ajax=true&queue_filter=other")
+    aram_response = app_client.get("/summoner/cached/euw?offset=0&ajax=true&match_queue_filter=aram")
+    other_response = app_client.get("/summoner/cached/euw?offset=0&ajax=true&match_queue_filter=other")
 
     assert aram_response.status_code == 200
     assert other_response.status_code == 200
