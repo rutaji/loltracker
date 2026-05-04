@@ -87,6 +87,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    function formatMatchDate(value) {
+        return String(value ?? "")
+            .replace("T", " ")
+            .replace(/\.\d+$/, "")
+            .replace(/Z$/, "");
+    }
+
     function escapeHtml(value) {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
@@ -291,6 +298,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 const matchDiv = document.createElement("article");
                 matchDiv.className = `match match--${matchResult}`;
                 const viewedParticipant = match.participants.find((participant) => participant.puuid === puuid);
+                const viewedKills = readNumber(viewedParticipant?.kills);
+                const viewedDeaths = readNumber(viewedParticipant?.deaths);
+                const viewedAssists = readNumber(viewedParticipant?.assists);
+                const viewedKda = (viewedKills + viewedAssists) / Math.max(1, viewedDeaths);
+                const viewedChampionImageHtml = viewedParticipant?.championImagePath
+                    ? `<img src="${escapeHtml(viewedParticipant.championImagePath)}" alt="${escapeHtml(viewedParticipant.champion)}" class="champion-avatar" loading="lazy">`
+                    : ``;
                 matchDiv.dataset.playerKills = String(viewedParticipant?.kills ?? 0);
                 matchDiv.dataset.playerDeaths = String(viewedParticipant?.deaths ?? 0);
                 matchDiv.dataset.playerAssists = String(viewedParticipant?.assists ?? 0);
@@ -301,9 +315,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 summaryButton.className = `match-summary match-summary--${matchResult}`;
                 summaryButton.dataset.matchId = match.match_id;
                 summaryButton.innerHTML = `
-                    <span>Match ${match.match_id}</span>
-                    <span>${match.queueDescription}</span>
-                    <span>${matchResult.charAt(0).toUpperCase() + matchResult.slice(1)} | Patch ${match.version}</span>
+                    <span class="match-summary-player">
+                        ${viewedChampionImageHtml}
+                        <span class="participant-kda">
+                            <span class="participant-kda-line">${viewedKills} / ${viewedDeaths} / ${viewedAssists}</span>
+                            <span class="participant-kda-value">${formatCompactDecimal(viewedKda, 2)} KDA</span>
+                        </span>
+                    </span>
+                    <span class="match-summary-meta">
+                        <span class="match-summary-queue">${escapeHtml(match.queueDescription)}</span>
+                        <span class="match-summary-result">${matchResult.charAt(0).toUpperCase() + matchResult.slice(1)} | Patch ${escapeHtml(match.version)}</span>
+                    </span>
                 `;
                 summaryButton.addEventListener("click", () => toggleMatch(match.match_id));
 
@@ -312,26 +334,30 @@ document.addEventListener("DOMContentLoaded", () => {
                 detailsDiv.className = "match-details";
                 detailsDiv.style.display = "none";
 
-                let html = `<div class="match-meta"><p><strong>Start:</strong> ${match.start}</p><p><strong>End:</strong> ${match.end}</p></div>`;
+                let html = `<div class="match-meta"><p><strong>Start:</strong> ${escapeHtml(formatMatchDate(match.start))}</p><p><strong>End:</strong> ${escapeHtml(formatMatchDate(match.end))}</p></div>`;
                 html += `<div class="table-shell"><table>
-                    <tr><th>Name</th><th>Champion</th><th>K</th><th>D</th><th>A</th><th>Gold</th><th>Items</th><th>Team</th><th>Won</th></tr>`;
+                    <tr><th>Summoner</th><th>KDA</th><th>Gold</th><th>Items</th></tr>`;
                 match.participants.forEach((participant) => {
                     const selfBadge = participant.puuid === puuid ? `<span class="player-badge">You</span>` : ``;
                     const participantUrl = buildParticipantUrl(participant);
                     const participantName = escapeHtml(participant.name);
+                    const kills = readNumber(participant.kills);
+                    const deaths = readNumber(participant.deaths);
+                    const assists = readNumber(participant.assists);
+                    const kda = (kills + assists) / Math.max(1, deaths);
                     const championImageHtml = participant.championImagePath
-                        ? `<img src="${participant.championImagePath}" alt="${participant.champion}" class="champion-avatar" loading="lazy">`
+                        ? `<img src="${escapeHtml(participant.championImagePath)}" alt="${escapeHtml(participant.champion)}" class="champion-avatar" loading="lazy">`
                         : ``;
                     html += `<tr class="${getParticipantRowClass(participant)}">
-                        <td><a class="participant-link" href="${participantUrl}">${participantName}</a> ${selfBadge}</td>
-                        <td><a href="/champion/${encodeURIComponent(participant.champion)}" class="champion-link">${championImageHtml}<span>${escapeHtml(participant.champion)}</span></a></td>
-                        <td>${escapeHtml(participant.kills)}</td>
-                        <td>${escapeHtml(participant.deaths)}</td>
-                        <td>${escapeHtml(participant.assists)}</td>
+                        <td><a class="participant-link participant-link--with-avatar" href="${participantUrl}">${championImageHtml}<span>${participantName}</span></a> ${selfBadge}</td>
+                        <td>
+                            <div class="participant-kda">
+                                <div class="participant-kda-line">${kills} / ${deaths} / ${assists}</div>
+                                <div class="participant-kda-value">${formatCompactDecimal(kda, 2)} KDA</div>
+                            </div>
+                        </td>
                         <td>${escapeHtml(participant.gold)}</td>
                         <td>${buildParticipantItemsHtml(participant)}</td>
-                        <td>${escapeHtml(participant.team)}</td>
-                        <td>${escapeHtml(participant.won)}</td>
                     </tr>`;
                 });
                 html += `</table></div>`;
