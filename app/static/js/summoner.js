@@ -21,6 +21,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const loadedWinrateValue = document.getElementById("loaded-winrate");
     const loadedKdaValue = document.getElementById("loaded-kda");
     const refreshMessageStorageKey = `summoner-refresh:${name}#${tagline}`;
+    const itemTooltip = document.createElement("div");
+    itemTooltip.className = "item-tooltip";
+    itemTooltip.setAttribute("role", "tooltip");
+    itemTooltip.hidden = true;
+    document.body.appendChild(itemTooltip);
+    let activeItemSlot = null;
 
     function buildSummonerUrl(
         baseOffset = 0,
@@ -103,6 +109,35 @@ document.addEventListener("DOMContentLoaded", () => {
             .replace(/'/g, "&#39;");
     }
 
+    function formatItemDescriptionHtml(value) {
+        let html = escapeHtml(String(value ?? ""));
+
+        html = html.replace(/&lt;br\s*\/?&gt;/gi, "<br>");
+        html = html.replace(/&lt;\/?(?:mainText|stats)&gt;/gi, "");
+        html = html.replace(/&lt;passive&gt;([\s\S]*?)&lt;\/passive&gt;/gi, '<span class="item-tooltip__keyword">$1</span>');
+        html = html.replace(/&lt;active&gt;([\s\S]*?)&lt;\/active&gt;/gi, '<span class="item-tooltip__active">$1</span>');
+        html = html.replace(/&lt;attention&gt;([\s\S]*?)&lt;\/attention&gt;/gi, '<span class="item-tooltip__highlight">$1</span>');
+        html = html.replace(/&lt;trueDamage&gt;([\s\S]*?)&lt;\/trueDamage&gt;/gi, '<span class="item-tooltip__true-damage">$1</span>');
+        html = html.replace(/&lt;magicDamage&gt;([\s\S]*?)&lt;\/magicDamage&gt;/gi, '<span class="item-tooltip__magic-damage">$1</span>');
+        html = html.replace(/&lt;physicalDamage&gt;([\s\S]*?)&lt;\/physicalDamage&gt;/gi, '<span class="item-tooltip__physical-damage">$1</span>');
+        html = html.replace(
+            /&lt;font\s+color\s*=\s*(?:&#39;|&quot;)?([^&<>'"]+)(?:&#39;|&quot;)?\s*&gt;([\s\S]*?)&lt;\/font&gt;/gi,
+            (_, color, content) => {
+                const trimmedColor = String(color).trim();
+                const safeColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(trimmedColor)
+                    || /^rgba?\([\d\s.,%]+\)$/i.test(trimmedColor)
+                    || /^[a-z]+$/i.test(trimmedColor)
+                    ? trimmedColor
+                    : "var(--text)";
+
+                return `<span style="color: ${safeColor}; font-weight: 700;">${content}</span>`;
+            }
+        );
+        html = html.replace(/&lt;[^&]+?&gt;/gi, "");
+
+        return html.replace(/(?:<br>\s*){3,}/gi, "<br><br>").trim();
+    }
+
     function buildParticipantUrl(participant) {
         return `/summoner/${encodeURIComponent(participant.name || "")}/${encodeURIComponent(participant.tagline || "")}`;
     }
@@ -131,6 +166,103 @@ document.addEventListener("DOMContentLoaded", () => {
             return `<span class="${classes}" data-item-id="${itemId}" data-item-name="${itemName}" data-item-description="${itemDescription}" data-item-slot="${itemSlot}">${imageHtml}</span>`;
         }).join("")}</div>`;
     }
+
+    function hideItemTooltip() {
+        activeItemSlot = null;
+        itemTooltip.hidden = true;
+        itemTooltip.textContent = "";
+    }
+
+    function positionItemTooltip(slotElement) {
+        const slotRect = slotElement.getBoundingClientRect();
+        const tooltipRect = itemTooltip.getBoundingClientRect();
+        const viewportPadding = 8;
+        const gap = 10;
+        const centeredLeft = slotRect.left + (slotRect.width / 2);
+        let top = slotRect.top - gap;
+        let placement = "top";
+
+        if (top < viewportPadding) {
+            top = slotRect.bottom + gap;
+            placement = "bottom";
+        }
+
+        let left = centeredLeft;
+        if (left - (tooltipRect.width / 2) < viewportPadding) {
+            left = viewportPadding + (tooltipRect.width / 2);
+        }
+
+        if (left + (tooltipRect.width / 2) > window.innerWidth - viewportPadding) {
+            left = window.innerWidth - viewportPadding - (tooltipRect.width / 2);
+        }
+
+        itemTooltip.style.left = `${left}px`;
+        itemTooltip.style.top = `${top}px`;
+        itemTooltip.dataset.placement = placement;
+    }
+
+    function showItemTooltip(slotElement) {
+        const itemName = slotElement.dataset.itemName?.trim();
+        const itemDescription = slotElement.dataset.itemDescription?.trim();
+        const descriptionHtml = formatItemDescriptionHtml(itemDescription);
+
+        if (!itemName && !descriptionHtml) {
+            hideItemTooltip();
+            return;
+        }
+
+        itemTooltip.replaceChildren();
+
+        const title = document.createElement("div");
+        title.className = "item-tooltip__title";
+        title.textContent = itemName || "Item";
+        itemTooltip.appendChild(title);
+
+        if (itemDescription) {
+            const description = document.createElement("div");
+            description.className = "item-tooltip__description";
+            description.innerHTML = descriptionHtml;
+            itemTooltip.appendChild(description);
+        }
+
+        itemTooltip.hidden = false;
+        activeItemSlot = slotElement;
+        positionItemTooltip(slotElement);
+    }
+
+    function handleItemTooltipShow(event) {
+        const itemSlot = event.target.closest(".item-slot");
+        if (!itemSlot || !page.contains(itemSlot) || itemSlot.classList.contains("item-slot--empty")) {
+            return;
+        }
+
+        showItemTooltip(itemSlot);
+    }
+
+    function handleItemTooltipHide(event) {
+        if (activeItemSlot && (activeItemSlot === event.target || activeItemSlot.contains(event.relatedTarget))) {
+            return;
+        }
+
+        if (event.target.closest && event.target.closest(".item-slot")) {
+            hideItemTooltip();
+        }
+    }
+
+    document.addEventListener("mouseover", handleItemTooltipShow);
+    document.addEventListener("focusin", handleItemTooltipShow);
+    document.addEventListener("mouseout", handleItemTooltipHide);
+    document.addEventListener("focusout", handleItemTooltipHide);
+    window.addEventListener("scroll", () => {
+        if (activeItemSlot && !itemTooltip.hidden) {
+            positionItemTooltip(activeItemSlot);
+        }
+    }, true);
+    window.addEventListener("resize", () => {
+        if (activeItemSlot && !itemTooltip.hidden) {
+            positionItemTooltip(activeItemSlot);
+        }
+    });
 
     function buildFavoriteChampionRowHtml(favorite) {
         const gamesPlayed = readNumber(favorite.games_played);
