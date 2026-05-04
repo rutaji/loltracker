@@ -111,11 +111,10 @@
             <div class="table-shell">
                 <table>
                     <tr>
-                        <th>Patch</th>
                         <th>Queue</th>
                         <th>Total Matches Played</th>
-                        <th>Winrate</th>
                         <th>KDA</th>
+                        <th>Winrate</th>
                         <th>Pickrate</th>
                         <th>Banrate</th>
                     </tr>
@@ -123,11 +122,10 @@
                     <tbody id="stats-body">
                     {% for stat in championData.championStats %}
                     <tr>
-                        <td>{{ stat.version }}</td>
                         <td>{{ stat.queueDescription }}</td>
                         <td>{{ stat.gamesPlayed }}</td>
-                        <td>{{ "%.2f"|format(stat.winrate) }}%</td>
                         <td>{{ "%.2f"|format(stat.kda) }}</td>
+                        <td>{{ "%.2f"|format(stat.winrate) }}%</td>
                         <td>{{ "%.2f"|format(stat.pickrate) }}%</td>
                         <td>{{ "%.2f"|format(stat.banrate) }}%</td>
                     </tr>

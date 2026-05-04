@@ -168,6 +168,21 @@ def test_aggregate_stats_for_version_sums_modes():
     assert ranked.matchesAnalyzed == 220
 
 
+def test_champion_page_stats_only_include_primary_queues():
+    stats = [
+        ChampionStats(version="16.8.777.3456", queueId=420, queueDescription="Ranked Solo", wins=4, gamesPlayed=10, kills=20, deaths=10, assists=15, banned=2, matchesAnalyzed=100),
+        ChampionStats(version="16.8.777.3456", queueId=440, queueDescription="Ranked Flex", wins=3, gamesPlayed=8, kills=15, deaths=8, assists=12, banned=1, matchesAnalyzed=80),
+        ChampionStats(version="16.8.777.3456", queueId=450, queueDescription="ARAM", wins=5, gamesPlayed=9, kills=25, deaths=12, assists=30, banned=0, matchesAnalyzed=90),
+        ChampionStats(version="16.8.777.3456", queueId=1700, queueDescription="Arena", wins=9, gamesPlayed=12, kills=40, deaths=12, assists=10, banned=0, matchesAnalyzed=70),
+    ]
+
+    aggregated = aggregate_stats_for_version(stats, "16.8")
+    trend_series = build_trend_series(stats)
+
+    assert [stat.queueDescription for stat in aggregated] == ["ARAM", "Ranked Flex", "Ranked Solo"]
+    assert [series["queueDescription"] for series in trend_series] == ["ARAM", "Ranked Flex", "Ranked Solo"]
+
+
 def test_build_trend_series_groups_by_normalized_version():
     stats = [
         ChampionStats(version="16.8.777.3456", queueDescription="Ranked Solo", wins=4, gamesPlayed=10, kills=20, deaths=10, assists=15, banned=2, matchesAnalyzed=100),
