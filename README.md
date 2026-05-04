@@ -36,6 +36,7 @@ flowchart TD
 * This `README.md` contains quick introduction to the product, onboarding guide, local setup of the project and a rough user guide.
 * [`specification/specification.md`](specification/specification.md) provides product-oriented description: business objectives and motivation, planned user scenarios, functional requirements and scope.
 * [`specification/design.md`](specification/design.md) contains engineering-oriented documentation: technical architecture, UML diagrams, API contracts and DB schema.
+* [`specification/SQL-specification.md`](specification/SQL-specification.md) gives an in-depth overview of the database used within this project.
 
 ## 💻 Local development
 
@@ -81,9 +82,9 @@ To add test data into database: docker-compose exec api python -m  scripts.seed_
 
 ## 👥 Team
 
-* **Ondřej Braunšveig** (@OndrejBraunsveig) – Search functionality, Riot API calling, frontend design
-* **Martin Čížek** (@cizek-maritn) – FastAPI endpoints, endpoint services, documentation, observability
-* **Jiří Růta** (@rutaji) – PostgreSQL database, DAO, logging
+* **Ondřej Braunšveig** (@OndrejBraunsveig) – Search functionality, Riot API calling, frontend design, Summoner page
+* **Martin Čížek** (@cizek-maritn) – Champion page, Riot data ingestor, documentation, observability stack
+* **Jiří Růta** (@rutaji) – PostgreSQL database, DAO (Database Access Object), logging, deployment
 
 ## 📊 NFR Status
 

@@ -1,5 +1,7 @@
 # SQL specification
 
+This documentation is relevant for alembic versions until: ``9a4b6c7d8e90``
+
 ## Champion
 
 This table is about the playable characters in League of Legends, which are called Champions.
@@ -46,9 +48,9 @@ This table keeps track of a player's performance in Ranked play of League of Leg
 
 This table exists to keep track about how many times each Summoner played each Champion.
 
-```summoner_id``` and ```champion_id``` are foreign keys that point to entires in the **Summoner** and **Champion** tables respectively.
+```summoner_id```, ```champion_id``` and ``queue_id`` are foreign keys that point to entires in the **Summoner**, **Champion** and **Queue** tables respectively.
 
-```games_played``` and ```games_won``` are counters incremented via trigger based on data in **Match_Participant**.
+The remaining attributes are counters incremented via trigger based on data in **Match_Participant**.
 
 ## Queue
 
@@ -132,7 +134,7 @@ Below is a rundown of the indices present in the database.
 
 **Summoner_Queue** - ``summoner_id`` and ``queue_id``
 
-**Summoner_Champion** - ``summoner_id`` and ``champion_id``
+**Summoner_Champion** - ``summoner_id``, ``champion_id`` and ``queue_id``
 
 **Queue** - ``id``
 
