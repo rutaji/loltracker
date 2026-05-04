@@ -45,8 +45,7 @@ select {
 .top-bar,
 .summoner-hero,
 .favorite-champions,
-.matches-section,
-.compact-search {
+.matches-section {
     background: var(--panel-soft);
     border: 1px solid var(--border);
     border-radius: 24px;
@@ -57,9 +56,12 @@ select {
     padding: 18px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 18px;
     margin-bottom: 24px;
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
 }
 
 .home-link {
@@ -67,15 +69,16 @@ select {
     align-items: center;
     color: var(--text);
     text-decoration: none;
-    padding: 12px 16px;
+    padding: 12px 14px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(118, 212, 255, 0.24);
+    font-weight: 700;
+    min-height: 46px;
 }
 
 .compact-search {
-    padding: 18px;
-    flex: 1;
-    max-width: 760px;
+    width: min(100%, 620px);
 }
 
 .compact-search h2 {
@@ -86,10 +89,22 @@ select {
 .search-fields {
     display: flex;
     gap: 12px;
+    align-items: center;
 }
 
 .search-fields input {
     flex: 1;
+}
+
+.top-bar .search-fields input {
+    min-height: 46px;
+}
+
+.search-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
 }
 
 .summoner-hero {
@@ -114,7 +129,7 @@ select {
 
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 220px));
+    grid-template-columns: minmax(0, 220px);
     gap: 16px;
 }
 
@@ -722,7 +737,8 @@ select {
 
 .search-fields button,
 .load-more-button {
-    padding: 10px 14px;
+    padding: 12px 18px;
+    min-height: 46px;
     border-radius: 999px;
     border: 0;
     background: linear-gradient(135deg, var(--accent), var(--accent-strong));
@@ -796,6 +812,11 @@ select {
 
     .search-fields {
         flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-actions {
+        justify-content: flex-start;
     }
 
     .summary-grid {

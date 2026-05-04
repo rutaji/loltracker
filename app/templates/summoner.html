@@ -20,13 +20,15 @@
         data-favorite-queue-filter="{{ favorite_queue_filter }}"
     >
         <section class="top-bar">
-            <a href="/" class="home-link">Back to Search</a>
             <form method="post" action="{{ request.url_for('search') }}" id="summoner_form" class="compact-search">
                 <h2>Summoner Search</h2>
                 <div class="search-fields">
-                    <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
-                    <input type="text" name="summoner_tagline" minlength="3" maxlength="5" placeholder="EUW" required>
-                    <button type="submit">Search</button>
+                    <input type="text" name="summoner_name" placeholder="Enter name..." required>
+                    <input type="text" name="summoner_tagline" minlength="3" maxlength="5" placeholder="Enter tagline..." required>
+                    <div class="search-actions">
+                        <button type="submit">Search</button>
+                        <a href="/" class="home-link">Back</a>
+                    </div>
                 </div>
             </form>
         </section>
@@ -38,12 +40,8 @@
             </div>
             <div class="summary-grid">
                 <article class="stat-card">
-                    <span>Winrate</span>
-                    <strong>{{ "%.2f"|format(summoner.winrate) }}%</strong>
-                </article>
-                <article class="stat-card">
-                    <span>KDA</span>
-                    <strong>{{ "%.2f"|format(summoner.kda) }}</strong>
+                    <span>Games in Database</span>
+                    <strong>{{ summoner.gamesPlayed }}</strong>
                 </article>
             </div>
             {% if summoner.divisions %}

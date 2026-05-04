@@ -12,12 +12,14 @@
 <body data-champion-name="{{ championData.name }}" data-selected-version="{{ version }}">
     <main class="champion-page">
         <section class="top-bar">
-            <a href="/" class="home-link">Back to Search</a>
             <form method="post" action="{{ request.url_for('search') }}" id="champion_form" class="compact-search" autocomplete="off">
                 <h2>Champion Search</h2>
                 <div class="search-fields">
                     <input type="text" name="champion_name" placeholder="Enter champion's name..." required>
-                    <button type="submit">Search</button>
+                    <div class="search-actions">
+                        <button type="submit">Search</button>
+                        <a href="/" class="home-link">Back</a>
+                    </div>
                 </div>
             </form>
         </section>
