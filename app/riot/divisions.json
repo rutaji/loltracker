@@ -1,0 +1,30 @@
+[
+    {
+        "leagueId": "d3c6f500-b60e-4998-9c4c-ca951ddc7cf9",
+        "queueType": "RANKED_FLEX_SR",
+        "tier": "EMERALD",
+        "rank": "I",
+        "puuid": "AxmgOa6zJOsuSeKw75g3d2vZDcl28JZwVs1ZoD3s_bml9dSxfl6LhCPYU-Ulpu0fehR4OHB77RnQPw",
+        "leaguePoints": 96,
+        "wins": 22,
+        "losses": 33,
+        "veteran": false,
+        "inactive": false,
+        "freshBlood": false,
+        "hotStreak": true
+    },
+    {
+        "leagueId": "c6dd8c9e-29b2-4076-a4e5-2218140063c6",
+        "queueType": "RANKED_SOLO_5x5",
+        "tier": "DIAMOND",
+        "rank": "IV",
+        "puuid": "AxmgOa6zJOsuSeKw75g3d2vZDcl28JZwVs1ZoD3s_bml9dSxfl6LhCPYU-Ulpu0fehR4OHB77RnQPw",
+        "leaguePoints": 10,
+        "wins": 21,
+        "losses": 20,
+        "veteran": false,
+        "inactive": false,
+        "freshBlood": true,
+        "hotStreak": false
+    }
+]

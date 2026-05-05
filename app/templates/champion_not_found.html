@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Champion Not Found</title>
+    <link href="{{ url_for('static', path='css/champion_not_found.css') }}" rel="stylesheet">
+</head>
+<body>
+    <main class="not-found-page">
+        <section class="message-card">
+            <p class="eyebrow">Search Result</p>
+            <h1>Champion Not Found</h1>
+            <p class="message">No champion named <strong>{{ searched_name }}</strong> was found.</p>
+            <a href="/" class="home-link">Return to search</a>
+        </section>
+
+        <form method="post" action="{{ request.url_for('search') }}" id="champion_form" class="retry-form">
+            <h2>Try Another Champion</h2>
+            <label for="champion_name">Name</label>
+            <input type="text" name="champion_name" placeholder="Enter champion's name..." required>
+            <button type="submit">Search</button>
+        </form>
+    </main>
+</body>
+</html>

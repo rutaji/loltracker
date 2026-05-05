@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summoner Not Found</title>
+    <link href="{{ url_for('static', path='css/summoner_not_found.css') }}" rel="stylesheet">
+</head>
+<body>
+    <main class="not-found-page">
+        <section class="message-card">
+            <p class="eyebrow">Search Result</p>
+            <h1>Summoner Not Found</h1>
+            <p class="message"><strong>{{ searched_name }}#{{ searched_tagline }}</strong> does not exist.</p>
+            <a href="/" class="home-link">Return to search</a>
+        </section>
+
+        <form method="post" action="{{ request.url_for('search') }}" id="summoner_form" class="retry-form">
+            <h2>Try Another Summoner</h2>
+            <label for="summoner_name">Name</label>
+            <input type="text" name="summoner_name" placeholder="Enter summoner's name..." required>
+            <label for="summoner_tagline">Tagline</label>
+            <input type="text" name="summoner_tagline" minlength="3" maxlength="5" required>
+            <button type="submit">Search</button>
+        </form>
+    </main>
+</body>
+</html>

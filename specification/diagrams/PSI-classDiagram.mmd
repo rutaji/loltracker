@@ -1,0 +1,96 @@
+---
+id: e0c1a08d-345e-4ad1-8d80-7de94954b106
+---
+classDiagram
+        %%Gamemode attributes
+        Gamemode : -String name
+
+        %%GameVersion attributes
+        GameVersion : -String version
+
+        %%Match attributes
+        Match : -String id
+        Match : -datetime match_begin
+        Match : -datetime match_end
+        Match : -Gamemode gamemode
+        Match : -GameVersion game_version
+        Match : -MatchParticipant[] summoners
+
+        %%Match functions
+        Match : +time getMatchLength()
+        Match : +Match[] getMatchHistory(Summoner s)
+
+        %%MatchParticipant attributes
+        MatchParticipant : -Summoner summoner
+        MatchParticipant : -int kills
+        MatchParticipant : -int deaths
+        MatchParticipant : -int assists
+        MatchParticipant : -int gold
+        MatchParticipant : -int team
+        MatchParticipant : -bool win
+        MatchParticipant : -Champion champion
+        MatchParticipant : -Item[] bought_items
+
+        %%MatchParticipant functions
+        MatchParticipant : +void updateSummonerStats()
+        MatchParticipant : +void updateGlobalChampionStats()
+
+        %%Summoner attributes
+        Summoner : -int wins
+        Summoner : -int games_played
+        Summoner : -String name
+        Summoner : -String tagline
+        Summoner : -String riot_id
+        Summoner : -ChampionStats[] favorite_champions
+        Summoner : -int kills
+        Summoner : -int deaths
+        Summoner : -int assists
+
+        %%Summoner functions
+        Summoner : +double getWinRate()
+        Summoner : +double getKDA()
+
+        %%Champion attributes
+        Champion : -String name
+        Champion : -ChampionModeStats[] mode_stats
+
+        %%Item attributes
+        Item : -String name
+        Item : -int price
+        Item : -String item_details
+
+        %%ChampionModeStats attributes
+        ChampionModeStats : -Champion champion
+        ChampionModeStats : -GameVersion game_version
+        ChampionModeStats : -Gamemode gamemode
+        ChampionModeStats : -int games_played
+        ChampionModeStats : -int games_won
+        ChampionModeStats : -int games_banned
+        ChampionModeStats : -int games_analyzed
+
+        %%ChampionModeStats functions
+        ChampionModeStats : +double getModeChampionWinRate()
+        ChampionModeStats : +double getModeChampionBanRate()
+        ChampionModeStats : +double getModeChampionPickRate()
+        ChampionModeStats : +double getModeChampionKDA()
+
+        %%ChampionPlayerStats attributes
+        ChampionPlayerStats : -Champion champion
+        ChampionPlayerStats : -int games_played
+        ChampionPlayerStats : -int games_won
+
+        %%ChampionPlayerStats functions
+        ChampionPlayerStats : +double getPlayerChampionWinRate()
+
+        %%Class connections
+        Match "1"*--"*"MatchParticipant
+        MatchParticipant "*"o--"1"Champion
+        MatchParticipant "*"-->"1"Summoner
+        MatchParticipant "*"o--"*"Item
+        Summoner "1"*--"*"ChampionPlayerStats
+        ChampionPlayerStats "*"o--"1"Champion
+        Gamemode "1"--o"*" Match
+        GameVersion "1"--o"*" Match
+        GameVersion "1"--o"*" ChampionModeStats
+        Gamemode "1"--o"*" ChampionModeStats
+        Champion "1"--o"*" ChampionModeStats
