@@ -90,7 +90,7 @@ For more detailed information, see [`SQL-specification.md`](SQL-specification.md
 ## 📊 NFR Status
 
 The NFRs of this project:
-* ✅ Production: [Link](https://fastapi-app.calmrock-7cb3a497.polandcentral.azurecontainerapps.io/) to the app in Production environment
+* ✅ Production: [Link](https://fastapi-app.calmrock-7cb3a497.polandcentral.azurecontainerapps.io/) to the app in Production environment (Azure). Because Azure decided to hate our group and not allow us to create a CD pipeline, we have created one that hosts the project [here](http://130.61.254.157:8000/) (Oracle). The Oracle app only contains the main app and database (no metrics or ingestor), but is automatically deployed. The Azure app has all features, but can only be deployed manually.
 * ✅ Monitoring: [Link](https://portal.azure.com/#@tulib.onmicrosoft.com/resource/subscriptions/3e7579de-1963-4142-832d-f1fb66426b85/resourceGroups/loltrackerResourceGroup/providers/Microsoft.Insights/components/loltracker-insights/overview) to Azure App Insights (monitoring dashboard)
 * ✅ Tests: Code coverage badge and latest unit & integration test results on `develop` branch
-* ✅ CI/CD: [Link](https://github.com/rutaji/loltracker/actions) to GitHub actions forming fully autonomous testing of code from `feat` branches to `develop`.
+* ✅ CI/CD: [Link](https://github.com/rutaji/loltracker/actions) to GitHub actions forming fully autonomous testing of code from `feat` branches to `develop`. There is also a GitHub action that automatically deploys the app to Oracle from the `deploy` branch.
